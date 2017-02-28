@@ -1,0 +1,5 @@
+.idea/
+.timestamp
+resources/
+/cmake-*/
+config.xml

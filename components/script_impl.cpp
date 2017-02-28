@@ -1,0 +1,101 @@
+//
+// Created by fotyev on 2017-01-28.
+//
+
+#include "script.hpp"
+#define CHAISCRIPT_NO_THREADS
+#define CHAISCRIPT_NO_THREADS_WARNING
+#include <chaiscript/dispatchkit/dispatchkit.hpp>
+#include <chaiscript/dispatchkit/register_function.hpp>
+//#include <chaiscript/chaiscript.hpp>
+#include "util/assert.hpp"
+
+
+#include "components/modules.hpp"
+/*<
+        join "", map { qq(\n#include "$_"\n) } (dispatch_s('module_headers'));#, dispatch('component_headers')) .  ;
+    %*/
+#include "examples/pong/controller.hpp"
+
+#include "modules/fps.hpp"
+
+#include "modules/optionbox.hpp"
+/*>*/
+
+
+//#include "game/world.hpp"
+
+//#include "opengl/math.hpp"
+
+using namespace chaiscript;
+ModulePtr script_register_bindings(ModulePtr m)
+{
+    auto& chai = *m;
+
+
+    auto modules = g_app->modules.get();
+    chai.add(user_type<basic_module>(), "basic_module");
+    chai.add(fun(&modules_c::get, modules), "get_module");
+    chai.add(fun(&modules_c::unload, modules), "unload_module");
+    chai.add(fun(&modules_c::loaded, modules), "is_loaded_module");
+/*
+	chai.add(user_type<voxel_ctx>(), "Vpos");
+	chai.add(constructor<voxel_ctx ()>(), "Vpos");
+	chai.add(constructor<voxel_ctx (const voxel_ctx&)>(), "Vpos");
+	chai.add(fun([](const voxel_ctx& p) -> int { return p.pos[0];}), "get_x");
+	chai.add(fun([](const voxel_ctx& p) -> int { return p.pos[1];}), "get_y");
+	chai.add(fun([](const voxel_ctx& p) -> int { return p.pos[2];}), "get_z");
+	chai.add(fun([](int x, int y, int z) -> voxel_ctx { return voxel_ctx{x,y,z};}), "Vpos");
+	///chai.add(fun(voxel_ctx::pos[1]), "y");
+	///chai.add(fun(voxel_ctx::pos[2]), "z");
+*/
+
+/*<
+    #use Data::Dumper;
+    my $s='';
+
+    for my $module (dispatch('modules')) {
+    my $name = $module->{class};
+    my $sname = $name;# ~ s/::/_/g;
+    #add class
+    $s .= qq[\n\tchai.add(user_type<$name>(), "$sname");];
+    $s .= qq[\n\tchai.add(base_class<basic_module, $name>());];
+
+    #add functions
+    $s .= qq[\n\tchai.add(fun(&$name::$_), "$_");] for (@{$module->{scriptexport}});
+
+    #add constructors
+    my $ctors = $module->{ctors} // [''];
+    $s .= qq[\n\tchai.add(fun(&modules_c::load<$name] .((length $_)?", $_":'') . qq[>, modules), "load_${sname}");] for (@$ctors);
+    #$s .=         Dumper($module);
+    }
+
+    for my $c (dispatch('components')) {
+    my $name = $c->{interface} // $c->{class};
+    $s .= qq[\n\tchai.add(fun(&$name::$_, g_app->$c->{name}.get()), "$c->{name}_${_}");] for (@{$c->{scriptexport}})
+    }
+    $s;
+
+%*/
+	chai.add(user_type<fps>(), "fps");
+	chai.add(base_class<basic_module, fps>());
+	chai.add(fun(&modules_c::load<fps>, modules), "load_fps");
+	chai.add(user_type<gamecontroller>(), "gamecontroller");
+	chai.add(base_class<basic_module, gamecontroller>());
+	chai.add(fun(&gamecontroller::startgame), "startgame");
+	chai.add(fun(&modules_c::load<gamecontroller>, modules), "load_gamecontroller");
+	chai.add(user_type<optionbox>(), "optionbox");
+	chai.add(base_class<basic_module, optionbox>());
+	chai.add(fun(&optionbox::add), "add");
+	chai.add(fun(&optionbox::clear), "clear");
+	chai.add(fun(&optionbox::update), "update");
+	chai.add(fun(&optionbox::set_offset), "set_offset");
+	chai.add(fun(&modules_c::load<optionbox>, modules), "load_optionbox");
+	chai.add(fun(&modules_c::load<optionbox, float,float>, modules), "load_optionbox");
+	chai.add(fun(&modules_c::get, g_app->modules.get()), "modules_get");
+	chai.add(fun(&modules_c::loaded, g_app->modules.get()), "modules_loaded");
+	chai.add(fun(&modules_c::unload, g_app->modules.get()), "modules_unload");
+	chai.add(fun(&netgame_i::id, g_app->netgame.get()), "netgame_id");
+	chai.add(fun(&netgame_i::nodes_list, g_app->netgame.get()), "netgame_nodes_list");/*>*/
+    return m;
+}
