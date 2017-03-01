@@ -48,7 +48,7 @@ public:
             boost::apply_visitor(*this, input.event);
     }
 
-    //=- register_event(name=>'movement', params=>[[qw(int8_t x)], [qw(int8_t y)]]);
+    //=- register_event(name=>'movement', params=>[[qw(int32_t x)], [qw(int32_t y)]]);
     void operator()(event::movement m)
     {
         using namespace qvm;

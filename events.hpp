@@ -66,7 +66,7 @@ struct connect_ack {static constexpr unsigned index = 0; uint32_t tick; SERIALIZ
 struct connect_req {static constexpr unsigned index = 1; SERIALIZABLE()};
 struct game_start {static constexpr unsigned index = 2; SERIALIZABLE()};
 struct game_start_ack {static constexpr unsigned index = 3; SERIALIZABLE()};
-struct movement {static constexpr unsigned index = 4; int8_t x; int8_t y; SERIALIZABLE((x)(y))};
+struct movement {static constexpr unsigned index = 4; int32_t x; int32_t y; SERIALIZABLE((x)(y))};
 struct null {static constexpr unsigned index = 5; SERIALIZABLE()};
 
 #define EVENTS_SEQ (connect_ack)(connect_req)(game_start)(game_start_ack)(movement)(null)/*>*/
