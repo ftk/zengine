@@ -16,15 +16,26 @@
 #include "util/log.hpp"
 #include "util/assert.hpp"
 
-class paddle : public entity_t
+#include "collision.hpp"
+
+static col::simple_collider collider;
+
+class paddle : public entity_t, public col::object
 {
 public:
     qvm::vec2 pos;
     net_node_id player;
 
-    constexpr paddle(qvm::vec2 pos, net_node_id player) : pos(std::move(pos)), player(std::move(player)) {}
+    paddle(qvm::vec2 pos, net_node_id player) : pos(std::move(pos)), player(std::move(player)) {
+        collider.objs.push_back(this);
+    }
 
     static constexpr auto size = qvm::vec2{0.05, 0.10};
+    col::box bounding_box() const override
+    {
+        return col::box{pos + size/2, size};
+    }
+
     void draw() override
     {
         auto& texture = g_app->textures->get_from_file("resources/paddle.png");
@@ -51,13 +62,30 @@ public:
 
 };
 
-class ball : public entity_t
+class ball : public entity_t, public col::object
 {
 public:
     qvm::vec2 pos, vel;
     static constexpr qvm::vec2 size {0.01, 0.01};
 
-    constexpr ball(qvm::vec2 pos, qvm::vec2 vel) : pos(std::move(pos)), vel(std::move(vel)) {}
+    ball(qvm::vec2 pos, qvm::vec2 vel) : pos(std::move(pos)), vel(std::move(vel)) {
+        collider.objs.push_back(this);
+    }
+
+    col::box bounding_box() const override
+    {
+        return col::box{pos + size/2, size};
+    }
+
+    void collide(col::object * obj) override
+    {
+        using namespace qvm;
+        try
+        {
+            auto dir = normalized(pos - obj->bounding_box().center);
+            vel = dir / 500;
+        } catch(qvm::error) {}
+    }
 
 public:
 
@@ -65,7 +93,7 @@ public:
     {
         pos += vel;
         // collision
-
+        collider.test_object(this);
     }
 
     void draw() override
@@ -117,7 +145,7 @@ public:
         started = true;
         sim.state().emplace<paddle>(qvm::vec2{-0.5,0}, std::min(local, remote));
         sim.state().emplace<paddle>(qvm::vec2{0.5,0}, std::max(local, remote));
-        sim.state().emplace<ball>(qvm::vec2{0,0}, qvm::vec2{0.0001,0});
+        sim.state().emplace<ball>(qvm::vec2{0,0}, qvm::vec2{0.005,0});
         //sim.state().insert(new paddle{qvm::vec2{0.5,0}, std::max(local, remote)});
         //sim.state().insert(new ball{qvm::vec2{0,0}, qvm::vec2{0.01,0}});
         //g_app->modules->
@@ -161,9 +189,9 @@ public:
             case SDL_KEYDOWN:
                 switch(ev.key.keysym.scancode)
                 {
-                    case SDL_SCANCODE_W:
-                        push_local(event::movement{0,-1}); return false;
                     case SDL_SCANCODE_S:
+                        push_local(event::movement{0,-1}); return false;
+                    case SDL_SCANCODE_W:
                         push_local(event::movement{0,1}); return false;
                     case SDL_SCANCODE_A:
                         push_local(event::movement{-1,0}); return false;
@@ -171,8 +199,14 @@ public:
                         push_local(event::movement{1,0}); return false;
                     default:
                         break;
-                }
+                }break;
+            case SDL_MOUSEMOTION:
+            {
+                push_local(event::movement{ev.motion.xrel/6, -ev.motion.yrel/6});
+                return false;
+            }
         }
+
         return true;
     }
 
