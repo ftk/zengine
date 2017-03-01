@@ -5,7 +5,7 @@
 #ifndef ZENGINE_GAME_HPP
 #define ZENGINE_GAME_HPP
 
-//#include <SDL2/SDL.h>
+//#include <SDL.h>
 #include <boost/noncopyable.hpp>
 //#include <boost/container/stable_vector.hpp>
 #include <memory>

@@ -97,7 +97,7 @@ BOOST_PP_SEQ_FOR_EACH(EVENT_VISITOR_HELPER, f1, EVENTS_SEQ) \
 }}(e,f);
 
 
-#include <SDL2/SDL_timer.h>
+#include <SDL_timer.h>
 
 typedef uint32_t tick_t;
 

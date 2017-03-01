@@ -18,7 +18,7 @@
 #include <boost/lexical_cast.hpp>
 #include <opengl/render2d.hpp>
 
-#include <SDL2/SDL_pixels.h>
+#include <SDL_pixels.h>
 
 #include "util/sdl_workaround.hpp"
 

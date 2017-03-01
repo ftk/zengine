@@ -5,9 +5,9 @@
 #ifndef ZENGINE_SDL_WORKAROUND_HPP
 #define ZENGINE_SDL_WORKAROUND_HPP
 
-#include <SDL2/SDL_version.h>
+#include <SDL_version.h>
 
-#include <SDL2/SDL_pixels.h>
+#include <SDL_pixels.h>
 
 #if !SDL_VERSION_ATLEAST(2,0,5)
 

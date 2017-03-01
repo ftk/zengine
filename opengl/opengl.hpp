@@ -6,12 +6,12 @@
 #define ZENGINE_OPENGL_HPP
 
 /*
-#include <SDL2/SDL_opengles2_khrplatform.h>
-#include <SDL2/SDL_opengles2_gl2platform.h>
-#include <SDL2/SDL_opengles2_gl2.h>
+#include <SDL_opengles2_khrplatform.h>
+#include <SDL_opengles2_gl2platform.h>
+#include <SDL_opengles2_gl2.h>
 */
 
-#include <SDL2/SDL_video.h>
+#include <SDL_video.h>
 
 #include <stdexcept>
 

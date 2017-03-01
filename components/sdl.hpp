@@ -12,9 +12,9 @@
 #include <SDL2pp/SDL.hh>
 
 
-#include <SDL2/SDL_mixer.h>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
+#include <SDL_mixer.h>
+#include <SDL.h>
+#include <SDL_image.h>
 
 //=- register_component(class=>'sdl_c', name=>'sdl_init', priority=>5);
 class sdl_c

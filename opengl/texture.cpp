@@ -9,7 +9,7 @@
 
 #include "util/geometry.hpp"
 #include <SDL2pp/Surface.hh>
-#include <SDL2/SDL_pixels.h>
+#include <SDL_pixels.h>
 
 #include "util/sdl_workaround.hpp"
 

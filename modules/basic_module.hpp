@@ -5,7 +5,7 @@
 #ifndef ZENGINE_BASIC_MODULE_HPP
 #define ZENGINE_BASIC_MODULE_HPP
 
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include "util/movable.hpp"
 
 struct basic_module
