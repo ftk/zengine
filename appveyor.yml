@@ -29,30 +29,30 @@ install:
 - 7z x -y "%MINGW_ARCHIVE%" > nul
 - set Path=%CD%\%MINGW_DIR%\bin;%Path%
 # install sdl2
-# install SDL2_mixer-devel-2.0.1-mingw.tar.gz
-- if not exist "SDL2_mixer-devel-2.0.1-mingw.tar.gz" appveyor DownloadFile "https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-devel-2.0.1-mingw.tar.gz" -FileName "SDL2_mixer-devel-2.0.1-mingw.tar.gz"
-- 7z e -y "SDL2_mixer-devel-2.0.1-mingw.tar.gz"
-- 7z x -y "SDL2_mixer-devel-2.0.1-mingw.tar"
-- if "%MINGW_DIR%" == "mingw64" xcopy /s /e "SDL2_mixer-2.0.1\x86_64-w64-mingw32" "%MINGW_DIR%"
-- if "%MINGW_DIR%" == "mingw32" xcopy /s /e "SDL2_mixer-2.0.1\i686-w64-mingw32" "%MINGW_DIR%"
-# install SDL2_ttf-devel-2.0.14-mingw.tar.gz
-- if not exist "SDL2_ttf-devel-2.0.14-mingw.tar.gz" appveyor DownloadFile "https://www.libsdl.org/projects/SDL_ttf/release/SDL2_ttf-devel-2.0.14-mingw.tar.gz" -FileName "SDL2_ttf-devel-2.0.14-mingw.tar.gz"
-- 7z e -y "SDL2_ttf-devel-2.0.14-mingw.tar.gz"
-- 7z x -y "SDL2_ttf-devel-2.0.14-mingw.tar"
-- if "%MINGW_DIR%" == "mingw64" xcopy /s /e "SDL2_ttf-2.0.14\x86_64-w64-mingw32" "%MINGW_DIR%"
-- if "%MINGW_DIR%" == "mingw32" xcopy /s /e "SDL2_ttf-2.0.14\i686-w64-mingw32" "%MINGW_DIR%"
 # install SDL2_image-devel-2.0.1-mingw.tar.gz
 - if not exist "SDL2_image-devel-2.0.1-mingw.tar.gz" appveyor DownloadFile "https://www.libsdl.org/projects/SDL_image/release/SDL2_image-devel-2.0.1-mingw.tar.gz" -FileName "SDL2_image-devel-2.0.1-mingw.tar.gz"
 - 7z e -y "SDL2_image-devel-2.0.1-mingw.tar.gz"
 - 7z x -y "SDL2_image-devel-2.0.1-mingw.tar"
-- if "%MINGW_DIR%" == "mingw64" xcopy /s /e "SDL2_image-2.0.1\x86_64-w64-mingw32" "%MINGW_DIR%"
-- if "%MINGW_DIR%" == "mingw32" xcopy /s /e "SDL2_image-2.0.1\i686-w64-mingw32" "%MINGW_DIR%"
+- if "%MINGW_DIR%" == "mingw64" xcopy /y /e "SDL2_image-2.0.1\x86_64-w64-mingw32" "%MINGW_DIR%"
+- if "%MINGW_DIR%" == "mingw32" xcopy /y /e "SDL2_image-2.0.1\i686-w64-mingw32" "%MINGW_DIR%"
+# install SDL2_mixer-devel-2.0.1-mingw.tar.gz
+- if not exist "SDL2_mixer-devel-2.0.1-mingw.tar.gz" appveyor DownloadFile "https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-devel-2.0.1-mingw.tar.gz" -FileName "SDL2_mixer-devel-2.0.1-mingw.tar.gz"
+- 7z e -y "SDL2_mixer-devel-2.0.1-mingw.tar.gz"
+- 7z x -y "SDL2_mixer-devel-2.0.1-mingw.tar"
+- if "%MINGW_DIR%" == "mingw64" xcopy /y /e "SDL2_mixer-2.0.1\x86_64-w64-mingw32" "%MINGW_DIR%"
+- if "%MINGW_DIR%" == "mingw32" xcopy /y /e "SDL2_mixer-2.0.1\i686-w64-mingw32" "%MINGW_DIR%"
+# install SDL2_ttf-devel-2.0.14-mingw.tar.gz
+- if not exist "SDL2_ttf-devel-2.0.14-mingw.tar.gz" appveyor DownloadFile "https://www.libsdl.org/projects/SDL_ttf/release/SDL2_ttf-devel-2.0.14-mingw.tar.gz" -FileName "SDL2_ttf-devel-2.0.14-mingw.tar.gz"
+- 7z e -y "SDL2_ttf-devel-2.0.14-mingw.tar.gz"
+- 7z x -y "SDL2_ttf-devel-2.0.14-mingw.tar"
+- if "%MINGW_DIR%" == "mingw64" xcopy /y /e "SDL2_ttf-2.0.14\x86_64-w64-mingw32" "%MINGW_DIR%"
+- if "%MINGW_DIR%" == "mingw32" xcopy /y /e "SDL2_ttf-2.0.14\i686-w64-mingw32" "%MINGW_DIR%"
 # install SDL2-devel-2.0.5-mingw.tar.gz
 - if not exist "SDL2-devel-2.0.5-mingw.tar.gz" appveyor DownloadFile "https://www.libsdl.org/release/SDL2-devel-2.0.5-mingw.tar.gz" -FileName "SDL2-devel-2.0.5-mingw.tar.gz"
 - 7z e -y "SDL2-devel-2.0.5-mingw.tar.gz"
 - 7z x -y "SDL2-devel-2.0.5-mingw.tar"
-- if "%MINGW_DIR%" == "mingw64" xcopy /s /e "SDL2-2.0.5\x86_64-w64-mingw32" "%MINGW_DIR%"
-- if "%MINGW_DIR%" == "mingw32" xcopy /s /e "SDL2-2.0.5\i686-w64-mingw32" "%MINGW_DIR%"
+- if "%MINGW_DIR%" == "mingw64" xcopy /y /e "SDL2-2.0.5\x86_64-w64-mingw32" "%MINGW_DIR%"
+- if "%MINGW_DIR%" == "mingw32" xcopy /y /e "SDL2-2.0.5\i686-w64-mingw32" "%MINGW_DIR%"
 # install boost
 - if not exist "boost_1_63_0.7z" appveyor DownloadFile "https://sourceforge.net/projects/boost/files/boost/1.63.0/boost_1_63_0.7z/download" -FileName "boost_1_63_0.7z"
 - 7z x -y "boost_1_63_0.7z"
