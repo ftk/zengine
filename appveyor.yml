@@ -29,8 +29,8 @@ install:
 - if not exist "SDL2-devel-2.0.5-mingw.tar.gz" appveyor DownloadFile "https://www.libsdl.org/release/SDL2-devel-2.0.5-mingw.tar.gz" -FileName "SDL2-devel-2.0.5-mingw.tar.gz"
 - 7z e -y "SDL2-devel-2.0.5-mingw.tar.gz"
 - 7z x -y "SDL2-devel-2.0.5-mingw.tar"
-- if "%MINGW_DIR%" = "mingw64" xcopy /s /e SDL2-2.0.5\x86_64-w64-mingw32 "%MINGW_DIR%"
-- if "%MINGW_DIR%" = "mingw32" xcopy /s /e SDL2-2.0.5\i686-w64-mingw32 "%MINGW_DIR%"
+- if "%MINGW_DIR%" == "mingw64" xcopy /s /e SDL2-2.0.5\x86_64-w64-mingw32 "%MINGW_DIR%"
+- if "%MINGW_DIR%" == "mingw32" xcopy /s /e SDL2-2.0.5\i686-w64-mingw32 "%MINGW_DIR%"
 # install boost
 - if not exist "boost_1_63_0.7z" appveyor DownloadFile "https://sourceforge.net/projects/boost/files/boost/1.63.0/boost_1_63_0.7z/download" -FileName "boost_1_63_0.7z"
 - 7z x -y "boost_1_63_0.7z"
