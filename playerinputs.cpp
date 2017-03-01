@@ -25,6 +25,8 @@
 
 #include <boost/preprocessor/cat.hpp>
 
+#include <sstream>
+
 std::string serialize(const tick_input_t& event)
 {
     std::ostringstream ss;
