@@ -72,7 +72,7 @@ set(HEADER_FILES application.hpp playerinputs.hpp
         gamestate.hpp entity.hpp
          opengl/render2d.hpp components/sdl.hpp
         modules/config_binds.hpp opengl/resource.hpp components/script.hpp modules/optionbox.hpp
-        events.hpp components/netgame.hpp util/log.hpp util/flist.hpp components/netgame_impl.hpp)
+        events.hpp components/netgame.hpp util/log.hpp util/flist.hpp components/netgame_impl.hpp util/sdl_workaround.hpp)
 
 set(SOURCE_FILES application.cpp main.cpp
         components/script_impl.cpp components/collections.cpp components/modules.cpp components/network.cpp   components/config.cpp components/window.cpp components/script.cpp

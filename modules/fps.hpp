@@ -20,6 +20,8 @@
 
 #include <SDL2/SDL_pixels.h>
 
+#include "util/sdl_workaround.hpp"
+
 /*< register_module(class=>'fps', name=>'fps'); >*/
 
 class fps : public basic_module

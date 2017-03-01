@@ -11,6 +11,7 @@
 #include <SDL2pp/Surface.hh>
 #include <SDL2/SDL_pixels.h>
 
+#include "util/sdl_workaround.hpp"
 
 texture::texture(SDL2pp::Surface&& surface)
 {
