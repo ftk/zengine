@@ -23,7 +23,7 @@ addons:
 
 cache:
   directories:
-    - ${TRAVIS_BUILD_DIR}/deps/llvm-3.9.1
+    - ${TRAVIS_BUILD_DIR}/deps/llvm-3.9.0
     - ${TRAVIS_BUILD_DIR}/deps/llvm-3.8.1
     - ${TRAVIS_BUILD_DIR}/deps/boost-1.63.0
 
@@ -36,7 +36,7 @@ matrix:
 
     # Clang 3.9
     - os: linux
-      env: LLVM_VERSION=3.9.1 BOOST_VERSION=default BOOST_BUILD=clang
+      env: LLVM_VERSION=3.9.0 BOOST_VERSION=default BOOST_BUILD=clang
       compiler: clang
       
     # Clang 3.8
@@ -63,7 +63,7 @@ install:
   - if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
 
   ############################################################################
-  # Install Boost headers
+  # Install Boost
   ############################################################################
   - |
     if [[ "${BOOST_VERSION}" != "" ]]; then
@@ -77,6 +77,12 @@ install:
           BOOST_URL="http://sourceforge.net/projects/boost/files/boost/${BOOST_VERSION}/boost_${BOOST_VERSION//\./_}.tar.gz"
           mkdir -p ${BOOST_DIR}
           { travis_retry wget --quiet -O - ${BOOST_URL} | tar --strip-components=1 -xz -C ${BOOST_DIR}; } || exit 1
+        fi
+        if [[ "${BOOST_BUILD}" != "" ]]; then
+          (cd ${BOOST_DIR}/tools/build && ./bootstrap.sh && ./b2 install --prefix=${DEPS_DIR}/b2)
+          export PATH=${DEPS_DIR}/b2/bin:${PATH}
+          cd "$BOOST_DIR"
+          b2 --with-serialization --with-system "toolset=${BOOST_BUILD}" variant=release link=static threading=multi
         fi
       fi
       CMAKE_OPTIONS+=" -DBOOST_ROOT=${BOOST_DIR}"
@@ -116,14 +122,4 @@ install:
       export LDFLAGS="-L ${LLVM_DIR}/install/lib -l c++ -l c++abi"
       export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${LLVM_DIR}/install/lib"
       export PATH="${LLVM_DIR}/clang/bin:${PATH}"
-    fi
-  ############################################################################
-  # Install Boost
-  ############################################################################
-  - |
-    if [[ "${BOOST_BUILD}" != "" ]]; then
-      (cd ${BOOST_DIR}/tools/build && ./bootstrap.sh && ./b2 install --prefix=${DEPS_DIR}/b2)
-      export PATH=${DEPS_DIR}/b2/bin:${PATH}
-      cd "$BOOST_DIR"
-      b2 --with-serialization --with-system "toolset=${BOOST_BUILD}" variant=release link=static threading=multi
     fi
