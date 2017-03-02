@@ -131,8 +131,6 @@ bool config_c::set(const std::string& varname, const std::string& value)
 		case "window_flags"_fnv: window_flags = boost::lexical_cast<unsigned>(value); return true;
 		case "windowpos_x"_fnv: windowpos_x = boost::lexical_cast<unsigned>(value); return true;
 		case "windowpos_y"_fnv: windowpos_y = boost::lexical_cast<unsigned>(value); return true;/*>*/
-            default:
-                return false;
         }
     }
     catch(const boost::bad_lexical_cast& e)
@@ -140,6 +138,33 @@ bool config_c::set(const std::string& varname, const std::string& value)
         LOGGER(warn, "can't set", varname, "to", value, ':', e.what());
     }
     return false;
+}
+
+std::string config_c::get(const std::string& varname)
+{
+    try
+    {
+        switch(fnv1a::hash(varname))
+        {
+            /*< join "\n\t\t", map {qq[case "$_->{name}"_fnv: return boost::lexical_cast<std::string>($_->{name});]} dispatch('config');
+            %*/case "mastersrv_ip"_fnv: return boost::lexical_cast<std::string>(mastersrv_ip);
+		case "mastersrv_port"_fnv: return boost::lexical_cast<std::string>(mastersrv_port);
+		case "msaa"_fnv: return boost::lexical_cast<std::string>(msaa);
+		case "resolution_x"_fnv: return boost::lexical_cast<std::string>(resolution_x);
+		case "resolution_y"_fnv: return boost::lexical_cast<std::string>(resolution_y);
+		case "texture_cache"_fnv: return boost::lexical_cast<std::string>(texture_cache);
+		case "title"_fnv: return boost::lexical_cast<std::string>(title);
+		case "vsync"_fnv: return boost::lexical_cast<std::string>(vsync);
+		case "window_flags"_fnv: return boost::lexical_cast<std::string>(window_flags);
+		case "windowpos_x"_fnv: return boost::lexical_cast<std::string>(windowpos_x);
+		case "windowpos_y"_fnv: return boost::lexical_cast<std::string>(windowpos_y);/*>*/
+        }
+    }
+    catch(const boost::bad_lexical_cast& e)
+    {
+        LOGGER(warn, "can't get", varname, ':', e.what());
+    }
+    return std::string{};
 }
 
 

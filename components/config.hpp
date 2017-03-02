@@ -16,7 +16,7 @@
 #include <boost/noncopyable.hpp>
 
 
-//=- register_component(class=>'config_c', name=>'config', priority=>0);
+//=- register_component(class=>'config_c', name=>'config', priority=>0, scriptexport=>[qw(get set)]);
 class config_c : boost::noncopyable
 {
 
@@ -45,6 +45,7 @@ public:
     bool on_event(const SDL_Event& ev);
 
     bool set(const std::string& varname, const std::string& value);
+	std::string get(const std::string& varname);
 
     std::set<std::string> shader_params();
 
