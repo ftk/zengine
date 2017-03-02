@@ -56,12 +56,13 @@ install:
 # install boost
 - set BB=
 - if exist "boost_1_63_0" set BB=rem
-- %BB% if not exist "boost_1_63_0.7z" appveyor DownloadFile "https://sourceforge.net/projects/boost/files/boost/1.63.0/boost_1_63_0.7z/download" -FileName "boost_1_63_0.7z"
-- %BB% 7z x -y "boost_1_63_0.7z"
-- %BB% cd boost_1_63_0
-- %BB% bootstrap.bat
-- %BB% b2 --with-serialization --with-system toolset=gcc variant=release link=static threading=multi
-- %BB% cd ..
+- |-
+  %BB% if not exist "boost_1_63_0.7z" appveyor DownloadFile "https://sourceforge.net/projects/boost/files/boost/1.63.0/boost_1_63_0.7z/download" -FileName "boost_1_63_0.7z"
+  %BB% 7z x -y "boost_1_63_0.7z"
+  %BB% cd boost_1_63_0
+  %BB% bootstrap.bat
+  %BB% b2 --with-serialization --with-system toolset=gcc variant=release link=static threading=multi
+  %BB% cd ..
 - set BOOST_ROOT=boost_1_63_0
 # CMake refuses to generate MinGW Makefiles if sh.exe is in the Path
 - ps: Get-Command sh.exe -All | Remove-Item
@@ -83,3 +84,7 @@ after_build:
 #- if "%MINGW_DIR%"=="mingw64" cmake --build build\msvc64 --config Debug -- /verbosity:minimal /maxcpucount
 
 on_success:
+
+artifacts:
+- path: build/mingw/*.exe
+  name: bin
