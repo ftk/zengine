@@ -79,7 +79,7 @@ set(SOURCE_FILES application.cpp main.cpp
         gamestate.cpp
         asio_impl.cpp
         opengl/texture.cpp opengl/shader.cpp opengl/opengl.cpp
-        playerinputs.cpp components/script_impl_t.cpp)
+        playerinputs.cpp components/script_impl_t.cpp util/log.cpp)
 
 
 set(ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${GAME_FILES})
