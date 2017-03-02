@@ -109,7 +109,7 @@ add_executable(nettest  network_test.cpp components/network.cpp asio_impl.cpp)
 
 
 #target_compile_definitions(nettest PUBLIC -DBOOST_ASIO_ENABLE_HANDLER_TRACKING)
-target_compile_definitions(nettest PUBLIC -DNO_SDL)
+target_compile_definitions(nettest PUBLIC -DNO_SDL -DLOG_HEADER_ONLY)
 
 
 #add_executable(toolset game/toolset.cpp)

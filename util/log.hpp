@@ -7,10 +7,9 @@
 
 #include <ostream>
 
-#ifdef LOG_STATIC
+#ifdef LOG_HEADER_ONLY
 #include <iostream>
 #else
-
 #include <vector>
 #endif
 
@@ -45,7 +44,7 @@ struct logger
     unsigned flags;
 };
 
-#ifdef LOG_STATIC
+#ifdef LOG_HEADER_ONLY
 #ifndef LOG_STATIC_LOGGERS
 #define LOG_STATIC_LOGGERS { std::cerr, log_level::debug2, 0 }
 #endif
@@ -62,11 +61,28 @@ inline void log_arg(const logger& l, T&& t)
 // specializations?
 
 
-void log_start(const logger& l);
-void log_end(const logger& l);
+#ifdef LOG_HEADER_ONLY
+inline constexpr
+#endif
+void log_start(const logger& l)
+#ifdef LOG_HEADER_ONLY
+{}
+#endif
+;
+
+#ifdef LOG_HEADER_ONLY
+inline
+#endif
+void log_end(const logger& l)
+#ifdef LOG_HEADER_ONLY
+{
+    l.s << std::endl;
+}
+#endif
+;
 
 
-inline void log_args(const logger& l) { }
+inline constexpr void log_args(const logger& l) { }
 
 template <typename Arg1, typename... Args>
 inline void log_args(const logger& l, Arg1&& arg1, Args&& ... args)
@@ -97,7 +113,7 @@ inline void logger(log_level level, Args&&... args)
     }
 };
 
-inline auto& loggers() { return log_detail::loggers; }
+inline constexpr auto& loggers() { return log_detail::loggers; }
 
 #define LOGGER(level,...) logger(log_level:: level, ##__VA_ARGS__)
 
