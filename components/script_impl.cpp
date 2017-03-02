@@ -10,12 +10,15 @@
 //#include <chaiscript/chaiscript.hpp>
 #include "util/assert.hpp"
 
-
+#include "components/config.hpp"
 #include "components/modules.hpp"
+
 /*<
         join "", map { qq(\n#include "$_"\n) } (dispatch_s('module_headers'));#, dispatch('component_headers')) .  ;
     %*/
 #include "examples/pong/controller.hpp"
+
+#include "modules/controls.hpp"
 
 #include "modules/fps.hpp"
 
@@ -77,6 +80,10 @@ ModulePtr script_register_bindings(ModulePtr m)
     $s;
 
 %*/
+	chai.add(user_type<controls>(), "controls");
+	chai.add(base_class<basic_module, controls>());
+	chai.add(fun(&controls::set_mouse_handler), "set_mouse_handler");
+	chai.add(fun(&modules_c::load<controls>, modules), "load_controls");
 	chai.add(user_type<fps>(), "fps");
 	chai.add(base_class<basic_module, fps>());
 	chai.add(fun(&modules_c::load<fps>, modules), "load_fps");
@@ -92,6 +99,8 @@ ModulePtr script_register_bindings(ModulePtr m)
 	chai.add(fun(&optionbox::set_offset), "set_offset");
 	chai.add(fun(&modules_c::load<optionbox>, modules), "load_optionbox");
 	chai.add(fun(&modules_c::load<optionbox, float,float>, modules), "load_optionbox");
+	chai.add(fun(&config_c::get, g_app->config.get()), "config_get");
+	chai.add(fun(&config_c::set, g_app->config.get()), "config_set");
 	chai.add(fun(&modules_c::get, g_app->modules.get()), "modules_get");
 	chai.add(fun(&modules_c::loaded, g_app->modules.get()), "modules_loaded");
 	chai.add(fun(&modules_c::unload, g_app->modules.get()), "modules_unload");
