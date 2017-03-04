@@ -14,7 +14,7 @@ endif ()
 
 project(zengine)
 
-include_directories(.)
+include_directories(. src)
 
 # sld2pp
 
@@ -63,26 +63,13 @@ include_directories(${GAME_PATH})
 add_subdirectory(${GAME_PATH})
 
 
-set(HEADER_FILES application.hpp playerinputs.hpp
-        components/window.hpp components/collections.hpp components/network.hpp components/modules.hpp components/mixer.hpp
-        util/optional.hpp util/geometry.hpp util/lru_cache.hpp util/hash.hpp util/movable.hpp util/assert.hpp
-        modules/basic_module.hpp modules/fps.hpp
-        opengl/opengl.hpp opengl/math.hpp opengl/shader.hpp opengl/texture.hpp
-        components/config.hpp
-        gamestate.hpp entity.hpp
-         opengl/render2d.hpp components/sdl.hpp
-        modules/config_binds.hpp opengl/resource.hpp components/script.hpp modules/optionbox.hpp
-        events.hpp components/netgame.hpp util/log.hpp util/flist.hpp components/netgame_impl.hpp util/sdl_workaround.hpp modules/controls.hpp)
+file(GLOB_RECURSE COMPONENTS_FILES src/components/*.hpp src/components/*.cpp)
+file(GLOB_RECURSE MODULES_FILES src/modules/*.hpp src/modules/*.cpp)
+file(GLOB_RECURSE OPENGL_FILES src/opengl/*.hpp src/opengl/*.cpp)
+file(GLOB_RECURSE UTIL_FILES src/util/*.hpp src/util/*.cpp)
+file(GLOB ENGINE_FILES src/*.hpp src/*.cpp)
 
-set(SOURCE_FILES application.cpp main.cpp
-        components/script_impl.cpp components/collections.cpp components/modules.cpp components/network.cpp   components/config.cpp components/window.cpp components/script.cpp
-        gamestate.cpp
-        asio_impl.cpp
-        opengl/texture.cpp opengl/shader.cpp opengl/opengl.cpp
-        playerinputs.cpp components/script_impl_t.cpp util/log.cpp)
-
-
-set(ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${GAME_FILES})
+set(ALL_FILES ${UTIL_FILES} ${OPENGL_FILES} ${COMPONENTS_FILES} ${ENGINE_FILES} ${MODULES_FILES} ${GAME_FILES})
 
 
 include_directories(${SDL2PP_INCLUDE_DIRS})
@@ -105,7 +92,7 @@ if(PERL_FOUND)
 endif()
 
 
-add_executable(nettest  network_test.cpp components/network.cpp asio_impl.cpp)
+add_executable(nettest  network_test.cpp src/components/network.cpp src/asio_impl.cpp)
 
 
 #target_compile_definitions(nettest PUBLIC -DBOOST_ASIO_ENABLE_HANDLER_TRACKING)
@@ -119,7 +106,7 @@ set (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/build")
 
 
 set(BIG_FILES components/script.cpp components/script_impl.cpp components/script_impl_t.cpp)
-set_source_files_properties(${BIG_FILES} PROPERTIES COMPILE_FLAGS -fvisibility=hidden)
+#set_source_files_properties(${BIG_FILES} PROPERTIES COMPILE_FLAGS -fvisibility=hidden)
 set_source_files_properties(${BIG_FILES} PROPERTIES COMPILE_FLAGS -g0)
 #set_source_files_properties(${BIG_FILES} PROPERTIES COMPILE_FLAGS -O1)
 if(MINGW OR CYGWIN)

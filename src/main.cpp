@@ -6,6 +6,7 @@
 #ifdef WIN32
 #include <direct.h>
 #include <algorithm>
+#include <fstream>
 
 #else
 #include <unistd.h>
@@ -14,7 +15,8 @@
 
 #include "application.hpp"
 
-#include "util/flist.hpp"
+#include "util/log.hpp"
+
 
 application * g_app = nullptr;
 
@@ -40,17 +42,15 @@ try
 
 
 
+
     // start in app's dir
     if(argc > 1)
         chdir(argv[1]);
     //if(SDL_GetBasePath())
         //chdir(SDL_GetBasePath());
 
-    //SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
-    //SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengles2");
-
-    //std::aligned_storage<sizeof(application)> app_storage;
-    //g_app = reinterpret_cast<application *>(&app_storage);
+    std::ofstream logfile("log.txt");
+    loggers().push_back({logfile, log_level::all, log_detail::TIME});
 
     auto alloc = std::allocator<application>();
 

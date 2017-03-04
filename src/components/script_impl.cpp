@@ -16,13 +16,13 @@
 /*<
         join "", map { qq(\n#include "$_"\n) } (dispatch_s('module_headers'));#, dispatch('component_headers')) .  ;
     %*/
+#include "D:/dev/zengine/src/modules/controls.hpp"
+
+#include "D:/dev/zengine/src/modules/fps.hpp"
+
+#include "D:/dev/zengine/src/modules/optionbox.hpp"
+
 #include "examples/pong/controller.hpp"
-
-#include "modules/controls.hpp"
-
-#include "modules/fps.hpp"
-
-#include "modules/optionbox.hpp"
 /*>*/
 
 
