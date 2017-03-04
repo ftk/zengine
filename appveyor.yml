@@ -85,6 +85,8 @@ after_build:
 
 on_success:
 
+test: off
+
 artifacts:
 - path: build/mingw/*.exe
   name: bin
