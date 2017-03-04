@@ -63,14 +63,23 @@ include_directories(${GAME_PATH})
 add_subdirectory(${GAME_PATH})
 
 
-file(GLOB_RECURSE COMPONENTS_FILES src/components/*.hpp src/components/*.cpp)
-file(GLOB_RECURSE MODULES_FILES src/modules/*.hpp src/modules/*.cpp)
-file(GLOB_RECURSE OPENGL_FILES src/opengl/*.hpp src/opengl/*.cpp)
-file(GLOB_RECURSE UTIL_FILES src/util/*.hpp src/util/*.cpp)
-file(GLOB ENGINE_FILES src/*.hpp src/*.cpp)
+macro(srcDir var dir)
+    file(GLOB ${var} RELATIVE ${PROJECT_SOURCE_DIR}
+            ${dir}/*.hpp ${dir}/*.cpp)
+    #foreach(f ${FILES})
+    #    list(APPEND ${var} "src/${f}")
+    #endforeach()
+
+endmacro()
+
+srcDir(COMPONENTS_FILES src/components)
+srcDir(MODULES_FILES src/modules)
+srcDir(OPENGL_FILES src/opengl)
+srcDir(UTIL_FILES src/util)
+srcDir(ENGINE_FILES src)
 
 set(ALL_FILES ${UTIL_FILES} ${OPENGL_FILES} ${COMPONENTS_FILES} ${ENGINE_FILES} ${MODULES_FILES} ${GAME_FILES})
-
+#message(${ALL_FILES})
 
 include_directories(${SDL2PP_INCLUDE_DIRS})
 add_executable(zengine ${ALL_FILES})

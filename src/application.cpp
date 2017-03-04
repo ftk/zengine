@@ -8,14 +8,14 @@
  join "\n", map { qq(#include "$_") } dispatch_s('component_headers') ;
  #%*/
 #else
-#include "D:/dev/zengine/src/components/collections.hpp"
-#include "D:/dev/zengine/src/components/config.hpp"
-#include "D:/dev/zengine/src/components/modules.hpp"
-#include "D:/dev/zengine/src/components/netgame_impl.hpp"
-#include "D:/dev/zengine/src/components/network.hpp"
-#include "D:/dev/zengine/src/components/script.hpp"
-#include "D:/dev/zengine/src/components/sdl.hpp"
-#include "D:/dev/zengine/src/components/window.hpp"
+#include "src/components/collections.hpp"
+#include "src/components/config.hpp"
+#include "src/components/modules.hpp"
+#include "src/components/netgame_impl.hpp"
+#include "src/components/network.hpp"
+#include "src/components/script.hpp"
+#include "src/components/sdl.hpp"
+#include "src/components/window.hpp"
 #endif
 
 #include <iostream>
