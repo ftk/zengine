@@ -21,7 +21,7 @@ void log_start(const logger& l)
         time_t stamp = time(nullptr);
         struct tm * timeinfo = localtime(&stamp);
         char buffer[32];
-        strftime(buffer, sizeof(buffer), "[%T] ", timeinfo);
+        strftime(buffer, sizeof(buffer), "[%H:%M:%S] ", timeinfo);
         l.s << buffer;
     }
 }
