@@ -115,7 +115,7 @@ set (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/build")
 
 
 set(BIG_FILES components/script.cpp components/script_impl.cpp components/script_impl_t.cpp)
-#set_source_files_properties(${BIG_FILES} PROPERTIES COMPILE_FLAGS -fvisibility=hidden)
+set_source_files_properties(${BIG_FILES} PROPERTIES COMPILE_FLAGS -fvisibility=hidden)
 set_source_files_properties(${BIG_FILES} PROPERTIES COMPILE_FLAGS -g0)
 #set_source_files_properties(${BIG_FILES} PROPERTIES COMPILE_FLAGS -O1)
 if(MINGW OR CYGWIN)
