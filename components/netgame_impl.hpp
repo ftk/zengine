@@ -110,11 +110,13 @@ protected:
     template <typename T>
     void operator()(const T&) {}
 
+    //=- register_event(name=>'disconnect');
     void on_disconnect(net_node_id id)
     {
         if(playeroffsets.erase(id))
         {
-            //...
+            // pseudo-event
+            event_callback(tick_input_t{id, get_tick(), event::disconnect{}});
         }
     }
 
@@ -134,7 +136,7 @@ protected:
                 {
 
                     auto inp = deserialize({data, len});
-                    NETLOG(debug, "event", id, dump_event(inp.event));
+                    NETLOG(debug3, "event", id, dump_event(inp.event));
                     boost::apply_visitor([this, &inp](const auto& event) -> void { this->on_event(inp, event);}, inp.event);
                     //EVENT_VISITOR_ALL(inp.event, ([this, &inp](const auto& event) -> void { this->on_event(inp, event);}));
 

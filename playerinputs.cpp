@@ -78,6 +78,7 @@ tick_input_t deserialize(string_view data)
    %*/
 static void dump(std::ostream& ss, const event::connect_ack & e) {ss << "connect_ack: " << "tick: " << e. tick;}
 static void dump(std::ostream& ss, const event::connect_req & e) {ss << "connect_req: ";}
+static void dump(std::ostream& ss, const event::disconnect & e) {ss << "disconnect: ";}
 static void dump(std::ostream& ss, const event::game_start & e) {ss << "game_start: ";}
 static void dump(std::ostream& ss, const event::game_start_ack & e) {ss << "game_start_ack: ";}
 static void dump(std::ostream& ss, const event::movement & e) {ss << "movement: " << "x: " << e. x << "y: " << e. y;}

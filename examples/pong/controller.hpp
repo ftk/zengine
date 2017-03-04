@@ -11,6 +11,7 @@
 #include "components/collections.hpp"
 #include "components/window.hpp"
 #include "components/netgame.hpp"
+#include "components/script.hpp"
 #include "gamestate.hpp"
 
 #include "util/log.hpp"
@@ -52,8 +53,8 @@ public:
     void operator()(event::movement m)
     {
         using namespace qvm;
-        X(pos) += m.x / 100.f;
-        Y(pos) += m.y / 100.f;
+        X(pos) = clamp(X(pos) + m.x / 1000.f, -1.f, 1.f);
+        Y(pos) = clamp(Y(pos) + m.y / 1000.f, -1.f, 1.f);
     }
 
 
@@ -135,6 +136,7 @@ public:
 
     }
 
+    //=- register_callback('void (uint64_t)', 'on_game_start');
     void start()
     {
         LOGGER(info, "game started!!!", remote);
@@ -148,7 +150,7 @@ public:
         sim.state().emplace<ball>(qvm::vec2{0,0}, qvm::vec2{0.005,0});
         //sim.state().insert(new paddle{qvm::vec2{0.5,0}, std::max(local, remote)});
         //sim.state().insert(new ball{qvm::vec2{0,0}, qvm::vec2{0.01,0}});
-        //g_app->modules->
+        g_app->script->on_game_start(remote);
     }
 
     void on_netevent(const tick_input_t& input, event::game_start)
@@ -171,6 +173,17 @@ public:
         start();
     }
 
+    //=- register_callback('void ()', 'on_disconnect');
+
+    void on_netevent(const tick_input_t& input, event::disconnect)
+    {
+        if(input.player != remote)
+            return;
+        LOGGER(info, "player disconnected :(");
+        started = false;
+        g_app->script->on_disconnect();
+    }
+
     template<typename T>
     void on_netevent(const tick_input_t& input, T event)
     {
@@ -190,19 +203,19 @@ public:
                 switch(ev.key.keysym.scancode)
                 {
                     case SDL_SCANCODE_S:
-                        push_local(event::movement{0,-1}); return false;
+                        push_local(event::movement{0,-10}); return false;
                     case SDL_SCANCODE_W:
-                        push_local(event::movement{0,1}); return false;
+                        push_local(event::movement{0,10}); return false;
                     case SDL_SCANCODE_A:
-                        push_local(event::movement{-1,0}); return false;
+                        push_local(event::movement{-10,0}); return false;
                     case SDL_SCANCODE_D:
-                        push_local(event::movement{1,0}); return false;
+                        push_local(event::movement{10,0}); return false;
                     default:
                         break;
                 }break;
             case SDL_MOUSEMOTION:
             {
-                push_local(event::movement{ev.motion.xrel/6, -ev.motion.yrel/6});
+                push_local(event::movement{ev.motion.xrel, -ev.motion.yrel});
                 return false;
             }
         }

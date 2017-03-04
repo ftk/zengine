@@ -39,8 +39,27 @@ R script_callback<R(Args...)>::operator ()(Args... args)
     }
 }
 
-/*< join "\n", map { qq%template struct script_callback<$_->{type}>;% } dispatch('callbacks');;
-        %*/template struct script_callback<void ()>;
+template <typename R, typename... Args>
+void script_callback<R(Args...)>::init(const char * name, ChaiScript_Basic& engine) noexcept
+{
+    try
+    {
+        f = engine.eval<decltype(f)>(name);
+    }
+    catch(exception::eval_error& e)
+    {
+        LOGGER(warn, "no callback found:", name, e.what());
+    }
+    catch(exception::bad_boxed_cast& e)
+    {
+        LOGGER(error, "callback has mismatching signature:", name, e.what());
+    }
+}
+
+/*< sub uniq { my %seen; grep { !$seen{$_}++ } @_; }
+   join "\n", uniq map { qq%template struct script_callback<$_->{type}>;% } dispatch('callbacks');;
+   %*/template struct script_callback<void ()>;
+template struct script_callback<void (uint64_t)>;
 template struct script_callback<void (int)>;/*>*/
 
 
@@ -58,7 +77,7 @@ public:
 
     void register_functions()
     {
-        chai.add(fun([](const char * str) { return fnv1a::hash(str); }), "hash");
+        chai.add(fun([](const std::string& str) { return fnv1a::hash(str); }), "hash");
 
         chai.add(
                 script_register_bindings(
@@ -69,9 +88,13 @@ public:
 
     void register_callbacks(script_c& p)
     {
-        /*< join "\n\t\t", map { qq%try{p.$_->{name} = {chai.eval<std::function<$_->{type}> >("$_->{name}")};}catch(exception::eval_error&){}% } dispatch('callbacks');
-        %*/try{p.on_init = {chai.eval<std::function<void ()> >("on_init")};}catch(exception::eval_error&){}
-		try{p.on_option_selected = {chai.eval<std::function<void (int)> >("on_option_selected")};}catch(exception::eval_error&){}/*>*/
+#define CB_INIT(name) p. name .init(#name, chai);
+        /*< join "\n\t\t", map { qq%CB_INIT($_->{name})% } dispatch('callbacks');
+        %*/CB_INIT(on_disconnect)
+		CB_INIT(on_game_start)
+		CB_INIT(on_init)
+		CB_INIT(on_option_selected)/*>*/
+#undef CB_INIT
     }
 
     void eval(const std::string& input)

@@ -9,6 +9,8 @@
 #include <string>
 #include <functional>
 
+namespace chaiscript { class ChaiScript_Basic; }
+
 template <typename R, typename... Args>
 struct script_callback;
 
@@ -17,6 +19,7 @@ struct script_callback<R (Args...)>
 {
 	std::function<R (Args...)> f;
 	R operator () (Args... args);
+	void init(const char * name, chaiscript::ChaiScript_Basic& engine) noexcept;
 };
 
 
@@ -37,7 +40,9 @@ public:
 
     /*<
        join "\n\t", map { "script_callback<$_->{type}> $_->{name};" } dispatch('callbacks');
-     %*/script_callback<void ()> on_init;
+     %*/script_callback<void ()> on_disconnect;
+	script_callback<void (uint64_t)> on_game_start;
+	script_callback<void ()> on_init;
 	script_callback<void (int)> on_option_selected;/*>*/
 
 };

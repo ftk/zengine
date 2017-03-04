@@ -5,9 +5,9 @@
 #include "script.hpp"
 #define CHAISCRIPT_NO_THREADS
 #define CHAISCRIPT_NO_THREADS_WARNING
-#include <chaiscript/dispatchkit/dispatchkit.hpp>
-#include <chaiscript/dispatchkit/register_function.hpp>
-//#include <chaiscript/chaiscript.hpp>
+//#include <chaiscript/dispatchkit/dispatchkit.hpp>
+//#include <chaiscript/dispatchkit/register_function.hpp>
+#include <chaiscript/chaiscript_basic.hpp>
 #include "util/assert.hpp"
 
 #include "components/config.hpp"
@@ -26,10 +26,6 @@
 /*>*/
 
 
-//#include "game/world.hpp"
-
-//#include "opengl/math.hpp"
-
 using namespace chaiscript;
 ModulePtr script_register_bindings(ModulePtr m)
 {
@@ -37,10 +33,9 @@ ModulePtr script_register_bindings(ModulePtr m)
 
 
     auto modules = g_app->modules.get();
+
     chai.add(user_type<basic_module>(), "basic_module");
-    chai.add(fun(&modules_c::get, modules), "get_module");
-    chai.add(fun(&modules_c::unload, modules), "unload_module");
-    chai.add(fun(&modules_c::loaded, modules), "is_loaded_module");
+    chai.add(fun([](int m) {SDL_SetRelativeMouseMode(m ? SDL_TRUE : SDL_FALSE);}), "SDL_SetRelativeMouseMode");
 /*
 	chai.add(user_type<voxel_ctx>(), "Vpos");
 	chai.add(constructor<voxel_ctx ()>(), "Vpos");
@@ -54,14 +49,14 @@ ModulePtr script_register_bindings(ModulePtr m)
 */
 
 /*<
-    #use Data::Dumper;
     my $s='';
 
+    # modules
     for my $module (dispatch('modules')) {
     my $name = $module->{class};
     my $sname = $name;# ~ s/::/_/g;
     #add class
-    $s .= qq[\n\tchai.add(user_type<$name>(), "$sname");];
+    $s .= qq[\n\tchai.add(user_type<$name>(), "\u$sname");];
     $s .= qq[\n\tchai.add(base_class<basic_module, $name>());];
 
     #add functions
@@ -69,29 +64,32 @@ ModulePtr script_register_bindings(ModulePtr m)
 
     #add constructors
     my $ctors = $module->{ctors} // [''];
-    $s .= qq[\n\tchai.add(fun(&modules_c::load<$name] .((length $_)?", $_":'') . qq[>, modules), "load_${sname}");] for (@$ctors);
+    $s .= qq[\n\tchai.add(fun(&modules_c::load<$name] . ($_ ? ", $_" : '') . qq[>, modules), "load_${sname}");] for (@$ctors);
     #$s .=         Dumper($module);
     }
 
+    # components
     for my $c (dispatch('components')) {
     my $name = $c->{interface} // $c->{class};
     $s .= qq[\n\tchai.add(fun(&$name::$_, g_app->$c->{name}.get()), "$c->{name}_${_}");] for (@{$c->{scriptexport}})
     }
-    $s;
 
+
+    $s;
 %*/
-	chai.add(user_type<controls>(), "controls");
+	chai.add(user_type<controls>(), "Controls");
 	chai.add(base_class<basic_module, controls>());
+	chai.add(fun(&controls::set_key_handler), "set_key_handler");
 	chai.add(fun(&controls::set_mouse_handler), "set_mouse_handler");
 	chai.add(fun(&modules_c::load<controls>, modules), "load_controls");
-	chai.add(user_type<fps>(), "fps");
+	chai.add(user_type<fps>(), "Fps");
 	chai.add(base_class<basic_module, fps>());
 	chai.add(fun(&modules_c::load<fps>, modules), "load_fps");
-	chai.add(user_type<gamecontroller>(), "gamecontroller");
+	chai.add(user_type<gamecontroller>(), "Gamecontroller");
 	chai.add(base_class<basic_module, gamecontroller>());
 	chai.add(fun(&gamecontroller::startgame), "startgame");
 	chai.add(fun(&modules_c::load<gamecontroller>, modules), "load_gamecontroller");
-	chai.add(user_type<optionbox>(), "optionbox");
+	chai.add(user_type<optionbox>(), "Optionbox");
 	chai.add(base_class<basic_module, optionbox>());
 	chai.add(fun(&optionbox::add), "add");
 	chai.add(fun(&optionbox::clear), "clear");
@@ -106,5 +104,27 @@ ModulePtr script_register_bindings(ModulePtr m)
 	chai.add(fun(&modules_c::unload, g_app->modules.get()), "modules_unload");
 	chai.add(fun(&netgame_i::id, g_app->netgame.get()), "netgame_id");
 	chai.add(fun(&netgame_i::nodes_list, g_app->netgame.get()), "netgame_nodes_list");/*>*/
+
+
+    chai.add(user_type<event_t>(), "Event");
+
+    /*< my $s;
+       # events
+       for my $event (dispatch('events')) {
+       my $ev = $event->{name};
+       my $pt = join ', ', map { "$_->[0] $_->[1]" } @{$event->{params} // []};
+       my $pa = join ', ', map { "std::move($_->[1])" } @{$event->{params} // []};
+       $s .= qq[\n\tchai.add(fun([]($pt) -> event_t {return event::${ev}{${pa}};}), "event_$ev");];
+       }
+       $s;
+      %*/
+	chai.add(fun([](uint32_t tick) -> event_t {return event::connect_ack{std::move(tick)};}), "event_connect_ack");
+	chai.add(fun([]() -> event_t {return event::connect_req{};}), "event_connect_req");
+	chai.add(fun([]() -> event_t {return event::disconnect{};}), "event_disconnect");
+	chai.add(fun([]() -> event_t {return event::game_start{};}), "event_game_start");
+	chai.add(fun([]() -> event_t {return event::game_start_ack{};}), "event_game_start_ack");
+	chai.add(fun([](int32_t x, int32_t y) -> event_t {return event::movement{std::move(x), std::move(y)};}), "event_movement");
+	chai.add(fun([]() -> event_t {return event::null{};}), "event_null");/*>*/
+
     return m;
 }

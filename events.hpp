@@ -64,12 +64,13 @@ namespace event {
    %*/
 struct connect_ack {static constexpr unsigned index = 0; uint32_t tick; SERIALIZABLE((tick))};
 struct connect_req {static constexpr unsigned index = 1; SERIALIZABLE()};
-struct game_start {static constexpr unsigned index = 2; SERIALIZABLE()};
-struct game_start_ack {static constexpr unsigned index = 3; SERIALIZABLE()};
-struct movement {static constexpr unsigned index = 4; int32_t x; int32_t y; SERIALIZABLE((x)(y))};
-struct null {static constexpr unsigned index = 5; SERIALIZABLE()};
+struct disconnect {static constexpr unsigned index = 2; SERIALIZABLE()};
+struct game_start {static constexpr unsigned index = 3; SERIALIZABLE()};
+struct game_start_ack {static constexpr unsigned index = 4; SERIALIZABLE()};
+struct movement {static constexpr unsigned index = 5; int32_t x; int32_t y; SERIALIZABLE((x)(y))};
+struct null {static constexpr unsigned index = 6; SERIALIZABLE()};
 
-#define EVENTS_SEQ (connect_ack)(connect_req)(game_start)(game_start_ack)(movement)(null)/*>*/
+#define EVENTS_SEQ (connect_ack)(connect_req)(disconnect)(game_start)(game_start_ack)(movement)(null)/*>*/
 
 //static_assert(std::is_pod<null>::value == true);
 
@@ -77,7 +78,7 @@ struct null {static constexpr unsigned index = 5; SERIALIZABLE()};
 
 using event_t = boost::variant<
     /*< join ', ', map { "event::$_->{name}" } dispatch('events');
-     %*/event::connect_ack, event::connect_req, event::game_start, event::game_start_ack, event::movement, event::null/*>*/
+     %*/event::connect_ack, event::connect_req, event::disconnect, event::game_start, event::game_start_ack, event::movement, event::null/*>*/
 >;
 //static_assert(std::is_pod<event_t>::value == true);
 
