@@ -115,6 +115,8 @@ class gamecontroller : public basic_module
     net_node_id local;
     bool started = false;
 
+    event::movement mov{0,0};
+
     gamestate_simulator sim;
 public:
     gamecontroller()
@@ -215,7 +217,8 @@ public:
                 }break;
             case SDL_MOUSEMOTION:
             {
-                push_local(event::movement{ev.motion.xrel, -ev.motion.yrel});
+                mov.x += ev.motion.xrel;
+                mov.y -= ev.motion.yrel;
                 return false;
             }
         }
@@ -227,8 +230,22 @@ public:
     {
         if(started)
         {
-            sim.update();
+            try
+            {
+                sim.update();
+            }
+            catch(old_input_exc)
+            {
+                push_local(event::disconnect{});
+                //
+            }
             sim.draw();
+
+            if(mov.x || mov.y)
+            {
+                push_local(mov);
+                mov.x = mov.y = 0;
+            }
         }
     }
 

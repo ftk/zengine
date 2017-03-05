@@ -37,9 +37,6 @@ public:
     // is game running
     bool running = true;
 
-
-	unsigned loop_time = 0;
-
     // components
 public:
     /*<
@@ -65,7 +62,6 @@ public:
 	void init_components();
 
     void run();
-
 
     void get_input();
 

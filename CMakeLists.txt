@@ -102,7 +102,7 @@ if(PERL_FOUND)
 endif()
 
 
-add_executable(nettest  network_test.cpp src/components/network.cpp src/asio_impl.cpp)
+add_executable(nettest  network_test.cpp src/components/network.cpp src/util/asio_impl.cpp)
 
 
 #target_compile_definitions(nettest PUBLIC -DBOOST_ASIO_ENABLE_HANDLER_TRACKING)

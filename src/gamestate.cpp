@@ -58,7 +58,6 @@ void gamestate_simulator::push(tick_input_t inp)
 
 void gamestate_simulator::update()
 {
-    const auto lag = 6;
     auto tick = get_tick() - lag;
 
     while(simulated < tick)
@@ -67,6 +66,8 @@ void gamestate_simulator::update()
         {
             LOGGER(error, "TOO old", inputs.buf.front().tick, simulated);
             inputs.pop_old(simulated);
+            throw old_input_exc{};
+            //
         }
 
         while(!inputs.buf.empty() && inputs.buf.front().tick == simulated)

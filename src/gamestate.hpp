@@ -16,7 +16,6 @@ class gamestate_t /*: public entity_t*/
 {
 public:
     using entity_ptr = std::unique_ptr<entity_t>;
-private:
     std::vector<entity_ptr> entities;
 
 public:
@@ -49,10 +48,13 @@ protected:
     virtual void serialize(Archive& ar, const unsigned) = 0;*/
 };
 
+class old_input_exc {};
+
 class gamestate_simulator
 {
 public:
     tick_t simulated = 0;
+    tick_t lag = 1;
 private:
     inputs_t inputs;
 

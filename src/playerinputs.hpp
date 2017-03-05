@@ -6,16 +6,15 @@
 #define ZENGINE_PLAYERINPUTS_HPP
 
 #include <boost/circular_buffer.hpp>
-#include <boost/noncopyable.hpp>
 
 #include <algorithm>
-#include <cstdint>
+
+#include "events.hpp"
 
 #include "util/optional.hpp"
 #include "util/assert.hpp"
 
 
-#include "events.hpp"
 
 
 
