@@ -26,7 +26,9 @@ public:
 
     /*<
         join "\n\t", map {$_->{type} . ' ' . $_->{name} . ';'} dispatch('config');
-     %*/string mastersrv_ip;
+     %*/string bind_ip;
+	uint16_t bind_port;
+	string mastersrv_ip;
 	uint16_t mastersrv_port;
 	unsigned msaa;
 	unsigned resolution_x;

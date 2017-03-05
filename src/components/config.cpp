@@ -22,7 +22,7 @@
 /*< serialize_free_nvp 'config_c', sort(grep defined, map {$_->{name} if $_->{save}} dispatch('config'));; %*/
 namespace boost { namespace serialization {
 template <class Archive> void serialize(Archive & ar, config_c & t, const unsigned int) {
-ar & make_nvp("mastersrv_ip", t.mastersrv_ip) & make_nvp("mastersrv_port", t.mastersrv_port) & make_nvp("msaa", t.msaa) & make_nvp("resolution_x", t.resolution_x) & make_nvp("resolution_y", t.resolution_y) & make_nvp("texture_cache", t.texture_cache) & make_nvp("title", t.title) & make_nvp("vsync", t.vsync) & make_nvp("window_flags", t.window_flags) & make_nvp("windowpos_x", t.windowpos_x) & make_nvp("windowpos_y", t.windowpos_y);
+ar & make_nvp("bind_ip", t.bind_ip) & make_nvp("bind_port", t.bind_port) & make_nvp("mastersrv_ip", t.mastersrv_ip) & make_nvp("mastersrv_port", t.mastersrv_port) & make_nvp("msaa", t.msaa) & make_nvp("resolution_x", t.resolution_x) & make_nvp("resolution_y", t.resolution_y) & make_nvp("texture_cache", t.texture_cache) & make_nvp("title", t.title) & make_nvp("vsync", t.vsync) & make_nvp("window_flags", t.window_flags) & make_nvp("windowpos_x", t.windowpos_x) & make_nvp("windowpos_y", t.windowpos_y);
 }}}
 /*>*/
 
@@ -31,7 +31,9 @@ config_c::config_c()
 :
 /*<
     join ",\n", map {$_->{name} . '{' . ($_->{def} // '') . '}' } dispatch('config');
- %*/mastersrv_ip{"127.0.0.1"},
+ %*/bind_ip{},
+bind_port{0},
+mastersrv_ip{"127.0.0.1"},
 mastersrv_port{9999},
 msaa{16},
 resolution_x{1280},
@@ -120,7 +122,9 @@ bool config_c::set(const std::string& varname, const std::string& value)
         switch(fnv1a::hash(varname))
         {
             /*< join "\n\t\t", map {qq[case "$_->{name}"_fnv: $_->{name} = boost::lexical_cast<$_->{type}>(value); return true;]} dispatch('config');
-            %*/case "mastersrv_ip"_fnv: mastersrv_ip = boost::lexical_cast<string>(value); return true;
+            %*/case "bind_ip"_fnv: bind_ip = boost::lexical_cast<string>(value); return true;
+		case "bind_port"_fnv: bind_port = boost::lexical_cast<uint16_t>(value); return true;
+		case "mastersrv_ip"_fnv: mastersrv_ip = boost::lexical_cast<string>(value); return true;
 		case "mastersrv_port"_fnv: mastersrv_port = boost::lexical_cast<uint16_t>(value); return true;
 		case "msaa"_fnv: msaa = boost::lexical_cast<unsigned>(value); return true;
 		case "resolution_x"_fnv: resolution_x = boost::lexical_cast<unsigned>(value); return true;
@@ -147,7 +151,9 @@ std::string config_c::get(const std::string& varname)
         switch(fnv1a::hash(varname))
         {
             /*< join "\n\t\t", map {qq[case "$_->{name}"_fnv: return boost::lexical_cast<std::string>($_->{name});]} dispatch('config');
-            %*/case "mastersrv_ip"_fnv: return boost::lexical_cast<std::string>(mastersrv_ip);
+            %*/case "bind_ip"_fnv: return boost::lexical_cast<std::string>(bind_ip);
+		case "bind_port"_fnv: return boost::lexical_cast<std::string>(bind_port);
+		case "mastersrv_ip"_fnv: return boost::lexical_cast<std::string>(mastersrv_ip);
 		case "mastersrv_port"_fnv: return boost::lexical_cast<std::string>(mastersrv_port);
 		case "msaa"_fnv: return boost::lexical_cast<std::string>(msaa);
 		case "resolution_x"_fnv: return boost::lexical_cast<std::string>(resolution_x);

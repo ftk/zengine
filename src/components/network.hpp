@@ -273,6 +273,7 @@ public:
 
     net_node_id id;
     uint16_t port = 0;
+    const char * bind_ip = nullptr;
 
     // callbacks
     std::function<void (net_node_id, const char *, std::size_t)> receive_callback;

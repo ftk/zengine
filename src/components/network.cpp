@@ -99,6 +99,7 @@ void network_c::run() noexcept
 {
     try
     {
+        using boost::asio::ip::address;
         using boost::asio::ip::udp;
 
         socket.open(udp::v4());
@@ -108,7 +109,12 @@ void network_c::run() noexcept
 
 
         if(port != 0)
-            socket.bind(udp::endpoint(udp::v4(), port));
+        {
+            if(bind_ip)
+                socket.bind(udp::endpoint(address::from_string(bind_ip), port));
+            else
+                socket.bind(udp::endpoint(udp::v4(), port));
+        }
 
         on_timer();
 
