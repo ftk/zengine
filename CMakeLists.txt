@@ -33,7 +33,7 @@ set(Boost_USE_STATIC_LIBS   ON)
 find_package(Boost 1.62 COMPONENTS serialization system REQUIRED )
 
 include_directories(${Boost_INCLUDE_DIR})
-link_libraries(${Boost_LIBRARIES})
+#link_libraries(${Boost_LIBRARIES})
 
 include_directories(ChaiScript/include)
 
@@ -42,7 +42,7 @@ if(WIN32)
     #set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mwindows")
     #set (CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -static -static-libgcc -static-libstdc++")
 else()
-    link_libraries(pthread dl)
+    link_libraries(pthread)
 endif ()
 
 
@@ -83,7 +83,8 @@ set(ALL_FILES ${UTIL_FILES} ${OPENGL_FILES} ${COMPONENTS_FILES} ${ENGINE_FILES} 
 
 include_directories(${SDL2PP_INCLUDE_DIRS})
 add_executable(zengine ${ALL_FILES})
-target_link_libraries(zengine ${SDL2PP_LIBRARIES})
+target_link_libraries(zengine ${SDL2PP_LIBRARIES} ${Boost_LIBRARIES})
+
 
 find_package(Perl)
 
@@ -105,16 +106,13 @@ add_executable(nettest  network_test.cpp src/components/network.cpp src/asio_imp
 
 
 #target_compile_definitions(nettest PUBLIC -DBOOST_ASIO_ENABLE_HANDLER_TRACKING)
-target_compile_definitions(nettest PUBLIC -DNO_SDL -DLOG_HEADER_ONLY)
+target_compile_definitions(nettest PUBLIC -DNO_SDL -DLOG_HEADER_ONLY -DNO_BOOST_SYSTEM)
 
-
-#add_executable(toolset game/toolset.cpp)
-#target_link_libraries(toolset ${SDL2PP_LIBRARIES})
 
 set (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/build")
 
 
-set(BIG_FILES components/script.cpp components/script_impl.cpp components/script_impl_t.cpp)
+set(BIG_FILES src/components/script.cpp src/components/script_impl.cpp src/components/script_impl_t.cpp)
 set_source_files_properties(${BIG_FILES} PROPERTIES COMPILE_FLAGS -fvisibility=hidden)
 set_source_files_properties(${BIG_FILES} PROPERTIES COMPILE_FLAGS -g0)
 #set_source_files_properties(${BIG_FILES} PROPERTIES COMPILE_FLAGS -O1)
