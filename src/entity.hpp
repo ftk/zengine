@@ -22,6 +22,7 @@ struct entity_t
     virtual void on_input(const tick_input_t&) {};
 
     // serialize (?)
+    SERIALIZABLE()
 
     virtual ~entity_t() = default;
 };

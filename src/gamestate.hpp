@@ -41,11 +41,13 @@ public:
 
     bool remove(entity_t * ent_ptr);
 
-protected:
+public:
     // serialize
 
-    /*template <typename Archive>
-    virtual void serialize(Archive& ar, const unsigned) = 0;*/
+    template <typename Archive>
+    void serialize(Archive& ar, const unsigned);
+
+    void operator = (gamestate_t& rhs);
 };
 
 class old_input_exc {};
@@ -53,14 +55,16 @@ class old_input_exc {};
 class gamestate_simulator
 {
 public:
-    tick_t simulated = 0;
+    tick_t simulated_old = 0;
     tick_t lag = 1;
 private:
+    tick_t simulated_new = 1; // invariant: should always be simulated_old + lag
+    volatile bool newstate_invalidated = true;
     inputs_t inputs;
 
 private:
-    // TODO: add newstate
     gamestate_t oldstate;
+    gamestate_t newstate;
 
 public:
 
@@ -74,7 +78,7 @@ public:
 
     void draw()
     {
-        oldstate.draw();
+        oldstate.draw();//newstate.draw();
     }
 
 };

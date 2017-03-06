@@ -79,7 +79,7 @@ struct inputs_t
             buf.pop_front();
     }
 
-    auto lower_bound(tick_t tick) const
+    auto lower_bound(tick_t tick)
     {
         auto it = std::lower_bound(buf.begin(), buf.end(), tick);
         return it;

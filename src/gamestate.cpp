@@ -5,6 +5,8 @@
 
 #include "gamestate.hpp"
 #include "util/log.hpp"
+#include "util/assert.hpp"
+
 
 void gamestate_t::draw()
 {
@@ -49,8 +51,43 @@ bool gamestate_t::remove(entity_t * ent_ptr)
     return false;
 }
 
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/unique_ptr.hpp>
+
+template <typename Archive>
+void gamestate_t::serialize(Archive& ar, const unsigned)
+{
+    // TODO: register all entity types
+    /*< join "\n\t", map { "ar.template register_type<$_->{name}>();" } dispatch('entities');
+       %*//*>*/
+    //ar.template register_type<basic_entity>();
+    ar & entities;
+}
+
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include <sstream>
+
+void gamestate_t::operator = (gamestate_t& rhs)
+{
+    std::stringstream ss;
+
+    using namespace boost::archive;
+
+    {
+        binary_oarchive oa(ss, no_header | no_codecvt | no_tracking);
+        oa & rhs;
+    }
+    {
+        binary_iarchive ia(ss, no_header | no_codecvt | no_tracking);
+        ia & *this;
+    }
+}
+
 void gamestate_simulator::push(tick_input_t inp)
 {
+    if(inp.tick < simulated_new)
+        newstate_invalidated = true;
     inputs.push(std::move(inp));
 }
 
@@ -58,25 +95,54 @@ void gamestate_simulator::push(tick_input_t inp)
 
 void gamestate_simulator::update()
 {
-    auto tick = get_tick() - lag;
+    auto newtick = get_tick();
+    auto oldtick = newtick - lag;
 
-    while(simulated < tick)
+
+    // simulate oldstate
+    while(simulated_old < oldtick)
     {
-        if(!inputs.buf.empty() && inputs.buf.front().tick < simulated)
+        if(!inputs.buf.empty() && inputs.buf.front().tick < simulated_old)
         {
-            LOGGER(error, "TOO old", inputs.buf.front().tick, simulated);
-            inputs.pop_old(simulated);
+            LOGGER(error, "TOO old", inputs.buf.front().tick, simulated_old);
+            inputs.pop_old(simulated_old);
             throw old_input_exc{};
             //
         }
 
-        while(!inputs.buf.empty() && inputs.buf.front().tick == simulated)
+        while(!inputs.buf.empty() && inputs.buf.front().tick == simulated_old)
         {
             oldstate.on_input(inputs.buf.front());
             inputs.buf.pop_front();
         }
-        oldstate.update(simulated);
-        simulated++;
+        oldstate.update(simulated_old);
+        simulated_old++;
     }
+
+    if(newstate_invalidated)
+    {
+        // copy oldstate to newstate
+        oldstate = newstate;
+
+        simulated_new = simulated_old;
+        newstate_invalidated = false;
+    }
+
+    // simulate newstate
+    auto next_input = inputs.lower_bound(simulated_new);
+    while(simulated_new < newtick)
+    {
+        while(next_input != inputs.buf.end())
+        {
+            assert(next_input->tick >= simulated_new);
+            if(next_input->tick != simulated_new)
+                break;
+            newstate.on_input(*next_input);
+            ++next_input;
+        }
+        oldstate.update(simulated_new);
+        simulated_new++;
+    }
+
 }
 
