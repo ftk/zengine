@@ -9,8 +9,24 @@ my %filehandlers;
 
 
 
+my $dos = -1;
 
-for my $pass (1,2) {
+#sub evaler {
+#    my $code = shift;
+#    my $oldresult = shift; # previos result
+#
+#    my $result = eval $code // $oldresult // '';
+#    if ($@) {
+#        warn $@;
+#    }
+#
+#    return $result;
+#}
+#
+#
+#my $block_handler = \&evaler;
+
+for our $pass (1,2) {
 
     for our $filename (@ARGV) {
 
@@ -25,11 +41,14 @@ for my $pass (1,2) {
 
         my $newfile;
 
-        my $dos = 0;
-        my @crlfs = $content =~ /\r\n/g;
-        my @lfs = $content =~ /\n/g;
-        $dos = 1 if (scalar @crlfs) == (scalar @lfs);
-        #print "detected CRLF\n" if $dos;
+        {
+            # test first line
+            if($content =~ /(\r?\n)/) {
+                my $pd = $dos;
+                $dos = ($1 eq "\r\n") ? 1 : 0;
+                say "warning: $filename has wrong line endings! ($dos)" if $dos != $pd && $pd != -1;
+            }
+        }
         $content =~ s/\r\n/\n/g if $dos;
 
         for my $handler (values %filehandlers) {
@@ -85,9 +104,7 @@ for my $pass (1,2) {
 
                )
                }gsx) {
-            
-            #print "$1\n$2\n\n";
-            
+
             local $SIG{__WARN__} = sub {
                 if ($pass == 2) {
                     my @lines = substr($content, 0, $-[1]) =~ m/\n/g;
@@ -97,18 +114,17 @@ for my $pass (1,2) {
                 }
             };
 
-            my $result = eval $1;
+            #my $result = $block_handler->($1, $2);
+            my $result = eval $1 // $2 // '';
             if ($@) {
                 warn $@;
             }
 
-            $result = '' unless defined($result);
-            
             if ($pass == 2 && defined($2) && $result ne $2) {
 
                 if ($dirty == 0) {
                     #rename($filename, $filename . ".orig");
-                    open($newfile, $dos?'>:crlf':'>', $filename . '.ppnew');
+                    open($newfile, $dos?'>:crlf':'>', $filename . '.ppnew') or die $!;
                     $dirty = 1;
                 }
                 
@@ -116,14 +132,13 @@ for my $pass (1,2) {
                 
                 print $newfile $result;
 
-                #print $newfile substr($content, $+[2], $+[0] - $+[2]); # /*>*/
                 $pos = $+[2];
             }
         }
         if($pass == 2 && $dirty) {
             print $newfile substr($content, $pos);
             print "$filename updated!\n";
-            rename($filename . '.ppnew', $filename);
+            rename($filename . '.ppnew', $filename) or die $!;
         }
     }
 }
