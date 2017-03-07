@@ -35,6 +35,7 @@ find_package(Boost 1.62 COMPONENTS serialization system REQUIRED )
 include_directories(${Boost_INCLUDE_DIR})
 #link_libraries(${Boost_LIBRARIES})
 
+add_definitions(-DCHAISCRIPT_NO_THREADS -DCHAISCRIPT_NO_THREADS_WARNING -DCHAISCRIPT_NO_DYNLOAD)
 include_directories(ChaiScript/include)
 
 if(WIN32)

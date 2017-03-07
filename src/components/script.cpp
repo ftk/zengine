@@ -7,11 +7,9 @@
 
 
 
-#ifndef CHAISCRIPT
-#define CHAISCRIPT_NO_THREADS
-#define CHAISCRIPT_NO_THREADS_WARNING
+#if 1
 
-#include <chaiscript/chaiscript.hpp>
+#include <chaiscript/chaiscript_basic.hpp>
 
 #include "util/hash.hpp"
 #include "util/assert.hpp"
@@ -65,11 +63,17 @@ template struct script_callback<void (int)>;/*>*/
 
 ModulePtr script_register_bindings(ModulePtr m = std::make_shared<Module>());
 ModulePtr script_register_types(ModulePtr m = std::make_shared<Module>());
+ModulePtr create_chaiscript_stdlib();
+std::unique_ptr<chaiscript::parser::ChaiScript_Parser_Base> create_chaiscript_parser();
+
+
+
+
 
 class script_c::impl
 {
 public:
-    ChaiScript chai;
+    ChaiScript_Basic chai{create_chaiscript_stdlib(), create_chaiscript_parser()};
     impl()
     {
         register_functions();

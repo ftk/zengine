@@ -3,8 +3,6 @@
 //
 
 #include "script.hpp"
-#define CHAISCRIPT_NO_THREADS
-#define CHAISCRIPT_NO_THREADS_WARNING
 //#include <chaiscript/dispatchkit/dispatchkit.hpp>
 //#include <chaiscript/dispatchkit/register_function.hpp>
 #include <chaiscript/chaiscript_basic.hpp>
