@@ -142,7 +142,7 @@ public:
     void start()
     {
         LOGGER(info, "game started!!!", remote);
-        sim.simulated = get_tick();
+        sim.start();
 
         assert(remote);
 

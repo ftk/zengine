@@ -55,10 +55,10 @@ class old_input_exc {};
 class gamestate_simulator
 {
 public:
-    tick_t simulated_old = 0;
     tick_t lag = 1;
 private:
-    tick_t simulated_new = 1; // invariant: should always be simulated_old + lag
+    tick_t simulated_old = 0;
+    tick_t simulated_new = 0; // invariant: should always be simulated_old + lag
     volatile bool newstate_invalidated = true;
     inputs_t inputs;
 
@@ -70,7 +70,12 @@ public:
 
     gamestate_t& state() { return oldstate; }
 
-    gamestate_simulator() {};
+    gamestate_simulator() {}
+
+    void start()
+    {
+        simulated_old = simulated_new = get_tick();
+    }
 
     void push(tick_input_t ev);
 
