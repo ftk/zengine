@@ -16,8 +16,9 @@ class gamestate_t /*: public entity_t*/
 {
 public:
     using entity_ptr = std::unique_ptr<entity_t>;
+protected:
     std::vector<entity_ptr> entities;
-
+    friend struct entity_t;
 public:
 
     gamestate_t();
@@ -33,10 +34,12 @@ public:
     void emplace(Args&&... args)
     {
         entities.emplace_back(std::make_unique<Entity>(std::forward<Args>(args)...));
+        entities.back()->gamestate = this;
     }
     void insert(entity_ptr ent)
     {
         entities.push_back(std::move(ent));
+        entities.back()->gamestate = this;
     }
 
     bool remove(entity_t * ent_ptr);

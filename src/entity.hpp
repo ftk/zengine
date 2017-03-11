@@ -7,10 +7,17 @@
 
 
 #include "playerinputs.hpp"
+#include "util/assert.hpp"
 
+class gamestate_t;
 
 struct entity_t
 {
+protected:
+    gamestate_t * gamestate;
+    friend class gamestate_t;
+public:
+    gamestate_t& state() const noexcept { assume(gamestate); return *gamestate; }
 
     // draws entity, may be called from other thread
     virtual void draw() {};
@@ -21,7 +28,7 @@ struct entity_t
     // called always before update()
     virtual void on_input(const tick_input_t&) {};
 
-    // serialize (?)
+    // serialize : do NOT serialize gamestate, gamestate_t should handle this
     SERIALIZABLE()
 
     virtual ~entity_t() = default;

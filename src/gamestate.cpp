@@ -82,6 +82,9 @@ void gamestate_t::operator = (gamestate_t& rhs)
         binary_iarchive ia(ss, no_header | no_codecvt | no_tracking);
         ia & *this;
     }
+
+    for(auto& ent : entities) // glorious hack
+        ent->gamestate = this;
 }
 
 void gamestate_simulator::push(tick_input_t inp)
