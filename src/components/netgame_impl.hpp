@@ -174,7 +174,7 @@ protected:
         }
     }
 public:
-    void broadcast_input(const tick_input_t& event) override
+    void broadcast_input(const tick_input_t& event)
     {
         auto str = serialize(event);
         for(auto& p : playeroffsets)

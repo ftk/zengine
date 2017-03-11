@@ -19,9 +19,6 @@ struct netgame_i
 
     virtual net_node_id id() const { return 1; } // return local player id
 
-    // send input to everybody connected
-    virtual void broadcast_input(const tick_input_t& event) {}
-
     virtual void send_event(net_node_id id, event_t event) {};
 
     // handler should be thread safe
