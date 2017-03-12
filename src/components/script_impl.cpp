@@ -75,6 +75,10 @@ ModulePtr script_register_bindings(ModulePtr m)
 
     $s;
 %*/
+	chai.add(user_type<controller>(), "Controller");
+	chai.add(base_class<basic_module, controller>());
+	chai.add(fun(&controller::startgame), "startgame");
+	chai.add(fun(&modules_c::load<controller>, modules), "load_controller");
 	chai.add(user_type<controls>(), "Controls");
 	chai.add(base_class<basic_module, controls>());
 	chai.add(fun(&controls::set_key_handler), "set_key_handler");
@@ -83,10 +87,6 @@ ModulePtr script_register_bindings(ModulePtr m)
 	chai.add(user_type<fps>(), "Fps");
 	chai.add(base_class<basic_module, fps>());
 	chai.add(fun(&modules_c::load<fps>, modules), "load_fps");
-	chai.add(user_type<gamecontroller>(), "Gamecontroller");
-	chai.add(base_class<basic_module, gamecontroller>());
-	chai.add(fun(&gamecontroller::startgame), "startgame");
-	chai.add(fun(&modules_c::load<gamecontroller>, modules), "load_gamecontroller");
 	chai.add(user_type<optionbox>(), "Optionbox");
 	chai.add(base_class<basic_module, optionbox>());
 	chai.add(fun(&optionbox::add), "add");

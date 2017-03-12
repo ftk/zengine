@@ -13,11 +13,13 @@
 #include "components/netgame.hpp"
 #include "components/script.hpp"
 #include "gamestate.hpp"
+#include "playercontroller.hpp"
 
 #include "util/log.hpp"
 #include "util/assert.hpp"
 
 #include "collision.hpp"
+
 
 static col::simple_collider collider;
 
@@ -107,98 +109,33 @@ public:
 };
 
 
-
-/*< register_module(name=>'gamecontroller', class=>'gamecontroller', scriptexport=>[qw(startgame)]); >*/
-class gamecontroller : public basic_module
+class gamecontroller
 {
-    net_node_id remote = 0;
-    net_node_id local;
-    bool started = false;
-
     event::movement mov{0,0};
-
     gamestate_simulator sim;
+    net_node_id local, remote;
 public:
-    gamecontroller()
-    {
-        local = g_app->netgame->id();
-        g_app->netgame->set_event_handler([this](const tick_input_t& input) {
-            boost::apply_visitor([this, &input](const auto& event) -> void { this->on_netevent(input, event);}, input.event);
-        });
-    }
-
-    void startgame(net_node_id remote)
-    {
-        if(started)
-            return;
-        this->remote = remote;
-        //=- register_event(name=>'game_start');
-        LOGGER(info, "game start sent to", remote);
-        g_app->netgame->send_event(remote, event::game_start{});
-
-    }
-
-    //=- register_callback('void (uint64_t)', 'on_game_start');
-    void start()
+    gamecontroller(net_node_id local, net_node_id remote) : local(local), remote(remote)
     {
         LOGGER(info, "game started!!!", remote);
+        assert(remote);
         sim.start();
 
-        assert(remote);
 
-        started = true;
         sim.state().emplace<paddle>(qvm::vec2{-0.5,0}, std::min(local, remote));
         sim.state().emplace<paddle>(qvm::vec2{0.5,0}, std::max(local, remote));
         sim.state().emplace<ball>(qvm::vec2{0,0}, qvm::vec2{0.005,0});
         //sim.state().insert(new paddle{qvm::vec2{0.5,0}, std::max(local, remote)});
         //sim.state().insert(new ball{qvm::vec2{0,0}, qvm::vec2{0.01,0}});
+
+        //=- register_callback('void (uint64_t)', 'on_game_start');
         g_app->script->on_game_start(remote);
     }
 
-    void on_netevent(const tick_input_t& input, event::game_start)
+
+
+    bool on_event(const SDL_Event& ev)
     {
-        if(started)
-            return;
-        //=- register_event(name=>'game_start_ack');
-        remote = input.player;
-        LOGGER(info, "game start received from", remote);
-        g_app->netgame->send_event(remote, event::game_start_ack{});
-
-        start();
-
-    }
-    void on_netevent(const tick_input_t& input, event::game_start_ack)
-    {
-        if(input.player != remote)
-            return;
-        LOGGER(info, "game start acknowledged");
-        start();
-    }
-
-    //=- register_callback('void ()', 'on_disconnect');
-
-    void on_netevent(const tick_input_t& input, event::disconnect)
-    {
-        if(input.player != remote)
-            return;
-        LOGGER(info, "player disconnected :(");
-        started = false;
-        g_app->script->on_disconnect();
-    }
-
-    template<typename T>
-    void on_netevent(const tick_input_t& input, T event)
-    {
-        if(started)
-        {
-            sim.push(input);
-        }
-    }
-
-    bool on_event(const SDL_Event& ev) override
-    {
-        if(!started)
-            return true;
         switch(ev.type)
         {
             case SDL_KEYDOWN:
@@ -226,26 +163,23 @@ public:
         return true;
     }
 
-    void draw() override
+    void draw()
     {
-        if(started)
+        try
         {
-            try
-            {
-                sim.update();
-            }
-            catch(old_input_exc)
-            {
-                push_local(event::disconnect{});
-                //
-            }
-            sim.draw();
+            sim.update();
+        }
+        catch(old_input_exc)
+        {
+            push_local(event::disconnect{});
+            //
+        }
+        sim.draw();
 
-            if(mov.x || mov.y)
-            {
-                push_local(mov);
-                mov.x = mov.y = 0;
-            }
+        if(mov.x || mov.y)
+        {
+            push_local(mov);
+            mov.x = mov.y = 0;
         }
     }
 
@@ -254,6 +188,44 @@ public:
         auto input = tick_input_t{g_app->netgame->id(), get_tick(), event};
         g_app->netgame->send_event(remote, event);
         sim.push(std::move(input));
+    }
+
+    template<typename T>
+    void on_netevent(const tick_input_t& input, T event)
+    {
+        sim.push(input);
+    }
+
+    ~gamecontroller()
+    {
+        LOGGER(info, "player disconnected :(");
+        //=- register_callback('void ()', 'on_disconnect');
+        g_app->script->on_disconnect();
+    }
+};
+
+
+/*< register_module(name=>'controller', class=>'controller', scriptexport=>[qw(startgame)]); >*/
+class controller : public basic_module
+{
+    two_player_game<gamecontroller> game {g_app->netgame.get()};
+public:
+    void startgame(net_node_id remote)
+    {
+        game.send_request(remote);
+    }
+
+    bool on_event(const SDL_Event& ev) override
+    {
+        if(game.gamecontroller)
+            return game.gamecontroller->on_event(ev);
+        return true;
+    }
+
+    void draw() override
+    {
+        if(game.gamecontroller)
+            game.gamecontroller->draw();
     }
 
 };
