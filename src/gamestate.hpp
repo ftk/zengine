@@ -11,6 +11,7 @@
 
 #include <vector>
 #include <memory>
+#include "util/movable.hpp"
 
 class gamestate_t /*: public entity_t*/
 {
@@ -57,6 +58,7 @@ class old_input_exc {};
 
 class gamestate_simulator
 {
+    NONCOPYABLE(gamestate_simulator)
 public:
     tick_t lag = 1;
 private:
