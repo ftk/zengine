@@ -13,6 +13,9 @@ using std::experimental::optional;
 using std::experimental::bad_optional_access;
 using std::experimental::nullopt;
 using std::experimental::nullopt_t;
+using std::experimental::make_optional;
+using std::experimental::in_place;
+using std::experimental::in_place_t;
 
 template <typename T>
 class optional_ref
