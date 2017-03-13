@@ -125,7 +125,7 @@ void gamestate_simulator::update()
     if(newstate_invalidated)
     {
         // copy oldstate to newstate
-        oldstate = newstate;
+        newstate = oldstate;
 
         simulated_new = simulated_old;
         newstate_invalidated = false;
