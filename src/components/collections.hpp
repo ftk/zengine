@@ -113,6 +113,13 @@ public:
                                             int max_words = -1,
                                             const char * delimiters = "\n\t -");
 
+    auto lazy_render(const std::string& str, SDL_Color color = SDL_Color{255,255,255,255})
+    {
+        return [&str, color{std::move(color)}, this]() {
+            return this->def.RenderText_Blended(str, std::move(color)).Convert(SDL_PIXELFORMAT_RGBA32);
+        };
+
+    }
 };
 
 

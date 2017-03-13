@@ -71,6 +71,7 @@ public:
 
     }
 
+    // lower left and upper right corners
     void copy(qvm::vec2 ll, qvm::vec2 ur, optional<Rect> src, texture& tex)
     {
         using namespace qvm;
@@ -97,7 +98,11 @@ public:
         vertices_buf.update(vertices.data(), sizeof(vertices)); // binded
 
         copy_from_custom_buf(tex, GL_TRIANGLE_STRIP, 0, vertices.size());
+    }
 
+    void copy2(qvm::vec2 ll, qvm::vec2 size, optional<Rect> src, texture& tex)
+    {
+        return copy(ll, ll + size, src, tex);
     }
 
     void set4dpos(qvm::vec4 pos = qvm::vec4{0, 0, 0, 1}, float scale = 1)
