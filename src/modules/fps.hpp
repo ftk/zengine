@@ -19,7 +19,7 @@
 #include "opengl/render2d.hpp"
 
 #include <SDL_pixels.h>
-#include <SDL_timer.h>
+#include <ctime>
 
 #include "util/sdl_workaround.hpp"
 
@@ -27,11 +27,17 @@
 
 class fps : public basic_module
 {
+    unsigned fps = 0, frames;
     void draw() override
     {
-        static auto prev_time = SDL_GetPerformanceCounter();
-        int fps = 1 / (float(SDL_GetPerformanceCounter() - prev_time) / SDL_GetPerformanceFrequency());
-        prev_time = SDL_GetPerformanceCounter();
+        static auto next_time = time(nullptr) + 1;
+        ++frames;
+        if(time(nullptr) >= next_time)
+        {
+            fps = frames;
+            frames = 0;
+            next_time = time(nullptr) + 1;
+        }
 
         auto& texture = g_app->textures->get(fnv1a::stdhash(fps), [=]() {
             return g_app->fonts->def.RenderText_Blended(boost::lexical_cast<std::string>(fps), SDL_Color{255,255,255,255}).Convert(SDL_PIXELFORMAT_RGBA32);});
