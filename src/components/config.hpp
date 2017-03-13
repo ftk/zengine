@@ -8,7 +8,7 @@
 #include "modules/basic_module.hpp"
 #include <string>
 #include <set>
-
+//#include <vector>
 #include "util/assert.hpp"
 
 //#include <boost/serialization/nvp.hpp>
@@ -21,6 +21,10 @@ class config_c : boost::noncopyable
 {
 
     using string = std::string;
+//	template <typename T>
+//	using vector = std::vector<T>;
+//	template <typename T>
+//	using set = std::set<T>;
 public:
 
 
@@ -44,9 +48,7 @@ public:
     config_c();
     ~config_c();
 
-    bool on_event(const SDL_Event& ev);
-
-    bool set(const std::string& varname, const std::string& value);
+	bool set(const std::string& varname, const std::string& value);
 	std::string get(const std::string& varname);
 
     std::set<std::string> shader_params();

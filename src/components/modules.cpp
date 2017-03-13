@@ -3,7 +3,6 @@
 //
 #include "main.hpp"
 #include "modules.hpp"
-#include "modules/config_binds.hpp"
 #include "components/script.hpp"
 
 modules_c::modules_c()
@@ -12,9 +11,6 @@ modules_c::modules_c()
 
 void modules_c::init()
 {
-    modules.insert(std::make_pair(-500, new config_binds));
-
-
     //=- register_callback('void ()', 'on_init');
     //g_app->script->eval("on_init();");
     g_app->script->on_init();

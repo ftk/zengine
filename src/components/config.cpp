@@ -18,6 +18,8 @@
 #include "util/assert.hpp"
 
 #include <boost/serialization/nvp.hpp>
+#include <boost/serialization/set.hpp>
+
 #include <boost/lexical_cast.hpp>
 /*< serialize_free_nvp 'config_c', sort(grep defined, map {$_->{name} if $_->{save}} dispatch('config'));; %*/
 namespace boost { namespace serialization {
@@ -80,27 +82,6 @@ config_c::~config_c()
             std::cerr << "Unknown error saving config" << std::endl;
         }
     }
-}
-
-bool config_c::on_event(const SDL_Event& ev)
-{
-    switch(ev.type)
-    {
-        case SDL_KEYDOWN:
-        {
-            const auto mod = ev.key.keysym.mod;
-            switch(ev.key.keysym.scancode)
-            {
-
-                /*<
-    join "\n", map {"case SDL_SCANCODE_$_->{key}: " . (defined($_->{mod})?"if(mod & $_->{mod})":'') ."{$_->{action};} break;" } dispatch('cbind');
- %*//*>*/
-                default:
-                    break;
-            }
-        } break;
-    }
-    return true;
 }
 
 std::set<std::string> config_c::shader_params()
@@ -173,12 +154,3 @@ std::string config_c::get(const std::string& varname)
     return std::string{};
 }
 
-
-/*< # simple wrappers
-    sub config_bool # name, key
-    {
-    collect('config', {name=>$_[0], type=>'bool', def=>'false'});
-    collect('cbind', {key=>$_[1], action=>"$_[0] = !$_[0]", mod=>$_[2]});
-    }
-
- >*/
