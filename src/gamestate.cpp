@@ -143,7 +143,7 @@ void gamestate_simulator::update()
             newstate.on_input(*next_input);
             ++next_input;
         }
-        oldstate.update(simulated_new);
+        newstate.update(simulated_new);
         simulated_new++;
     }
 
