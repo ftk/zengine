@@ -73,7 +73,8 @@ before_build:
 - mingw32-make --version
 - cmake --version
 - echo "NUMBER_OF_PROCESSORS=%NUMBER_OF_PROCESSORS%"
-- if "%APPVEYOR_REPO_TAG%"=="true" (set CMAKE_BUILD_TYPE=Release) else (set CMAKE_BUILD_TYPE=Debug)
+#- if "%APPVEYOR_REPO_TAG%"=="true" (set CMAKE_BUILD_TYPE=Release) else (set CMAKE_BUILD_TYPE=Debug)
+- set CMAKE_BUILD_TYPE=Release
 - cmake -H. -Bbuild\mingw -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=%CMAKE_BUILD_TYPE% "-DCMAKE_EXE_LINKER_FLAGS=-static-libgcc -static-libstdc++"
 
 build_script:
