@@ -98,7 +98,7 @@ install:
         travis_retry wget --quiet -O - ${LIBCXX_URL}    | tar --strip-components=1 -xJ -C ${LLVM_DIR}/projects/libcxx
         travis_retry wget --quiet -O - ${LIBCXXABI_URL} | tar --strip-components=1 -xJ -C ${LLVM_DIR}/projects/libcxxabi
         travis_retry wget --quiet -O - ${CLANG_URL}     | tar --strip-components=1 -xJ -C ${LLVM_DIR}/clang
-        (cd ${LLVM_DIR}/build && cmake .. -DCMAKE_INSTALL_PREFIX=${LLVM_DIR}/install -DCMAKE_CXX_COMPILER=clang++)
+        (cd ${LLVM_DIR}/build && cmake .. -DCMAKE_INSTALL_PREFIX=${LLVM_DIR}/install)
         (cd ${LLVM_DIR}/build/projects/libcxx && make install -j2)
         (cd ${LLVM_DIR}/build/projects/libcxxabi && make install -j2)
       fi
@@ -128,7 +128,7 @@ install:
           (cd ${BOOST_DIR}/tools/build && ./bootstrap.sh && ./b2 install --prefix=${DEPS_DIR}/b2)
           export PATH=${DEPS_DIR}/b2/bin:${PATH}
           cd "$BOOST_DIR"
-          b2 --with-serialization --with-system "toolset=${BOOST_BUILD}" variant=release link=static threading=multi
+          b2 --with-serialization --with-system "toolset=${BOOST_BUILD}" variant=release link=static threading=multi "cxxflags=${CXXFLAGS}" "linkflags=${LDFLAGS}"
         fi
       fi
       CMAKE_OPTIONS+=" -DBOOST_ROOT=${BOOST_DIR}"
