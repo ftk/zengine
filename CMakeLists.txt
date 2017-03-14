@@ -107,7 +107,8 @@ add_executable(nettest  network_test.cpp src/components/network.cpp src/util/asi
 
 
 #target_compile_definitions(nettest PUBLIC -DBOOST_ASIO_ENABLE_HANDLER_TRACKING)
-target_compile_definitions(nettest PUBLIC -DNO_SDL -DLOG_HEADER_ONLY -DNO_BOOST_SYSTEM)
+target_compile_definitions(nettest PUBLIC -DNO_SDL -DLOG_HEADER_ONLY)
+target_link_libraries(nettest ${Boost_LIBRARIES})
 
 
 set (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/build")
