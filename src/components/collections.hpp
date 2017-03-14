@@ -17,6 +17,8 @@
 
 #include <string>
 
+#include "util/sdl_workaround.hpp"
+
 
 //=- register_component(class=>'textures_c', name=>'textures', priority=>50);
 class textures_c

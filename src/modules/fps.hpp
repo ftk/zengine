@@ -18,10 +18,8 @@
 #include <boost/lexical_cast.hpp>
 #include "opengl/render2d.hpp"
 
-#include <SDL_pixels.h>
 #include <ctime>
 
-#include "util/sdl_workaround.hpp"
 
 /*< register_module(class=>'fps', name=>'fps'); >*/
 
