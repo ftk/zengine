@@ -33,7 +33,7 @@ public:
         collider.objs.push_back(this);
     }
 
-    static constexpr auto size = qvm::vec2{0.05, 0.10};
+    qvm::vec2 size {0.05, 0.10};
     col::box bounding_box() const override
     {
         return col::box{pos + size/2, size};
@@ -69,7 +69,7 @@ class ball : public entity_t, public col::object
 {
 public:
     qvm::vec2 pos, vel;
-    static constexpr qvm::vec2 size {0.01, 0.01};
+    qvm::vec2 size {0.01, 0.01};
 
     ball(qvm::vec2 pos, qvm::vec2 vel) : pos(std::move(pos)), vel(std::move(vel)) {
         collider.objs.push_back(this);
@@ -172,7 +172,7 @@ public:
         catch(old_input_exc)
         {
             push_local(event::disconnect{});
-            //
+//            throw stop_game{};
         }
         sim.draw();
 
