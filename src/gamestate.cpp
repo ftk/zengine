@@ -53,17 +53,6 @@ bool gamestate_t::remove(entity_t * ent_ptr)
 
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/unique_ptr.hpp>
-
-template <typename Archive>
-void gamestate_t::serialize(Archive& ar, const unsigned)
-{
-    // TODO: register all entity types
-    /*< join "\n\t", map { "ar.template register_type<$_->{name}>();" } dispatch('entities');
-       %*//*>*/
-    //ar.template register_type<basic_entity>();
-    ar & entities;
-}
-
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <sstream>
@@ -75,12 +64,12 @@ void gamestate_t::operator = (gamestate_t& rhs)
     using namespace boost::archive;
 
     {
-        binary_oarchive oa(ss, no_header | no_codecvt | no_tracking);
-        oa & rhs;
+        binary_oarchive oa(ss, no_header | no_codecvt);
+        oa & rhs.entities;
     }
     {
-        binary_iarchive ia(ss, no_header | no_codecvt | no_tracking);
-        ia & *this;
+        binary_iarchive ia(ss, no_header | no_codecvt);
+        ia & entities;
     }
 
     for(auto& ent : entities) // glorious hack
@@ -121,7 +110,7 @@ void gamestate_simulator::update()
         oldstate.update(simulated_old);
         simulated_old++;
     }
-
+#if 0
     if(newstate_invalidated)
     {
         // copy oldstate to newstate
@@ -146,6 +135,6 @@ void gamestate_simulator::update()
         newstate.update(simulated_new);
         simulated_new++;
     }
-
+#endif
 }
 

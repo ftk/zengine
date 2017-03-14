@@ -32,10 +32,11 @@ public:
 
 
     template <class Entity, typename... Args>
-    void emplace(Args&&... args)
+    Entity * emplace(Args&&... args)
     {
         entities.emplace_back(std::make_unique<Entity>(std::forward<Args>(args)...));
         entities.back()->gamestate = this;
+        return static_cast<Entity *>(entities.back().get());
     }
     void insert(entity_ptr ent)
     {
@@ -46,10 +47,6 @@ public:
     bool remove(entity_t * ent_ptr);
 
 public:
-    // serialize
-
-    template <typename Archive>
-    void serialize(Archive& ar, const unsigned);
 
     void operator = (gamestate_t& rhs);
 };
