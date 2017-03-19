@@ -112,15 +112,13 @@ public:
 class gamecontroller
 {
     event::movement mov{0,0};
-    gamestate_simulator sim;
+    gamestate_simulator<gamestate_t> sim;
     net_node_id local, remote;
 public:
     gamecontroller(net_node_id local, net_node_id remote) : local(local), remote(remote)
     {
         LOGGER(info, "game started!!!", remote);
         assert(remote);
-        sim.start();
-
 
         sim.state().emplace<paddle>(qvm::vec2{-0.5,0}, std::min(local, remote));
         sim.state().emplace<paddle>(qvm::vec2{0.5,0}, std::max(local, remote));

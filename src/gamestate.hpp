@@ -12,6 +12,7 @@
 #include <vector>
 #include <memory>
 #include "util/movable.hpp"
+#include "util/log.hpp"
 
 class gamestate_t /*: public entity_t*/
 {
@@ -26,7 +27,7 @@ public:
 
     void update(tick_t tick);
     //void update(players_tick_input_t& t);
-    void on_input(tick_input_t& input);
+    void on_input(const tick_input_t& input);
 
     void draw();
 
@@ -53,35 +54,61 @@ public:
 
 class old_input_exc {};
 
+// Gamestate requirements: the same as entity
+template <class Gamestate = gamestate_t>
 class gamestate_simulator
 {
     NONCOPYABLE(gamestate_simulator)
 public:
     tick_t lag = 1;
-private:
+protected:
     tick_t simulated_old = 0;
-    tick_t simulated_new = 0; // invariant: should always be simulated_old + lag
-    volatile bool newstate_invalidated = true;
     inputs_t inputs;
 
-private:
-    gamestate_t oldstate;
-    gamestate_t newstate;
+protected:
+    Gamestate oldstate;
 
 public:
 
-    gamestate_t& state() { return oldstate; }
+    Gamestate& state() { return oldstate; }
 
-    gamestate_simulator() {}
-
-    void start()
+    gamestate_simulator()
     {
-        simulated_old = simulated_new = get_tick();
+        simulated_old = get_tick();
     }
 
-    void push(tick_input_t ev);
+    void push(tick_input_t ev)
+    {
+        inputs.push(std::move(ev));
+    }
 
-    void update();
+    void update()
+    {
+        auto newtick = get_tick();
+        auto oldtick = newtick - lag;
+
+
+        // simulate oldstate
+        while(simulated_old < oldtick)
+        {
+            if(!inputs.buf.empty() && inputs.buf.front().tick < simulated_old)
+            {
+                LOGGER(error, "TOO old", inputs.buf.front().tick, simulated_old);
+                inputs.pop_old(simulated_old);
+                throw old_input_exc{};
+                //
+            }
+
+            while(!inputs.buf.empty() && inputs.buf.front().tick == simulated_old)
+            {
+                oldstate.on_input(inputs.buf.front());
+                inputs.buf.pop_front();
+            }
+            oldstate.update(simulated_old);
+            simulated_old++;
+        }
+
+    }
 
     void draw()
     {
@@ -89,5 +116,66 @@ public:
     }
 
 };
+
+// GamestateSync requirements: the same as entity, operator=, TODO: serialize, deserialize
+template <class GamestateSync = gamestate_t>
+class gamestate_simulator2 : public gamestate_simulator<GamestateSync>
+{
+    typedef gamestate_simulator<GamestateSync> Base;
+protected:
+    tick_t simulated_new = 0; // invariant: should always be simulated_old + lag
+    volatile bool newstate_invalidated = true;
+    GamestateSync newstate;
+
+
+public:
+
+    gamestate_simulator2() : Base()
+    {
+        simulated_new = get_tick();
+    }
+
+    void push(tick_input_t ev) override
+    {
+        if(ev.tick < simulated_new)
+            newstate_invalidated = true;
+        Base::push(std::move(ev));
+    }
+
+
+    void update() override
+    {
+        Base::update();
+
+        if(newstate_invalidated)
+        {
+            // copy oldstate to newstate
+            newstate = this->oldstate;
+
+            simulated_new = this->simulated_old;
+            newstate_invalidated = false;
+        }
+
+        // simulate newstate
+        auto newtick = get_tick();
+
+        auto next_input = this->inputs.lower_bound(simulated_new);
+        while(simulated_new < newtick)
+        {
+            while(next_input != this->inputs.buf.end())
+            {
+                assert(next_input->tick >= simulated_new);
+                if(next_input->tick != simulated_new)
+                    break;
+                newstate.on_input(*next_input);
+                ++next_input;
+            }
+            newstate.update(simulated_new);
+            simulated_new++;
+        }
+    }
+
+};
+
 
 #endif //ZENGINE_GAMESTATE_HPP

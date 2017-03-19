@@ -31,7 +31,7 @@ void gamestate_t::update(tick_t tick)
 
 }
 
-void gamestate_t::on_input(tick_input_t& input)
+void gamestate_t::on_input(const tick_input_t& input)
 {
     for(auto& e : entities)
     {
@@ -76,65 +76,6 @@ void gamestate_t::operator = (gamestate_t& rhs)
         ent->gamestate = this;
 }
 
-void gamestate_simulator::push(tick_input_t inp)
-{
-    if(inp.tick < simulated_new)
-        newstate_invalidated = true;
-    inputs.push(std::move(inp));
-}
 
 
-
-void gamestate_simulator::update()
-{
-    auto newtick = get_tick();
-    auto oldtick = newtick - lag;
-
-
-    // simulate oldstate
-    while(simulated_old < oldtick)
-    {
-        if(!inputs.buf.empty() && inputs.buf.front().tick < simulated_old)
-        {
-            LOGGER(error, "TOO old", inputs.buf.front().tick, simulated_old);
-            inputs.pop_old(simulated_old);
-            throw old_input_exc{};
-            //
-        }
-
-        while(!inputs.buf.empty() && inputs.buf.front().tick == simulated_old)
-        {
-            oldstate.on_input(inputs.buf.front());
-            inputs.buf.pop_front();
-        }
-        oldstate.update(simulated_old);
-        simulated_old++;
-    }
-#if 0
-    if(newstate_invalidated)
-    {
-        // copy oldstate to newstate
-        newstate = oldstate;
-
-        simulated_new = simulated_old;
-        newstate_invalidated = false;
-    }
-
-    // simulate newstate
-    auto next_input = inputs.lower_bound(simulated_new);
-    while(simulated_new < newtick)
-    {
-        while(next_input != inputs.buf.end())
-        {
-            assert(next_input->tick >= simulated_new);
-            if(next_input->tick != simulated_new)
-                break;
-            newstate.on_input(*next_input);
-            ++next_input;
-        }
-        newstate.update(simulated_new);
-        simulated_new++;
-    }
-#endif
-}
 
