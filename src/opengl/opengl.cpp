@@ -7,36 +7,14 @@
 
 #include <string>
 
-#include "util/log.hpp"
-/*# wrapper example
-   my $s='';
-   open my $fh, '<', 'opengl/opengl.inl';
-   while(<$fh>)
-   {
-    if(m/GLFUNC\((.+?), *(.+?), *\((.*?)\)\)/)
-    {
-      my @params = split /, /, $3;
-      my $arglist = join ', ', map { (split / /)[-1]; } @params;
-      $s .= qq[static $1 $2 ($3) {
-        logger(log_level::debug, "gl$2", '(', $arglist, ')');
-        return real$2($arglist);
-        }];
+#include "util/assert.hpp"
 
-    }
-   }
-   #$s;
 
- %*/ /*>*/
 
 #if GL_DEBUG >= 2
 
-#ifndef GL_DEBUG_LOG
-#define GL_DEBUG_LOG 3 // 1 high, 2 medium, 3 low, 4 notification
-#endif
-
-
-#include <iostream>
-
+//#include <iostream>
+#include "util/log.hpp"
 
 //#include "gl2ext.h"
 #define GL_DEBUG_SEVERITY_NOTIFICATION_KHR 0x826B
@@ -48,32 +26,30 @@ typedef void (*DEBUGPROC)(GLenum source,GLenum type,GLuint id,GLenum severity,GL
 
 static void debug_log(GLenum source,GLenum type,GLuint id,GLenum severity,GLsizei length,const GLchar *message,const void *userParam)
 {
+    auto lvl = log_level::error;
     switch(severity)
     {
         case GL_DEBUG_SEVERITY_NOTIFICATION_KHR:
-#if GL_DEBUG_LOG < 4
-            return;
-#endif
+            lvl = log_level::debug;
+            break;
         case GL_DEBUG_SEVERITY_LOW_KHR:
-#if GL_DEBUG_LOG < 3
-            return;
-#endif
+            lvl = log_level::info;
+            break;
         case GL_DEBUG_SEVERITY_MEDIUM_KHR:
-#if GL_DEBUG_LOG < 2
-            return;
-#endif
+            lvl = log_level::warn;
+            break;
         case GL_DEBUG_SEVERITY_HIGH_KHR:
-#if GL_DEBUG_LOG < 1
-            return;
-#endif
+            lvl = log_level::error;
+            break;
         default:
             break;
 
     }
     //std::cerr << source << ' ' << type << ' ' << id << ' ' << severity << ' ';
-    std::cerr.write(message, length);
-    std::cerr << std::endl;
-
+    //std::cerr.write(message, length);
+    //std::cerr << std::endl;
+    assume(length >= 0);
+    logger(lvl, "OpenGL:", string_view{message,static_cast<std::size_t>(length)});
 }
 
 #endif
