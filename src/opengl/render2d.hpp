@@ -8,6 +8,7 @@
 #include "shader.hpp"
 #include "texture.hpp"
 #include <array>
+#include <vector>
 
 #include "util/geometry.hpp"
 #include "util/optional.hpp"
@@ -47,6 +48,31 @@ private:
 
     array_buf vertices_buf;
 
+private:
+    typedef std::function<qvm::vec2 (qvm::vec2)> transormation2d;
+    std::vector<transormation2d> transforms;
+public:
+    struct transform_t
+    {
+        renderer_2d& ren;
+        transform_t(renderer_2d& ren, auto f) : ren(ren)
+        {
+            ren.transforms.emplace_back(std::move(f));
+        }
+        ~transform_t()
+        {
+            ren.transforms.pop_back();
+        }
+        static auto rect(qvm::vec2 ll, qvm::vec2 size)
+        {
+            return [ll,size](qvm::vec2 pos) -> qvm::vec2 {
+                return pos * qvm::diag_mat(size) + ll;
+            };
+        }
+    };
+    friend struct transform_t;
+public:
+    transform_t transform(auto f) { return {*this, std::move(f)}; }
 public:
     renderer_2d() : shd{program::from_file("resources/shd/texture.glsl")}, // TODO: move from file to source?
                     vertices_buf{&vertices[0], sizeof(vertices), GL_DYNAMIC_DRAW}
@@ -67,11 +93,16 @@ public:
     }
 
     // lower left and upper right corners
-    void copy(qvm::vec2 ll, qvm::vec2 ur, optional<Rect> src, texture& tex)
+    void copy(texture &tex, qvm::vec2 ll = {0.f, 0.f}, qvm::vec2 ur = {1.f, 1.f}, optional<Rect> src = nullopt)
     {
         using namespace qvm;
         auto size = tex.get_size();
 
+        for(const auto& f : transforms)
+        {
+            ll = f(ll);
+            ur = f(ur);
+        }
 
         // ul
         const float up = src ? ((float)src->y / size.y) : 0.f;
@@ -95,9 +126,9 @@ public:
         copy_from_custom_buf(tex, GL_TRIANGLE_STRIP, 0, vertices.size());
     }
 
-    void copy2(qvm::vec2 ll, qvm::vec2 size, optional<Rect> src, texture& tex)
+    void copy2(texture& tex, qvm::vec2 ll = {0.f, 0.f}, qvm::vec2 size = {1.f, 1.f}, optional<Rect> src = nullopt)
     {
-        return copy(ll, ll + size, src, tex);
+        return copy(tex, ll, ll + size, src);
     }
 
     void set4dpos(qvm::vec4 pos = qvm::vec4{0, 0, 0, 1}, float scale = 1)

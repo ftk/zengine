@@ -63,7 +63,6 @@ public:
 
     void update()
     {
-        //hash = fnv1a::foldr(options.size(), options[0]);
         g_app->textures->insert("textbox"_fnv, make_box());
     }
 
@@ -78,7 +77,7 @@ public:
 
         using namespace qvm;
         texture& box = g_app->textures->get("textbox"_fnv, [this](){return this->make_box();});
-        g_app->window->render.copy(offset + vec2{0.0f, -opt_height * options.size()}, offset + vec2{0.45f, 0.0f}, nullopt, box);
+        g_app->window->render.copy(box, offset + vec2{0.0f, -opt_height * options.size()}, offset + vec2{0.45f, 0.0f});
         if(SDL_GetTicks() % 300 < 150) //blink
         {
             texture& pointer = g_app->textures->get("pointer"_fnv,
@@ -87,8 +86,8 @@ public:
                                                                     //►▶
                                                                     "►", SDL_Color{255, 255, 255, 255}));
                                                     });
-            g_app->window->render.copy(offset + vec2{0.f, -opt_height * (selected + 1)},
-                                       offset + vec2{0.01f, -opt_height * (selected)}, nullopt, pointer);
+            g_app->window->render.copy(pointer, offset + vec2{0.f, -opt_height * (selected + 1)},
+                                       offset + vec2{0.01f, -opt_height * (selected)}, nullopt);
         }
     }
 
