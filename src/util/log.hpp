@@ -7,6 +7,10 @@
 
 #include <ostream>
 
+#include <experimental/string_view>
+
+using std::experimental::string_view;
+
 #ifdef LOG_HEADER_ONLY
 #include <iostream>
 #else

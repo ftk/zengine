@@ -43,7 +43,7 @@ public:
     void clear() { options.clear(); }
     void set_offset(float x, float y) { offset = {x, y}; }
 
-    void update()
+    texture make_box()
     {
         int margin_x = 20, line_y = g_app->fonts->def.GetLineSkip();
         Point maxsize { 300, (int)options.size() * line_y};
@@ -58,8 +58,13 @@ public:
             auto surf = g_app->fonts->def.RenderUTF8_Blended(options[i], SDL_Color{255, 255, 255, 255});
             surf.Blit(SDL2pp::NullOpt, rect, Rect{margin_x, line_y * (int)i, maxsize.x, line_y});
         }
+        return texture{std::move(rect)};
+    }
+
+    void update()
+    {
         //hash = fnv1a::foldr(options.size(), options[0]);
-        g_app->textures->insert("textbox"_fnv, texture{std::move(rect)});
+        g_app->textures->insert("textbox"_fnv, make_box());
     }
 
     void draw()
@@ -72,7 +77,7 @@ public:
         g_app->window->render.set4dpos();
 
         using namespace qvm;
-        texture& box = g_app->textures->get("textbox"_fnv);
+        texture& box = g_app->textures->get("textbox"_fnv, [this](){return this->make_box();});
         g_app->window->render.copy(offset + vec2{0.0f, -opt_height * options.size()}, offset + vec2{0.45f, 0.0f}, nullopt, box);
         if(SDL_GetTicks() % 300 < 150) //blink
         {

@@ -62,13 +62,8 @@ public:
     void copy_from_custom_buf(texture& tex, GLenum mode, unsigned first, unsigned count)
     {
         shd.bind();
-
-
         tex.bind(0);
-
-
         shd.draw<attributes>(mode, first, count);
-
     }
 
     // lower left and upper right corners

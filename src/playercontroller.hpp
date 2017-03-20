@@ -84,7 +84,7 @@ private:
     {
         if(input.player != remote)
             return;
-        LOGGER(info, "player disconnected :(");
+        LOGGER(info, "player disconnected");
         // shut down
         gamecontroller = nullopt;
     }

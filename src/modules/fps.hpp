@@ -37,7 +37,7 @@ class fps : public basic_module
             next_time = time(nullptr) + 1;
         }
 
-        auto& texture = g_app->textures->get(fnv1a::stdhash(fps),
+        auto& texture = g_app->textures->get(fps,
                                              g_app->fonts->lazy_render(boost::lexical_cast<std::string>(fps), SDL_Color{255,255,255,255}));
 
         gl::Enable(GL_BLEND);
