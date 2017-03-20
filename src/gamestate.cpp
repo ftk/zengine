@@ -17,10 +17,6 @@ void gamestate_t::draw()
 }
 
 
-gamestate_t::gamestate_t()
-{
-}
-
 void gamestate_t::update(tick_t tick)
 {
     //LOGGER(debug, "updating...", tick);

@@ -23,7 +23,7 @@ protected:
     friend struct entity_t;
 public:
 
-    gamestate_t();
+    gamestate_t() {}
 
     void update(tick_t tick);
     //void update(players_tick_input_t& t);
@@ -54,7 +54,7 @@ public:
 
 class old_input_exc {};
 
-// Gamestate requirements: the same as entity
+// Gamestate requirements: update, on_input, draw
 template <class Gamestate = gamestate_t>
 class gamestate_simulator
 {
@@ -72,7 +72,8 @@ public:
 
     Gamestate& state() { return oldstate; }
 
-    gamestate_simulator()
+    template <typename... Args>
+    gamestate_simulator(Args&&... args) : oldstate(std::forward<Args>(args)...)
     {
         simulated_old = get_tick();
     }
@@ -117,7 +118,7 @@ public:
 
 };
 
-// GamestateSync requirements: the same as entity, operator=, TODO: serialize, deserialize
+// GamestateSync requirements: the same as Gamestate, operator=, TODO: serialize, deserialize
 template <class GamestateSync = gamestate_t>
 class gamestate_simulator2 : public gamestate_simulator<GamestateSync>
 {
@@ -130,7 +131,8 @@ protected:
 
 public:
 
-    gamestate_simulator2() : Base()
+    template <typename... Args>
+    gamestate_simulator2(Args&&... args) : Base(args...), newstate(std::forward<Args>(args)...)
     {
         simulated_new = get_tick();
     }
