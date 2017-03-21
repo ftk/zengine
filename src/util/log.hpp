@@ -58,7 +58,7 @@ extern std::vector<logger> loggers;
 #endif
 
 template <typename T>
-inline void log_arg(const logger& l, T&& t)
+inline void log_arg(const logger& l, T&& t) noexcept
 {
     l.s << std::forward<T>(t) << ' ';
 }
@@ -68,7 +68,7 @@ inline void log_arg(const logger& l, T&& t)
 #ifdef LOG_HEADER_ONLY
 inline constexpr
 #endif
-void log_start(const logger& l)
+void log_start(const logger& l) noexcept
 #ifdef LOG_HEADER_ONLY
 {}
 #endif
@@ -77,7 +77,7 @@ void log_start(const logger& l)
 #ifdef LOG_HEADER_ONLY
 inline
 #endif
-void log_end(const logger& l)
+void log_end(const logger& l) noexcept
 #ifdef LOG_HEADER_ONLY
 {
     l.s << std::endl;
@@ -86,10 +86,10 @@ void log_end(const logger& l)
 ;
 
 
-inline constexpr void log_args(const logger& l) { }
+inline constexpr void log_args(const logger& l) noexcept { }
 
 template <typename Arg1, typename... Args>
-inline void log_args(const logger& l, Arg1&& arg1, Args&& ... args)
+inline void log_args(const logger& l, Arg1&& arg1, Args&& ... args) noexcept
 {
     log_arg(l, std::forward<Arg1>(arg1));
     log_args(l, std::forward<Args>(args)...);
@@ -103,7 +103,7 @@ inline void log_args(const logger& l, Arg1&& arg1, Args&& ... args)
 
 
 template <typename... Args>
-inline void logger(log_level level, Args&&... args)
+inline void logger(log_level level, Args&&... args) noexcept
 {
     using namespace log_detail;
     for(const auto& l : loggers)
@@ -117,7 +117,7 @@ inline void logger(log_level level, Args&&... args)
     }
 };
 
-inline constexpr auto& loggers() { return log_detail::loggers; }
+inline constexpr auto& loggers() noexcept { return log_detail::loggers; }
 
 #define LOGGER(level,...) logger(log_level:: level, ##__VA_ARGS__)
 

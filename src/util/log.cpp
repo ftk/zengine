@@ -14,7 +14,7 @@ std::vector<logger> loggers{{std::cerr, log_level::debug2, 0}};
 
 
 
-void log_start(const logger& l)
+void log_start(const logger& l) noexcept
 {
     if(l.flags & TIME)
     {
@@ -26,7 +26,7 @@ void log_start(const logger& l)
     }
 }
 
-void log_end(const logger& l)
+void log_end(const logger& l) noexcept
 {
     // end of line
     if(!(l.flags & NO_NEWLINE))
