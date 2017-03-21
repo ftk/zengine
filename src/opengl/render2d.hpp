@@ -131,6 +131,13 @@ public:
         return copy(tex, ll, ll + size, src);
     }
 
+    // calculate x preserving aspect ratio of texture
+    void copy_y(texture& tex, qvm::vec2 ll, float sizey)
+    {
+        auto size = tex.get_size();
+        return copy2(tex, ll, {((float)size.x / size.y) * sizey, sizey});
+    }
+
     void set4dpos(qvm::vec4 pos = qvm::vec4{0, 0, 0, 1}, float scale = 1)
     {
         shd.bind();
