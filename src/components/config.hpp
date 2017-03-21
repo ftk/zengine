@@ -32,6 +32,7 @@ public:
         join "\n\t", map {$_->{type} . ' ' . $_->{name} . ';'} dispatch('config');
      %*/string bind_ip;
 	uint16_t bind_port;
+	bool dont_save_config;
 	string mastersrv_ip;
 	uint16_t mastersrv_port;
 	unsigned msaa;

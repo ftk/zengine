@@ -35,6 +35,7 @@ config_c::config_c()
     join ",\n", map {$_->{name} . '{' . ($_->{def} // '') . '}' } dispatch('config');
  %*/bind_ip{},
 bind_port{0},
+dont_save_config{false},
 mastersrv_ip{"127.0.0.1"},
 mastersrv_port{9999},
 msaa{16},
@@ -64,6 +65,9 @@ windowpos_y{0x1FFF0000u}/*>*/
 
 config_c::~config_c()
 {
+    //=- collect('config', {name=>'dont_save_config', type=>'bool', def=>'false'});
+    if(dont_save_config)
+        return;
     std::ofstream ofs("config.xml");
     if(ofs)
     {
@@ -105,6 +109,7 @@ bool config_c::set(const std::string& varname, const std::string& value)
             /*< join "\n\t\t", map {qq[case "$_->{name}"_fnv: $_->{name} = boost::lexical_cast<$_->{type}>(value); return true;]} dispatch('config');
             %*/case "bind_ip"_fnv: bind_ip = boost::lexical_cast<string>(value); return true;
 		case "bind_port"_fnv: bind_port = boost::lexical_cast<uint16_t>(value); return true;
+		case "dont_save_config"_fnv: dont_save_config = boost::lexical_cast<bool>(value); return true;
 		case "mastersrv_ip"_fnv: mastersrv_ip = boost::lexical_cast<string>(value); return true;
 		case "mastersrv_port"_fnv: mastersrv_port = boost::lexical_cast<uint16_t>(value); return true;
 		case "msaa"_fnv: msaa = boost::lexical_cast<unsigned>(value); return true;
@@ -134,6 +139,7 @@ std::string config_c::get(const std::string& varname)
             /*< join "\n\t\t", map {qq[case "$_->{name}"_fnv: return boost::lexical_cast<std::string>($_->{name});]} dispatch('config');
             %*/case "bind_ip"_fnv: return boost::lexical_cast<std::string>(bind_ip);
 		case "bind_port"_fnv: return boost::lexical_cast<std::string>(bind_port);
+		case "dont_save_config"_fnv: return boost::lexical_cast<std::string>(dont_save_config);
 		case "mastersrv_ip"_fnv: return boost::lexical_cast<std::string>(mastersrv_ip);
 		case "mastersrv_port"_fnv: return boost::lexical_cast<std::string>(mastersrv_port);
 		case "msaa"_fnv: return boost::lexical_cast<std::string>(msaa);
