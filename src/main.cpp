@@ -14,20 +14,32 @@
 #include "application.hpp"
 
 #include "util/log.hpp"
-
+#include "util/hash.hpp"
 
 application * g_app = nullptr;
 
 
+#include "opengl/math.hpp"
+
 int main(int argc, char * argv[])
-try
 {
     srand(time(nullptr));
 
+    int argn;
+    for(argn = 1; argn < argc; argn++)
+    {
+        auto arg = string_view{argv[argn]};
+        std::size_t eq_pos = arg.find('=');
+        if(eq_pos == string_view::npos)
+            break;
 
+        //auto key = arg.substr(0, eq_pos);
+        //auto value = arg.substr(eq_pos + 1);
+
+    }
     // start in app's dir
-    if(argc > 1)
-        chdir(argv[1]);
+    if(argn != argc)
+        chdir(argv[argn++]);
     //if(SDL_GetBasePath())
         //chdir(SDL_GetBasePath());
 
@@ -41,8 +53,17 @@ try
     try
     {
         g_app->init_components();
-        g_app->run();
-
+        try
+        {
+            g_app->run();
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "Uncaught exception: " << e.what() << std::endl;
+            LOGGER(fatal, "Uncaught exception:", e.what());
+            throw;
+        }
+        LOGGER(info, "Unloading application...");
         alloc.destroy(g_app);
         alloc.deallocate(g_app, 1);
 
@@ -55,10 +76,4 @@ try
         throw;
     }
 
-}
-catch(const std::exception& e)
-{
-    std::cerr << "Uncaught exception: " << e.what() << std::endl;
-    throw;
-    return 1;
 }
