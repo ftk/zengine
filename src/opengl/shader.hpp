@@ -58,7 +58,7 @@ public:
     // load both vertex and fragment shader from 1 file (contains preprocessor)
     static program from_file(const char * file, std::set<std::string> params = std::set<std::string>());
 
-    void bind()
+    void bind() const
     {
         gl::UseProgram(prog);
         GL_CHECK_ERROR();
