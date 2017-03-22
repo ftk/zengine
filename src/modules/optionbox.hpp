@@ -73,7 +73,6 @@ public:
         gl::Enable(GL_BLEND);
         gl::BlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         gl::Disable(GL_DEPTH_TEST);
-        g_app->window->render.set4dpos();
 
         using namespace qvm;
         texture& box = g_app->textures->get("textbox"_fnv, [this](){return this->make_box();});

@@ -42,7 +42,6 @@ class fps : public basic_module
 
         gl::Enable(GL_BLEND);
         gl::BlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        g_app->window->render.set4dpos();
         //auto t = g_app->window->render.transform(renderer_2d::transform_t::rect({-1.f, 0.95f}, {0.05, 0.05}));
         //renderer_2d::transform_t t{g_app->window->render, renderer_2d::transform_t::rect({-1.f, 0.95f}, {0.05, 0.05})};
         g_app->window->render.copy2(texture, {-1.f, 0.95f}, {0.05, 0.05});

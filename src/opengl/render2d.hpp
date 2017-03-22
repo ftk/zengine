@@ -21,7 +21,7 @@ class renderer_2d : boost::noncopyable
 {
     program shd;
 
-public:
+private:
     /*< define_attributes('attributes',{
 a_position=>['qvm::vec2','float'],
 a_texCoord=>['qvm::vec2','float'],
@@ -55,7 +55,7 @@ public:
     struct transform_t
     {
         renderer_2d& ren;
-        transform_t(renderer_2d& ren, auto f) : ren(ren)
+        transform_t(renderer_2d& ren, transormation2d f) : ren(ren)
         {
             ren.transforms.emplace_back(std::move(f));
         }
@@ -72,26 +72,24 @@ public:
     };
     friend struct transform_t;
 public:
-    transform_t transform(auto f) { return {*this, std::move(f)}; }
+    transform_t transform(transormation2d f) { return {*this, std::move(f)}; }
 public:
     renderer_2d() : shd{program::from_file("resources/shd/texture.glsl")}, // TODO: move from file to source?
                     vertices_buf{&vertices[0], sizeof(vertices), GL_DYNAMIC_DRAW}
     {
-        set4dpos();
         // bind texture to 0 (always)
         GET_UNIFORM(shd, u_texture) = qvm::ivec1{0};
-
     }
 
 
-
+private:
     void copy_from_custom_buf(texture& tex, GLenum mode, unsigned first, unsigned count)
     {
         shd.bind();
         tex.bind(0);
         shd.draw<attributes>(mode, first, count);
     }
-
+public:
     // lower left and upper right corners
     void copy(texture &tex, qvm::vec2 ll = {0.f, 0.f}, qvm::vec2 ur = {1.f, 1.f}, optional<Rect> src = nullopt)
     {
@@ -136,13 +134,6 @@ public:
     {
         auto size = tex.get_size();
         return copy2(tex, ll, {((float)size.x / size.y) * sizey, sizey});
-    }
-
-    void set4dpos(qvm::vec4 pos = qvm::vec4{0, 0, 0, 1}, float scale = 1)
-    {
-        shd.bind();
-        GET_UNIFORM(shd, u_offset) = pos;
-        GET_UNIFORM(shd, u_scale) = qvm::vec1{scale};
     }
 
 };
