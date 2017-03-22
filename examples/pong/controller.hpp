@@ -42,8 +42,7 @@ public:
     void draw() override
     {
         auto& texture = g_app->textures->get_from_file("resources/paddle.png");
-        g_app->window->render.set4dpos();
-        g_app->window->render.copy(pos, pos + size, nullopt, texture);
+        g_app->window->render.copy2(texture, pos, size);
     }
     void on_input(const tick_input_t& input) override
     {
@@ -102,8 +101,7 @@ public:
     void draw() override
     {
         auto& texture = g_app->textures->get_from_file("resources/ball.png");
-        g_app->window->render.set4dpos();
-        g_app->window->render.copy(pos, pos + size, nullopt, texture);
+        g_app->window->render.copy2(texture, pos, size);
     }
 
 };
