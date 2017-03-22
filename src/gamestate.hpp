@@ -60,7 +60,7 @@ class gamestate_simulator
 {
     NONCOPYABLE(gamestate_simulator)
 public:
-    tick_t lag = 1;
+    tick_t lag = 7;
 protected:
     tick_t simulated_old = 0;
     inputs_t inputs;
