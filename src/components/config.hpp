@@ -9,6 +9,7 @@
 #include <string>
 #include <set>
 //#include <vector>
+#include "util/hash.hpp"
 #include "util/assert.hpp"
 
 //#include <boost/serialization/nvp.hpp>
@@ -32,7 +33,8 @@ public:
         join "\n\t", map {$_->{type} . ' ' . $_->{name} . ';'} dispatch('config');
      %*/string bind_ip;
 	uint16_t bind_port;
-	bool dont_save_config;
+	string configfile;
+	string logfile;
 	string mastersrv_ip;
 	uint16_t mastersrv_port;
 	unsigned msaa;
@@ -46,6 +48,8 @@ public:
 	unsigned windowpos_y;/*>*/
 
 public:
+	void load_from_file(string_view filename) noexcept;
+	void save_to_file(string_view filename) noexcept;
     config_c();
     ~config_c();
 

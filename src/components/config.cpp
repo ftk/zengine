@@ -10,6 +10,8 @@
 #include <boost/archive/xml_iarchive.hpp>
 //#include <boost/archive/xml_iarchive.hpp>
 
+#include <boost/property_tree/ptree.hpp>
+
 #include <fstream>
 #include <iostream>
 
@@ -35,7 +37,8 @@ config_c::config_c()
     join ",\n", map {$_->{name} . '{' . ($_->{def} // '') . '}' } dispatch('config');
  %*/bind_ip{},
 bind_port{0},
-dont_save_config{false},
+configfile{"config.xml"},
+logfile{"log.txt"},
 mastersrv_ip{"127.0.0.1"},
 mastersrv_port{9999},
 msaa{16},
@@ -48,7 +51,19 @@ window_flags{0x00000020},
 windowpos_x{0x1FFF0000u},
 windowpos_y{0x1FFF0000u}/*>*/
 {
-    std::ifstream ifs("config.xml");
+    //=- collect('config', {name=>'configfile', type=>'string', def=>'"config.xml"'});
+    load_from_file(configfile);
+}
+
+config_c::~config_c()
+{
+    if(!configfile.empty())
+        save_to_file(configfile);
+}
+
+void config_c::load_from_file(string_view filename) noexcept
+{
+    std::ifstream ifs(filename.to_string());
     if(ifs)
     {
         try
@@ -62,13 +77,9 @@ windowpos_y{0x1FFF0000u}/*>*/
         }
     }
 }
-
-config_c::~config_c()
+void config_c::save_to_file(string_view filename) noexcept
 {
-    //=- collect('config', {name=>'dont_save_config', type=>'bool', def=>'false'});
-    if(dont_save_config)
-        return;
-    std::ofstream ofs("config.xml");
+    std::ofstream ofs(filename.to_string());
     if(ofs)
     {
         try
@@ -87,6 +98,7 @@ config_c::~config_c()
         }
     }
 }
+
 
 std::set<std::string> config_c::shader_params()
 {
@@ -109,7 +121,8 @@ bool config_c::set(const std::string& varname, const std::string& value)
             /*< join "\n\t\t", map {qq[case "$_->{name}"_fnv: $_->{name} = boost::lexical_cast<$_->{type}>(value); return true;]} dispatch('config');
             %*/case "bind_ip"_fnv: bind_ip = boost::lexical_cast<string>(value); return true;
 		case "bind_port"_fnv: bind_port = boost::lexical_cast<uint16_t>(value); return true;
-		case "dont_save_config"_fnv: dont_save_config = boost::lexical_cast<bool>(value); return true;
+		case "configfile"_fnv: configfile = boost::lexical_cast<string>(value); return true;
+		case "logfile"_fnv: logfile = boost::lexical_cast<string>(value); return true;
 		case "mastersrv_ip"_fnv: mastersrv_ip = boost::lexical_cast<string>(value); return true;
 		case "mastersrv_port"_fnv: mastersrv_port = boost::lexical_cast<uint16_t>(value); return true;
 		case "msaa"_fnv: msaa = boost::lexical_cast<unsigned>(value); return true;
@@ -139,7 +152,8 @@ std::string config_c::get(const std::string& varname)
             /*< join "\n\t\t", map {qq[case "$_->{name}"_fnv: return boost::lexical_cast<std::string>($_->{name});]} dispatch('config');
             %*/case "bind_ip"_fnv: return boost::lexical_cast<std::string>(bind_ip);
 		case "bind_port"_fnv: return boost::lexical_cast<std::string>(bind_port);
-		case "dont_save_config"_fnv: return boost::lexical_cast<std::string>(dont_save_config);
+		case "configfile"_fnv: return boost::lexical_cast<std::string>(configfile);
+		case "logfile"_fnv: return boost::lexical_cast<std::string>(logfile);
 		case "mastersrv_ip"_fnv: return boost::lexical_cast<std::string>(mastersrv_ip);
 		case "mastersrv_port"_fnv: return boost::lexical_cast<std::string>(mastersrv_port);
 		case "msaa"_fnv: return boost::lexical_cast<std::string>(msaa);
@@ -159,4 +173,5 @@ std::string config_c::get(const std::string& varname)
     }
     return std::string{};
 }
+
 

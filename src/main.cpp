@@ -13,6 +13,8 @@
 
 #include "application.hpp"
 
+#include "components/config.hpp"
+
 #include "util/log.hpp"
 #include "util/hash.hpp"
 
@@ -25,6 +27,12 @@ int main(int argc, char * argv[])
 {
     srand(time(nullptr));
 
+    auto alloc = std::allocator<application>();
+    g_app = alloc.allocate(1);
+    alloc.construct(g_app);
+
+    g_app->config.load();
+
     int argn;
     for(argn = 1; argn < argc; argn++)
     {
@@ -33,9 +41,13 @@ int main(int argc, char * argv[])
         if(eq_pos == string_view::npos)
             break;
 
-        //auto key = arg.substr(0, eq_pos);
-        //auto value = arg.substr(eq_pos + 1);
+        auto key = arg.substr(0, eq_pos);
+        auto value = arg.substr(eq_pos + 1);
 
+        if(key == "file")
+            g_app->config->load_from_file(value);
+        else
+            g_app->config->set(key.to_string(), value.to_string());
     }
     // start in app's dir
     if(argn != argc)
@@ -43,12 +55,13 @@ int main(int argc, char * argv[])
     //if(SDL_GetBasePath())
         //chdir(SDL_GetBasePath());
 
-    std::ofstream logfile("log.txt");
-    loggers().push_back({logfile, log_level::all, log_detail::TIME});
+    //=- collect('config', {name=>'logfile', type=>'string', def=>'"log.txt"'});
+    if(!g_app->config->logfile.empty())
+    {
+        std::ofstream logfile(g_app->config->logfile);
+        loggers().push_back({logfile, log_level::all, log_detail::TIME});
+    }
 
-    auto alloc = std::allocator<application>();
-    g_app = alloc.allocate(1);
-    alloc.construct(g_app);
 
     try
     {

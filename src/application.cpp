@@ -102,7 +102,7 @@ void application::init_components()
 {
     try
     {
-#define LOAD_COMPONENT(name,classname) try {name.load<classname>();} \
+#define LOAD_COMPONENT(name,classname) try {if(!name) {name.load<classname>();}} \
         catch(...){logger(log_level::fatal,"unable to load component", #name);throw;}
         /*<
          join '', map { "\n\t\tLOAD_COMPONENT($_->{name}, $_->{class})" } grep { !defined $_->{defer} } get_components ;
