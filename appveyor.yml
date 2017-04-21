@@ -6,8 +6,8 @@ version: '{build}'
 clone_depth: 5
 
 cache:
-- x86_64-6.3.0-release-posix-seh-rt_v5-rev1.7z
-- i686-6.3.0-release-posix-dwarf-rt_v5-rev1.7z
+- x86_64-6.3.0-release-posix-seh-rt_v5-rev2.7z
+- i686-6.3.0-release-posix-dwarf-rt_v5-rev2.7z
 - boost_1_64_0
 - SDL2_mixer-devel-2.0.1-mingw.tar.gz
 - SDL2_image-devel-2.0.1-mingw.tar.gz
@@ -17,11 +17,11 @@ cache:
 environment:
   matrix:
   - MINGW_DIR: mingw64
-    MINGW_URL: https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win64/Personal%20Builds/mingw-builds/6.3.0/threads-posix/seh/x86_64-6.3.0-release-posix-seh-rt_v5-rev1.7z/download
-    MINGW_ARCHIVE: x86_64-6.3.0-release-posix-seh-rt_v5-rev1.7z
+    MINGW_URL: https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win64/Personal%20Builds/mingw-builds/6.3.0/threads-posix/seh/x86_64-6.3.0-release-posix-seh-rt_v5-rev2.7z/download
+    MINGW_ARCHIVE: x86_64-6.3.0-release-posix-seh-rt_v5-rev2.7z
   - MINGW_DIR: mingw32
-    MINGW_URL: https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/6.3.0/threads-posix/dwarf/i686-6.3.0-release-posix-dwarf-rt_v5-rev1.7z/download
-    MINGW_ARCHIVE: i686-6.3.0-release-posix-dwarf-rt_v5-rev1.7z
+    MINGW_URL: https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/6.3.0/threads-posix/dwarf/i686-6.3.0-release-posix-dwarf-rt_v5-rev2.7z/download
+    MINGW_ARCHIVE: i686-6.3.0-release-posix-dwarf-rt_v5-rev2.7z
 
 install:
 - git submodule update --init
@@ -54,10 +54,10 @@ install:
 - if "%MINGW_DIR%" == "mingw64" xcopy /y /e "SDL2_mixer-2.0.1\x86_64-w64-mingw32" "%MINGW_DIR%"
 - if "%MINGW_DIR%" == "mingw32" xcopy /y /e "SDL2_mixer-2.0.1\i686-w64-mingw32" "%MINGW_DIR%"
 # install boost
-- set BB= 
+- set BB=
 - if exist "boost_1_64_0" set BB=rem
 - |-
-  %BB% if not exist "boost_1_64_0.7z" appveyor DownloadFile "https://sourceforge.net/projects/boost/files/boost/1.64.0/boost_1_64_0.7z/download" -FileName "boost_1_64_0.7z"
+  if not exist "boost_1_64_0.7z" %BB% appveyor DownloadFile "https://sourceforge.net/projects/boost/files/boost/1.64.0/boost_1_64_0.7z/download" -FileName "boost_1_64_0.7z"
   %BB% 7z x -y "boost_1_64_0.7z"
   %BB% cd boost_1_64_0
   %BB% bootstrap.bat
@@ -81,6 +81,8 @@ build_script:
 - cmake --build build\mingw --use-stderr --target all -- -j%NUMBER_OF_PROCESSORS%
 
 after_build:
+- git status
+- git diff
 #- cmake --build build\msvc32 --config Debug -- /verbosity:minimal /maxcpucount
 #- if "%MINGW_DIR%"=="mingw64" cmake --build build\msvc64 --config Debug -- /verbosity:minimal /maxcpucount
 
