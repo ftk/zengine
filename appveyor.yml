@@ -8,7 +8,7 @@ clone_depth: 5
 cache:
 - x86_64-6.3.0-release-posix-seh-rt_v5-rev1.7z
 - i686-6.3.0-release-posix-dwarf-rt_v5-rev1.7z
-- boost_1_63_0
+- boost_1_64_0
 - SDL2_mixer-devel-2.0.1-mingw.tar.gz
 - SDL2_image-devel-2.0.1-mingw.tar.gz
 - SDL2_ttf-devel-2.0.14-mingw.tar.gz
@@ -55,15 +55,15 @@ install:
 - if "%MINGW_DIR%" == "mingw32" xcopy /y /e "SDL2_mixer-2.0.1\i686-w64-mingw32" "%MINGW_DIR%"
 # install boost
 - set BB=
-- if exist "boost_1_63_0" set BB=rem
+- if exist "boost_1_64_0" set BB=rem
 - |-
-  %BB% if not exist "boost_1_63_0.7z" appveyor DownloadFile "https://sourceforge.net/projects/boost/files/boost/1.63.0/boost_1_63_0.7z/download" -FileName "boost_1_63_0.7z"
-  %BB% 7z x -y "boost_1_63_0.7z"
-  %BB% cd boost_1_63_0
+  %BB% if not exist "boost_1_64_0.7z" appveyor DownloadFile "https://sourceforge.net/projects/boost/files/boost/1.64.0/boost_1_64_0.7z/download" -FileName "boost_1_64_0.7z"
+  %BB% 7z x -y "boost_1_64_0.7z"
+  %BB% cd boost_1_64_0
   %BB% bootstrap.bat
   %BB% b2 --with-serialization --with-system toolset=gcc variant=release link=static threading=multi
   %BB% cd ..
-- set BOOST_ROOT=boost_1_63_0
+- set BOOST_ROOT=boost_1_64_0
 # CMake refuses to generate MinGW Makefiles if sh.exe is in the Path
 - ps: Get-Command sh.exe -All | Remove-Item
 

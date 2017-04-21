@@ -26,7 +26,8 @@ cache:
     #- ${TRAVIS_BUILD_DIR}/deps/llvm-4.0.0
     - ${TRAVIS_BUILD_DIR}/deps/llvm-3.9.0
     - ${TRAVIS_BUILD_DIR}/deps/llvm-3.8.1
-    - ${TRAVIS_BUILD_DIR}/deps/boost-1.63.0
+    - ${TRAVIS_BUILD_DIR}/deps/boost-1.62.0
+    - ${TRAVIS_BUILD_DIR}/deps/boost-1.64.0
 
 matrix:
   include:
@@ -47,7 +48,7 @@ matrix:
 
     # Clang 3.8
     - os: linux
-      env: LLVM_VERSION=3.8.1 BOOST_VERSION=default BOOST_BUILD=clang
+      env: LLVM_VERSION=3.8.1 BOOST_VERSION=1.62.0 BOOST_BUILD=clang
       compiler: clang
   allow_failures:
      # Clang 4.0
@@ -68,7 +69,7 @@ install:
   # Setup default versions and override compiler if needed
   ############################################################################
   - if [[ "${LLVM_VERSION}" == "default" ]]; then LLVM_VERSION=3.9.0; fi
-  - if [[ "${BOOST_VERSION}" == "default" ]]; then BOOST_VERSION=1.63.0; fi
+  - if [[ "${BOOST_VERSION}" == "default" ]]; then BOOST_VERSION=1.64.0; fi
 
   - if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
   ############################################################################
