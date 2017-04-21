@@ -54,7 +54,7 @@ install:
 - if "%MINGW_DIR%" == "mingw64" xcopy /y /e "SDL2_mixer-2.0.1\x86_64-w64-mingw32" "%MINGW_DIR%"
 - if "%MINGW_DIR%" == "mingw32" xcopy /y /e "SDL2_mixer-2.0.1\i686-w64-mingw32" "%MINGW_DIR%"
 # install boost
-- set BB=
+- set BB= 
 - if exist "boost_1_64_0" set BB=rem
 - |-
   %BB% if not exist "boost_1_64_0.7z" appveyor DownloadFile "https://sourceforge.net/projects/boost/files/boost/1.64.0/boost_1_64_0.7z/download" -FileName "boost_1_64_0.7z"
