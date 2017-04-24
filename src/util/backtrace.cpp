@@ -79,6 +79,7 @@ static void bt_sighandler(int sig/*, siginfo_t * info, void * ctx*/)
 {
     std::cerr << "Signal " << sig << std::endl;
     print_backtrace();
+    std::exit(sig);
 }
 
 
@@ -141,10 +142,11 @@ std::string get_exe_path()
     char link[64];
     char buffer[1024];
     snprintf(link, sizeof link, "/proc/%d/exe", getpid());
-    if(readlink(link, buffer, sizeof buffer) == -1)
-        return "";
-    else
-        return buffer;
+    int len = readlink(link, buffer, sizeof(buffer)-1);
+    if(len == -1)
+        return std::string{};
+    buffer[len] = '\0';
+    return buffer;
 }
 #endif
 
