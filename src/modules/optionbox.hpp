@@ -63,7 +63,7 @@ public:
 
     void update()
     {
-        g_app->textures->insert("textbox"_fnv, make_box());
+        g_app->textures->remove("textbox"_fnv);
     }
 
     void draw()

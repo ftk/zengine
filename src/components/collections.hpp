@@ -87,6 +87,15 @@ public:
         return cache.insert(key, std::move(texture))->second;
     }
 
+    bool remove(const key_type& key)
+    {
+        auto it = cache.find(key);
+        if(it == cache.end())
+            return false;
+        cache.erase(std::move(it));
+        return true;
+    }
+
     // from surface using default renderer
     texture_type& insert(const key_type& key, SDL2pp::Surface&& surface);
 
