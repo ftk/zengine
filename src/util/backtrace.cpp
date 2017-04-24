@@ -139,10 +139,8 @@ std::string get_exe_path()
 
 std::string get_exe_path()
 {
-    char link[64];
     char buffer[1024];
-    snprintf(link, sizeof link, "/proc/%d/exe", getpid());
-    int len = readlink(link, buffer, sizeof(buffer)-1);
+    int len = readlink("/proc/self/exe", buffer, sizeof(buffer)-1);
     if(len == -1)
         return std::string{};
     buffer[len] = '\0';

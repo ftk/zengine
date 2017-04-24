@@ -113,18 +113,21 @@ target_link_libraries(nettest ${Boost_LIBRARIES})
 set (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/build")
 
 
-set(BIG_FILES src/components/script.cpp src/components/script_impl.cpp src/components/script_impl_t.cpp)
-set_source_files_properties(${BIG_FILES} PROPERTIES COMPILE_FLAGS -fvisibility=hidden)
-set_source_files_properties(${BIG_FILES} PROPERTIES COMPILE_FLAGS -g0)
-#set_source_files_properties(${BIG_FILES} PROPERTIES COMPILE_FLAGS -fno-instrument-functions)
-
 # options for backtrace to work
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -finstrument-functions -finstrument-functions-exclude-file-list=include/")
-set_source_files_properties(src/util/backtrace.cpp PROPERTIES COMPILE_FLAGS -fno-instrument-functions)
-#set_source_files_properties(${BIG_FILES} PROPERTIES COMPILE_FLAGS -O1)
+if(CMAKE_COMPILER_IS_GNUCXX)
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -finstrument-functions -finstrument-functions-exclude-file-list=include/")
+    set_source_files_properties(src/util/backtrace.cpp PROPERTIES COMPILE_FLAGS -fno-instrument-functions)
+else()
+    add_definitions(-DNO_BACKTRACE)
+endif()
+
 if(MINGW OR CYGWIN)
+    # prevent 'too many sections' errors in debug build
+    set_source_files_properties(src/components/script.cpp src/components/script_impl.cpp src/components/script_impl_t.cpp
+            PROPERTIES COMPILE_FLAGS "-g0 -Os")
+
     #add_definitions(-Wa,-mbig-obj)
-    add_definitions(-O1)
+    #add_definitions(-O1)
 endif()
 
 #include(cotire)
