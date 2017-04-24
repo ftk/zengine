@@ -78,6 +78,7 @@ public:
                     vertices_buf{&vertices[0], sizeof(vertices), GL_DYNAMIC_DRAW}
     {
         // bind texture to 0 (always)
+        shd.bind();
         GET_UNIFORM(shd, u_texture) = qvm::ivec1{0};
     }
 
