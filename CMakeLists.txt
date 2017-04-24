@@ -47,14 +47,13 @@ else()
 endif ()
 
 
-add_definitions(-DBOOST_ASIO_SEPARATE_COMPILATION)
+#add_definitions(-DBOOST_ASIO_SEPARATE_COMPILATION)
 #add_definitions(-DBOOST_ASIO_DISABLE_THREADS)
 
 #add_definitions(-DNETWORK_TRACE)
 add_definitions(-DNETLOG_ENABLE)
 
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DNDEBUG")
-
 
 
 
@@ -117,6 +116,11 @@ set (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/build")
 set(BIG_FILES src/components/script.cpp src/components/script_impl.cpp src/components/script_impl_t.cpp)
 set_source_files_properties(${BIG_FILES} PROPERTIES COMPILE_FLAGS -fvisibility=hidden)
 set_source_files_properties(${BIG_FILES} PROPERTIES COMPILE_FLAGS -g0)
+#set_source_files_properties(${BIG_FILES} PROPERTIES COMPILE_FLAGS -fno-instrument-functions)
+
+# options for backtrace to work
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -finstrument-functions -finstrument-functions-exclude-file-list=include/")
+set_source_files_properties(src/util/backtrace.cpp PROPERTIES COMPILE_FLAGS -fno-instrument-functions)
 #set_source_files_properties(${BIG_FILES} PROPERTIES COMPILE_FLAGS -O1)
 if(MINGW OR CYGWIN)
     #add_definitions(-Wa,-mbig-obj)
