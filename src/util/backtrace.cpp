@@ -129,8 +129,8 @@ static void assert_handler_register()
 
 std::string get_exe_path()
 {
-    char buffer[MAX_PATH];
-    GetModuleFileName(NULL, buffer, MAX_PATH);
+    char buffer[1024];
+    GetModuleFileName(NULL, buffer, sizeof(buffer));
     return buffer;
 }
 #else
