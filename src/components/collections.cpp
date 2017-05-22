@@ -43,7 +43,7 @@ std::size_t textures_c::get_texture_size(const texture_type& t)
     return 4 * t.get_size().x * t.get_size().y;
 }
 
-textures_c::textures_c() : vram_max(g_app->config->texture_cache)
+textures_c::textures_c() : vram_max(g_app->config->tree.get("texture.cache", 64 * 1024 * 1024))
 {
 
 }

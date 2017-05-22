@@ -8,6 +8,9 @@
 #include "modules/basic_module.hpp"
 #include <string>
 #include <set>
+
+#include <boost/property_tree/ptree.hpp>
+
 //#include <vector>
 #include "util/hash.hpp"
 #include "util/assert.hpp"
@@ -21,33 +24,12 @@
 class config_c : boost::noncopyable
 {
 
-    using string = std::string;
-//	template <typename T>
-//	using vector = std::vector<T>;
-//	template <typename T>
-//	using set = std::set<T>;
+public:
+	boost::property_tree::ptree tree;
+
+	std::string configfile = "config.xml";
 public:
 
-
-    /*<
-        join "\n\t", map {$_->{type} . ' ' . $_->{name} . ';'} dispatch('config');
-     %*/string bind_ip;
-	uint16_t bind_port;
-	string configfile;
-	string logfile;
-	string mastersrv_ip;
-	uint16_t mastersrv_port;
-	unsigned msaa;
-	unsigned resolution_x;
-	unsigned resolution_y;
-	unsigned texture_cache;
-	string title;
-	bool vsync;
-	unsigned window_flags;
-	unsigned windowpos_x;
-	unsigned windowpos_y;/*>*/
-
-public:
 	void load_from_file(string_view filename) noexcept;
 	void save_to_file(string_view filename) noexcept;
     config_c();
@@ -55,8 +37,6 @@ public:
 
 	bool set(const std::string& varname, const std::string& value);
 	std::string get(const std::string& varname);
-
-    std::set<std::string> shader_params();
 
 
     /*< #serialize dispatch('config_save'); %*//*>*/

@@ -33,22 +33,20 @@ public:
 
     netgame_c()
     {
-        assert(g_app->network);
+        assume(g_app->network);
 
-
-        //=- collect('config', {name=>'bind_ip', type=>'string', save=>1});
-        //=- collect('config', {name=>'bind_port', type=>'uint16_t', def=>'0', save=>1});
-
-        if(!g_app->config->bind_ip.empty())
-            network.bind_ip = g_app->config->bind_ip.c_str();
-        network.port = g_app->config->bind_port;
+        if(auto ip = g_app->config->tree.get_optional<std::string>("network.bind.ip"))
+        {
+            network.bind_ip = ip->c_str();
+            network.port = g_app->config->tree.get("network.bind.port", 0);
+        }
 
         network.id = (net_node_id) rand();
         NETLOG(info, "my id", network.id);
 
-        //=- collect('config', {name=>'mastersrv_ip', type=>'string', def=>'"127.0.0.1"', save=>1});
-        //=- collect('config', {name=>'mastersrv_port', type=>'uint16_t', def=>'9999', save=>1});
-        network.add_new_node(0, g_app->config->mastersrv_ip.c_str(), (uint16_t)g_app->config->mastersrv_port);
+        network.add_new_node(0,
+                             g_app->config->tree.get<std::string>("network.master.ip", "127.0.0.1").c_str(),
+                             (uint16_t)g_app->config->tree.get("network.master.port", 9999));
 
         network.receive_callback = [this] (auto... args) { this->on_receive(args...); };
 
