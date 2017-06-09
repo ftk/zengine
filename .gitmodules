@@ -1,6 +1,6 @@
 [submodule "ChaiScript"]
 	path = ChaiScript
-	url = git://github.com/ftk/ChaiScript.git
+	url = git://github.com/ChaiScript/ChaiScript.git
 [submodule "libSDL2pp"]
 	path = libSDL2pp
 	url = git://github.com/libSDL2pp/libSDL2pp.git
