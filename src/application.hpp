@@ -21,7 +21,7 @@ public:
     void load() { return load<Component>(); }
 
     template <typename Impl, typename... Args>
-    void load(Args&&... args) { unload(); *this = std::make_unique<Impl>(std::forward<Args>(args)...); }
+    void load(Args&&... args) { unload(); base::operator=(std::make_unique<Impl>(std::forward<Args>(args)...)); }
 
     void unload() { this->reset(); }
 
