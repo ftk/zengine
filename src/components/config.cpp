@@ -34,8 +34,8 @@ config_c::config_c()
 
 config_c::~config_c()
 {
-    //if(!configfile.empty())
-        //save_to_file(configfile);
+    if(!configfile.empty())
+        save_to_file(configfile);
 }
 
 static bool ends_with(string_view src, string_view sub)
@@ -43,25 +43,39 @@ static bool ends_with(string_view src, string_view sub)
     return src.size() >= sub.size() && src.substr(src.size() - sub.size()) == sub;
 }
 
-void config_c::load_from_file(string_view filename) noexcept
+bool config_c::load_from_file(string_view filename) noexcept
 {
-    if(ends_with(filename, ".xml"))
-        boost::property_tree::read_xml(filename.to_string(), tree);
-    else if(ends_with(filename, ".json"))
-        boost::property_tree::read_json(filename.to_string(), tree);
-    else
-        boost::property_tree::read_ini(filename.to_string(), tree);
-
+    using namespace boost::property_tree;
+    try
+    {
+        if(ends_with(filename, ".xml"))
+            read_xml(filename.to_string(), tree, xml_parser::trim_whitespace);
+        else if(ends_with(filename, ".json"))
+            read_json(filename.to_string(), tree);
+        else
+            read_ini(filename.to_string(), tree);
+        return true;
+    }
+    catch(file_parser_error)
+    {}
+    return false;
 }
-void config_c::save_to_file(string_view filename) noexcept
+bool config_c::save_to_file(string_view filename) noexcept
 {
-    if(ends_with(filename, ".xml"))
-        boost::property_tree::write_xml(filename.to_string(), tree);
-    else if(ends_with(filename, ".json"))
-        boost::property_tree::write_json(filename.to_string(), tree);
-    else
-        boost::property_tree::write_ini(filename.to_string(), tree);
-
+    using namespace boost::property_tree;
+    try
+    {
+        if(ends_with(filename, ".xml"))
+            write_xml(filename.to_string(), tree, std::locale(), {'\t', 1});
+        else if(ends_with(filename, ".json"))
+            write_json(filename.to_string(), tree);
+        else
+            write_ini(filename.to_string(), tree);
+        return true;
+    }
+    catch(file_parser_error)
+    {}
+    return false;
 }
 
 
@@ -81,5 +95,6 @@ std::string config_c::get(const std::string& varname)
     {}
     return std::string{};
 }
+
 
 

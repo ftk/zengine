@@ -45,7 +45,7 @@ int main(int argc, char * argv[])
         auto value = arg.substr(eq_pos + 1);
 
         if(key == "file")
-            g_app->config->load_from_file(value);
+            g_app->config->configfile = value.to_string();
         else
             g_app->config->set(key.to_string(), value.to_string());
     }
@@ -55,12 +55,13 @@ int main(int argc, char * argv[])
     //if(SDL_GetBasePath())
         //chdir(SDL_GetBasePath());
 
-    //=- collect('config', {name=>'logfile', type=>'string', def=>'"log.txt"'});
-    if(!g_app->config->logfile.empty())
+    g_app->config->load_from_file(g_app->config->configfile);
+
+    /*if(auto filename = g_app->config->get_optional("log.file"))
     {
-        std::ofstream logfile(g_app->config->logfile);
+        std::ofstream logfile(*filename);
         loggers().push_back({logfile, log_level::all, log_detail::TIME});
-    }
+    }*/
 
 
     try
