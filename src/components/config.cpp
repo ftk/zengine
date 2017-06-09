@@ -10,6 +10,11 @@
 #include <boost/archive/xml_iarchive.hpp>
 //#include <boost/archive/xml_iarchive.hpp>
 
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ini_parser.hpp>
+
 #include <fstream>
 #include <iostream>
 
@@ -17,116 +22,66 @@
 #include "util/log.hpp"
 #include "util/assert.hpp"
 
-#include <boost/serialization/nvp.hpp>
-#include <boost/serialization/set.hpp>
 
 #include <boost/lexical_cast.hpp>
-/*< serialize_free_nvp 'config_c', sort(grep defined, map {$_->{name} if $_->{save}} dispatch('config'));; %*/
-namespace boost { namespace serialization {
-template <class Archive> void serialize(Archive & ar, config_c & t, const unsigned int) {
-ar & make_nvp("bind_ip", t.bind_ip) & make_nvp("bind_port", t.bind_port) & make_nvp("mastersrv_ip", t.mastersrv_ip) & make_nvp("mastersrv_port", t.mastersrv_port) & make_nvp("msaa", t.msaa) & make_nvp("resolution_x", t.resolution_x) & make_nvp("resolution_y", t.resolution_y) & make_nvp("texture_cache", t.texture_cache) & make_nvp("title", t.title) & make_nvp("vsync", t.vsync) & make_nvp("window_flags", t.window_flags) & make_nvp("windowpos_x", t.windowpos_x) & make_nvp("windowpos_y", t.windowpos_y);
-}}}
-/*>*/
+
 
 
 config_c::config_c()
-:
-/*<
-    join ",\n", map {$_->{name} . '{' . ($_->{def} // '') . '}' } dispatch('config');
- %*/bind_ip{},
-bind_port{0},
-dont_save_config{false},
-mastersrv_ip{"127.0.0.1"},
-mastersrv_port{9999},
-msaa{16},
-resolution_x{1280},
-resolution_y{720},
-texture_cache{1024 * 1024 * 64},
-title{"window"},
-vsync{true},
-window_flags{0x00000020},
-windowpos_x{0x1FFF0000u},
-windowpos_y{0x1FFF0000u}/*>*/
 {
-    std::ifstream ifs("config.xml");
-    if(ifs)
-    {
-        try
-        {
-            using namespace boost::archive;
-            xml_iarchive ia(ifs, no_tracking | no_codecvt);
-            ia >> boost::serialization::make_nvp("config", *this);//(*this);
-        } catch(std::exception& e)
-        {
-            std::cerr << "Error loading config: " << e.what() << std::endl;
-        }
-    }
+    //load_from_file(configfile);
 }
 
 config_c::~config_c()
 {
-    //=- collect('config', {name=>'dont_save_config', type=>'bool', def=>'false'});
-    if(dont_save_config)
-        return;
-    std::ofstream ofs("config.xml");
-    if(ofs)
-    {
-        try
-        {
-            using namespace boost::archive;
-            xml_oarchive oa(ofs, no_tracking | no_codecvt);
-            oa << boost::serialization::make_nvp("config", *this);
-        }
-        catch(std::exception& e)
-        {
-            std::cerr << "Error saving config: " << e.what() << std::endl;
-        }
-        catch(...)
-        {
-            std::cerr << "Unknown error saving config" << std::endl;
-        }
-    }
+    if(!configfile.empty())
+        save_to_file(configfile);
 }
 
-std::set<std::string> config_c::shader_params()
+static bool ends_with(string_view src, string_view sub)
 {
-    std::set<std::string> params;
-
-    //=- #collect('config', {name=>'shd_test', type=>'bool'});
-    /*< join "\n", map {qq(if(shd_$_) {params.insert("$_");}) } grep s/^shd_//, map { $_->{name} } dispatch('config');
-     %*//*>*/
-
-
-    return params;
+    return src.size() >= sub.size() && src.substr(src.size() - sub.size()) == sub;
 }
+
+bool config_c::load_from_file(string_view filename) noexcept
+{
+    using namespace boost::property_tree;
+    try
+    {
+        if(ends_with(filename, ".xml"))
+            read_xml(filename.to_string(), tree, xml_parser::trim_whitespace);
+        else if(ends_with(filename, ".json"))
+            read_json(filename.to_string(), tree);
+        else
+            read_ini(filename.to_string(), tree);
+        return true;
+    }
+    catch(file_parser_error)
+    {}
+    return false;
+}
+bool config_c::save_to_file(string_view filename) noexcept
+{
+    using namespace boost::property_tree;
+    try
+    {
+        if(ends_with(filename, ".xml"))
+            write_xml(filename.to_string(), tree, std::locale(), {'\t', 1});
+        else if(ends_with(filename, ".json"))
+            write_json(filename.to_string(), tree);
+        else
+            write_ini(filename.to_string(), tree);
+        return true;
+    }
+    catch(file_parser_error)
+    {}
+    return false;
+}
+
 
 bool config_c::set(const std::string& varname, const std::string& value)
 {
-    try
-    {
-        switch(fnv1a::hash(varname))
-        {
-            /*< join "\n\t\t", map {qq[case "$_->{name}"_fnv: $_->{name} = boost::lexical_cast<$_->{type}>(value); return true;]} dispatch('config');
-            %*/case "bind_ip"_fnv: bind_ip = boost::lexical_cast<string>(value); return true;
-		case "bind_port"_fnv: bind_port = boost::lexical_cast<uint16_t>(value); return true;
-		case "dont_save_config"_fnv: dont_save_config = boost::lexical_cast<bool>(value); return true;
-		case "mastersrv_ip"_fnv: mastersrv_ip = boost::lexical_cast<string>(value); return true;
-		case "mastersrv_port"_fnv: mastersrv_port = boost::lexical_cast<uint16_t>(value); return true;
-		case "msaa"_fnv: msaa = boost::lexical_cast<unsigned>(value); return true;
-		case "resolution_x"_fnv: resolution_x = boost::lexical_cast<unsigned>(value); return true;
-		case "resolution_y"_fnv: resolution_y = boost::lexical_cast<unsigned>(value); return true;
-		case "texture_cache"_fnv: texture_cache = boost::lexical_cast<unsigned>(value); return true;
-		case "title"_fnv: title = boost::lexical_cast<string>(value); return true;
-		case "vsync"_fnv: vsync = boost::lexical_cast<bool>(value); return true;
-		case "window_flags"_fnv: window_flags = boost::lexical_cast<unsigned>(value); return true;
-		case "windowpos_x"_fnv: windowpos_x = boost::lexical_cast<unsigned>(value); return true;
-		case "windowpos_y"_fnv: windowpos_y = boost::lexical_cast<unsigned>(value); return true;/*>*/
-        }
-    }
-    catch(const boost::bad_lexical_cast& e)
-    {
-        LOGGER(warn, "can't set", varname, "to", value, ':', e.what());
-    }
+    tree.put(varname, value);
     return false;
 }
 
@@ -134,29 +89,12 @@ std::string config_c::get(const std::string& varname)
 {
     try
     {
-        switch(fnv1a::hash(varname))
-        {
-            /*< join "\n\t\t", map {qq[case "$_->{name}"_fnv: return boost::lexical_cast<std::string>($_->{name});]} dispatch('config');
-            %*/case "bind_ip"_fnv: return boost::lexical_cast<std::string>(bind_ip);
-		case "bind_port"_fnv: return boost::lexical_cast<std::string>(bind_port);
-		case "dont_save_config"_fnv: return boost::lexical_cast<std::string>(dont_save_config);
-		case "mastersrv_ip"_fnv: return boost::lexical_cast<std::string>(mastersrv_ip);
-		case "mastersrv_port"_fnv: return boost::lexical_cast<std::string>(mastersrv_port);
-		case "msaa"_fnv: return boost::lexical_cast<std::string>(msaa);
-		case "resolution_x"_fnv: return boost::lexical_cast<std::string>(resolution_x);
-		case "resolution_y"_fnv: return boost::lexical_cast<std::string>(resolution_y);
-		case "texture_cache"_fnv: return boost::lexical_cast<std::string>(texture_cache);
-		case "title"_fnv: return boost::lexical_cast<std::string>(title);
-		case "vsync"_fnv: return boost::lexical_cast<std::string>(vsync);
-		case "window_flags"_fnv: return boost::lexical_cast<std::string>(window_flags);
-		case "windowpos_x"_fnv: return boost::lexical_cast<std::string>(windowpos_x);
-		case "windowpos_y"_fnv: return boost::lexical_cast<std::string>(windowpos_y);/*>*/
-        }
+        return tree.get<std::string>(varname);
     }
-    catch(const boost::bad_lexical_cast& e)
-    {
-        LOGGER(warn, "can't get", varname, ':', e.what());
-    }
+    catch(boost::property_tree::ptree_error)
+    {}
     return std::string{};
 }
+
+
 

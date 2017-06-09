@@ -9,36 +9,25 @@
 
 window_c::window_setup::window_setup()
 {
-    //=- collect('config', {name=>'msaa', type=>'unsigned', def=>'16', save=>1});
-
-    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, g_app->config->msaa > 1);
-    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, g_app->config->msaa);
+    int msaa = g_app->config->get("window.msaa", 16);
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, msaa > 1);
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, msaa);
 
 }
 
 
-//=- collect('config', {name=>'title', type=>'string', def=>'"window"', save=>1});
-
-// SDL_WINDOWPOS_UNDEFINED
-//=- collect('config', {name=>'windowpos_x', type=>'unsigned', def=>'0x1FFF0000u', save=>1});
-//=- collect('config', {name=>'windowpos_y', type=>'unsigned', def=>'0x1FFF0000u', save=>1});
-
-//=- collect('config', {name=>'resolution_x', type=>'unsigned', def=>'1280', save=>1});
-//=- collect('config', {name=>'resolution_y', type=>'unsigned', def=>'720', save=>1});
-
-// resizable
-//=- collect('config', {name=>'window_flags', type=>'unsigned', def=>'0x00000020', save=>1});
-
 window_c::window_c() : setup(),
-                       window(g_app->config->title,
-                              g_app->config->windowpos_x, g_app->config->windowpos_y,
-                              g_app->config->resolution_x, g_app->config->resolution_y,
-                              g_app->config->window_flags | SDL_WINDOW_OPENGL),
+                       window(g_app->config->get("window.title", "window"),
+                              g_app->config->get("window.x", SDL_WINDOWPOS_UNDEFINED),
+                              g_app->config->get("window.y", SDL_WINDOWPOS_UNDEFINED),
+                              g_app->config->get("window.width", 1280),
+                              g_app->config->get("window.height", 720),
+                              g_app->config->get("window.flags", (int)SDL_WINDOW_RESIZABLE) | SDL_WINDOW_OPENGL
+                              ),
                        ctx(window.Get())
 
 {
-    //=- collect('config', {name=>'vsync', type=>'bool', def=>'true', save=>1});
-    SDL_GL_SetSwapInterval(g_app->config->vsync);
+    SDL_GL_SetSwapInterval(g_app->config->get("window.vsync", true));
 }
 
 void window_c::swap()

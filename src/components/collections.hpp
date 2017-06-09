@@ -31,7 +31,6 @@ class textures_c
 
     std::size_t vram_used = 0;
 
-    //=- collect('config', {name=>'texture_cache', type=>'unsigned', def=>'1024 * 1024 * 64', save=>1});
     // 64mb
     std::size_t vram_max;
 

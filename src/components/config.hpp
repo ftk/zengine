@@ -7,8 +7,13 @@
 
 #include "modules/basic_module.hpp"
 #include <string>
-#include <set>
+//#include <set>
+#include <type_traits>
+
+#include <boost/property_tree/ptree.hpp>
+
 //#include <vector>
+#include "util/hash.hpp"
 #include "util/assert.hpp"
 
 //#include <boost/serialization/nvp.hpp>
@@ -16,43 +21,38 @@
 #include <boost/noncopyable.hpp>
 
 
-//=- register_component(class=>'config_c', name=>'config', priority=>0, scriptexport=>[qw(get set)]);
+//=- register_component(class=>'config_c', name=>'config', priority=>0, scriptexport=>[qw(set)]);
 class config_c : boost::noncopyable
 {
 
-    using string = std::string;
-//	template <typename T>
-//	using vector = std::vector<T>;
-//	template <typename T>
-//	using set = std::set<T>;
+	boost::property_tree::ptree tree;
+public:
+
+	std::string configfile = "config.xml";
 public:
 
 
-    /*<
-        join "\n\t", map {$_->{type} . ' ' . $_->{name} . ';'} dispatch('config');
-     %*/string bind_ip;
-	uint16_t bind_port;
-	bool dont_save_config;
-	string mastersrv_ip;
-	uint16_t mastersrv_port;
-	unsigned msaa;
-	unsigned resolution_x;
-	unsigned resolution_y;
-	unsigned texture_cache;
-	string title;
-	bool vsync;
-	unsigned window_flags;
-	unsigned windowpos_x;
-	unsigned windowpos_y;/*>*/
-
-public:
+	bool load_from_file(string_view filename) noexcept;
+    bool save_to_file(string_view filename) noexcept;
     config_c();
     ~config_c();
 
+    template <typename Type>
+    auto get(const std::string& varname, Type def)
+    {
+        using TypeFixed = std::conditional_t<std::is_same<Type, const char *>::value, std::string, Type>;
+        if(auto opt = tree.get_optional<TypeFixed>(varname))
+        {
+            return *opt;
+        }
+        tree.put(varname, def);
+        return static_cast<TypeFixed>(def);
+    }
+    template <typename Type>
+    auto get_optional(const std::string& varname) { return tree.get_optional<Type>(varname); }
+
 	bool set(const std::string& varname, const std::string& value);
 	std::string get(const std::string& varname);
-
-    std::set<std::string> shader_params();
 
 
     /*< #serialize dispatch('config_save'); %*//*>*/
