@@ -5,32 +5,19 @@
 #ifndef ZENGINE_CONFIG_HPP
 #define ZENGINE_CONFIG_HPP
 
-#include "modules/basic_module.hpp"
 #include <string>
-//#include <set>
-#include <type_traits>
-
 #include <boost/property_tree/ptree.hpp>
-
-//#include <vector>
 #include "util/hash.hpp"
-#include "util/assert.hpp"
-
-//#include <boost/serialization/nvp.hpp>
-
-#include <boost/noncopyable.hpp>
 
 
 //=- register_component(class=>'config_c', name=>'config', priority=>0, scriptexport=>[qw(get_param set_param)]);
-class config_c : boost::noncopyable
+class config_c
 {
-
 	boost::property_tree::ptree tree;
 public:
 
 	std::string configfile = "config.xml";
 public:
-
 
 	bool load_from_file(string_view filename) noexcept;
     bool save_to_file(string_view filename) noexcept;
@@ -59,9 +46,6 @@ public:
 
     std::string get_param(const std::string& varname);
 	bool set_param(const std::string& varname, const std::string& value);
-
-
-    /*< #serialize dispatch('config_save'); %*//*>*/
 };
 
 #endif //ZENGINE_CONFIG_HPP

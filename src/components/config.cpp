@@ -6,10 +6,6 @@
 #include "main.hpp"
 #include "components/modules.hpp"
 
-#include <boost/archive/xml_oarchive.hpp>
-#include <boost/archive/xml_iarchive.hpp>
-//#include <boost/archive/xml_iarchive.hpp>
-
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -23,13 +19,8 @@
 #include "util/assert.hpp"
 
 
-#include <boost/lexical_cast.hpp>
-
-
-
 config_c::config_c()
 {
-    //load_from_file(configfile);
 }
 
 config_c::~config_c()

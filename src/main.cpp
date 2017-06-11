@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <fstream>
 
-#ifdef WIN32
+#ifdef WIN32 // for chdir
 #include <direct.h>
 #else
 #include <unistd.h>

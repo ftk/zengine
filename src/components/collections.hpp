@@ -9,12 +9,7 @@
 #include "util/geometry.hpp"
 #include "util/hash.hpp"
 
-//#include <SDL2pp/Texture.hh>
-//#include <SDL2pp/Surface.hh>
-#include <SDL2pp/Font.hh>
-
 #include "opengl/texture.hpp"
-
 #include <string>
 
 #include "util/sdl_workaround.hpp"
@@ -31,7 +26,7 @@ class textures_c
 
     std::size_t vram_used = 0;
 
-    // 64mb
+    // 64mb by default
     std::size_t vram_max;
 
 public:
@@ -108,6 +103,8 @@ public:
         }
     }
 };
+
+#include <SDL2pp/Font.hh>
 
 //=- register_component(class=>'fonts_c', name=>'fonts', priority=>60);
 class fonts_c

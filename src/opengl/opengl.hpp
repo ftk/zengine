@@ -5,11 +5,6 @@
 #ifndef ZENGINE_OPENGL_HPP
 #define ZENGINE_OPENGL_HPP
 
-/*
-#include <SDL_opengles2_khrplatform.h>
-#include <SDL_opengles2_gl2platform.h>
-#include <SDL_opengles2_gl2.h>
-*/
 
 #include <SDL_video.h>
 
