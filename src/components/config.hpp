@@ -21,7 +21,7 @@
 #include <boost/noncopyable.hpp>
 
 
-//=- register_component(class=>'config_c', name=>'config', priority=>0, scriptexport=>[qw(set)]);
+//=- register_component(class=>'config_c', name=>'config', priority=>0, scriptexport=>[qw(get_param set_param)]);
 class config_c : boost::noncopyable
 {
 
@@ -51,8 +51,14 @@ public:
     template <typename Type>
     auto get_optional(const std::string& varname) { return tree.get_optional<Type>(varname); }
 
-	bool set(const std::string& varname, const std::string& value);
-	std::string get(const std::string& varname);
+    template <typename Type>
+    void set(const std::string& varname, Type value)
+    {
+        tree.put(varname, std::move(value));
+    }
+
+    std::string get_param(const std::string& varname);
+	bool set_param(const std::string& varname, const std::string& value);
 
 
     /*< #serialize dispatch('config_save'); %*//*>*/

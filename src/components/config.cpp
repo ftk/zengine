@@ -79,13 +79,13 @@ bool config_c::save_to_file(string_view filename) noexcept
 }
 
 
-bool config_c::set(const std::string& varname, const std::string& value)
+bool config_c::set_param(const std::string& varname, const std::string& value)
 {
     tree.put(varname, value);
     return false;
 }
 
-std::string config_c::get(const std::string& varname)
+std::string config_c::get_param(const std::string& varname)
 {
     try
     {

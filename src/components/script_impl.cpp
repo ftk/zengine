@@ -95,8 +95,8 @@ ModulePtr script_register_bindings(ModulePtr m)
 	chai.add(fun(&optionbox::set_offset), "set_offset");
 	chai.add(fun(&modules_c::load<optionbox>, modules), "load_optionbox");
 	chai.add(fun(&modules_c::load<optionbox, float,float>, modules), "load_optionbox");
-	chai.add(fun(&config_c::get, g_app->config.get()), "config_get");
-	chai.add(fun(&config_c::set, g_app->config.get()), "config_set");
+	chai.add(fun(&config_c::get_param, g_app->config.get()), "config_get_param");
+	chai.add(fun(&config_c::set_param, g_app->config.get()), "config_set_param");
 	chai.add(fun(&modules_c::get, g_app->modules.get()), "modules_get");
 	chai.add(fun(&modules_c::loaded, g_app->modules.get()), "modules_loaded");
 	chai.add(fun(&modules_c::unload, g_app->modules.get()), "modules_unload");
