@@ -57,11 +57,11 @@ int main(int argc, char * argv[])
 
     g_app->config->load_from_file(g_app->config->configfile);
 
-    /*if(auto filename = g_app->config->get_optional("log.file"))
+    if(auto filename = g_app->config->get_optional<std::string>("log.file"))
     {
         std::ofstream logfile(*filename);
         loggers().push_back({logfile, log_level::all, log_detail::TIME});
-    }*/
+    }
 
 
     try
