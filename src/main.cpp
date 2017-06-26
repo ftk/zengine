@@ -55,7 +55,8 @@ int main(int argc, char * argv[])
     //if(SDL_GetBasePath())
         //chdir(SDL_GetBasePath());
 
-    g_app->config->load_from_file(g_app->config->configfile);
+    if(!g_app->config->configfile.empty())
+        g_app->config->load_from_file(g_app->config->configfile);
 
     if(auto filename = g_app->config->get_optional<std::string>("log.file"))
     {

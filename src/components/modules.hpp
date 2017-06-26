@@ -9,6 +9,8 @@
 #include <memory>
 #include "modules/basic_module.hpp"
 
+#include "util/assert.hpp"
+
 //=- register_component(class=>'modules_c', name=>'modules', priority=>0, scriptexport=>[qw(get loaded unload)]);
 // register_module(class=>'modules_c', priority=>0, scriptexport=>[qw(get loaded unload)]);
 class modules_c //: public basic_module
@@ -43,6 +45,7 @@ public:
         T * ptr = new T(args...);
         try
         {
+            assume(!modules.count(key));
             modules.insert(std::make_pair(key, ptr));
             return ptr;
         }

@@ -7,6 +7,7 @@
 #include <vector>
 #include <set>
 
+#include "util/log.hpp"
 
 shader::shader(GLenum type, const char * source)
 {
@@ -98,6 +99,7 @@ program::program(const std::initializer_list <GLuint>& shaders)
         gl::DetachShader(prog, shader);
         GL_CHECK_ERROR();
     }
+    LOGGER(debug, "GL program", prog, "linked successfully");
 }
 
 program::~program()
@@ -112,6 +114,8 @@ program::~program()
 
 program program::from_file(const char * file, std::set<std::string> params)
 {
+    LOGGER(debug, "Loading GL program from", file);
+
     std::ifstream f(file);
     if(!f)
         throw std::runtime_error{"cannot open file " + std::string(file)};
