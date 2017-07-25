@@ -5,7 +5,6 @@
 #ifndef ZENGINE_CONTROLLER_HPP
 #define ZENGINE_CONTROLLER_HPP
 
-#include "entity.hpp"
 
 #include "main.hpp"
 #include "components/collections.hpp"

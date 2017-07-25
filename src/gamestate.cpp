@@ -2,7 +2,7 @@
 // Created by fotyev on 2016-10-19.
 //
 
-
+#if 0
 #include "gamestate.hpp"
 #include "util/log.hpp"
 #include "util/assert.hpp"
@@ -74,4 +74,4 @@ void gamestate_t::operator = (gamestate_t& rhs)
 
 
 
-
+#endif
