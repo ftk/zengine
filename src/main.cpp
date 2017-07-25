@@ -45,7 +45,11 @@ int main(int argc, char * argv[])
         auto value = arg.substr(eq_pos + 1);
 
         if(key == "file")
+        {
             g_app->config->configfile = value.to_string();
+            if(!value.empty())
+                g_app->config->load_from_file(g_app->config->configfile);
+        }
         else
             g_app->config->set(key.to_string(), value.to_string());
     }
@@ -55,12 +59,10 @@ int main(int argc, char * argv[])
     //if(SDL_GetBasePath())
         //chdir(SDL_GetBasePath());
 
-    if(!g_app->config->configfile.empty())
-        g_app->config->load_from_file(g_app->config->configfile);
 
     if(auto filename = g_app->config->get_optional<std::string>("log.file"))
     {
-        std::ofstream logfile(*filename);
+        static std::ofstream logfile(*filename);
         loggers().push_back({logfile, log_level::all, log_detail::TIME});
     }
 
