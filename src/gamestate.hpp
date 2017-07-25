@@ -60,7 +60,7 @@ class gamestate_simulator
 {
     NONCOPYABLE(gamestate_simulator)
 public:
-    tick_t lag = 7;
+    tick_t lag = 20;
 protected:
     tick_t simulated_old = 0;
     inputs_t inputs;
@@ -118,6 +118,8 @@ public:
 
 };
 
+#include <mutex>
+
 // GamestateSync requirements: the same as Gamestate, operator=, TODO: serialize, deserialize
 template <class GamestateSync = gamestate_t>
 class gamestate_simulator2 : public gamestate_simulator<GamestateSync>
@@ -125,8 +127,10 @@ class gamestate_simulator2 : public gamestate_simulator<GamestateSync>
     typedef gamestate_simulator<GamestateSync> Base;
 protected:
     tick_t simulated_new = 0; // invariant: should always be simulated_old + lag
-    volatile bool newstate_invalidated = true;
+    bool newstate_invalidated = true;
     GamestateSync newstate;
+
+    std::mutex inputs_mtx;
 
 
 public:
@@ -137,18 +141,20 @@ public:
         simulated_new = get_tick();
     }
 
-    void push(tick_input_t ev) override
+    void push(tick_input_t ev)
     {
+        std::lock_guard<std::mutex> lock(inputs_mtx);
         if(ev.tick < simulated_new)
             newstate_invalidated = true;
         Base::push(std::move(ev));
     }
 
 
-    void update() override
+    void update()
     {
         Base::update();
 
+        std::lock_guard<std::mutex> lock(inputs_mtx);
         if(newstate_invalidated)
         {
             // copy oldstate to newstate
@@ -176,6 +182,12 @@ public:
             simulated_new++;
         }
     }
+
+    void draw()
+    {
+        newstate.draw();
+    }
+
 
 };
 
