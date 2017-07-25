@@ -5,8 +5,6 @@
 #ifndef ZENGINE_CONTROLLER_HPP
 #define ZENGINE_CONTROLLER_HPP
 
-#include "entity.hpp"
-
 #include "main.hpp"
 #include "components/collections.hpp"
 #include "components/window.hpp"
@@ -21,16 +19,13 @@
 #include "collision.hpp"
 
 
-static col::simple_collider collider;
-
-class paddle : public entity_t, public col::object
+class paddle : public col::object
 {
 public:
     qvm::vec2 pos;
-    net_node_id player;
 
-    paddle(qvm::vec2 pos, net_node_id player) : pos(std::move(pos)), player(std::move(player)) {
-        collider.objs.push_back(this);
+    paddle(qvm::vec2 pos) : pos(std::move(pos))
+    {
     }
 
     qvm::vec2 size {0.05, 0.10};
@@ -39,15 +34,14 @@ public:
         return col::box{pos + size/2, size};
     }
 
-    void draw() override
+    void draw()
     {
         auto& texture = g_app->textures->get_from_file("resources/paddle.png");
         g_app->window->render.copy2(texture, pos, size);
     }
-    void on_input(const tick_input_t& input) override
+    void on_input(const tick_input_t& input)
     {
-        if(input.player == player)
-            boost::apply_visitor(*this, input.event);
+        boost::apply_visitor(*this, input.event);
     }
 
     //=- register_event(name=>'movement', params=>[[qw(int32_t x)], [qw(int32_t y)]]);
@@ -64,14 +58,13 @@ public:
 
 };
 
-class ball : public entity_t, public col::object
+class ball : public col::object
 {
 public:
     qvm::vec2 pos, vel;
     qvm::vec2 size {0.01, 0.01};
 
     ball(qvm::vec2 pos, qvm::vec2 vel) : pos(std::move(pos)), vel(std::move(vel)) {
-        collider.objs.push_back(this);
     }
 
     col::box bounding_box() const override
@@ -91,17 +84,57 @@ public:
 
 public:
 
-    void update(tick_t tick) override
+    void update(tick_t tick)
     {
         pos += vel;
         // collision
-        collider.test_object(this);
     }
 
-    void draw() override
+    void draw()
     {
         auto& texture = g_app->textures->get_from_file("resources/ball.png");
         g_app->window->render.copy2(texture, pos, size);
+    }
+
+};
+
+class pongstate
+{
+public:
+    ball b { {0,0}, {0.01, 0}};
+    paddle p[2] {paddle{{-0.5, 0}}, paddle{{0.5, 0}}};
+
+    net_node_id players[2];
+
+    col::simple_collider collider;
+
+    pongstate(net_node_id p1, net_node_id p2)
+    {
+        assume(p1 != p2);
+        players[0] = std::min(p1, p2);
+        players[1] = std::max(p1, p2);
+
+        collider.objs.push_back(&b);
+        collider.objs.push_back(&p[0]);
+        collider.objs.push_back(&p[1]);
+    }
+
+    void update(tick_t tick)
+    {
+        b.update(tick);
+
+        collider.test_object(&b);
+    }
+    void draw()
+    {
+        b.draw();
+        p[0].draw(); p[1].draw();
+    }
+    void on_input(const tick_input_t& input)
+    {
+        for(int i = 0; i < 2; i++)
+            if(input.player == players[i])
+                p[i].on_input(input);
     }
 
 };
@@ -110,19 +143,13 @@ public:
 class gamecontroller
 {
     event::movement mov{0,0};
-    gamestate_simulator<gamestate_t> sim;
+    gamestate_simulator<pongstate> sim;
     net_node_id local, remote;
 public:
-    gamecontroller(net_node_id local, net_node_id remote) : local(local), remote(remote)
+    gamecontroller(net_node_id local, net_node_id remote) : sim{local, remote}, local(local), remote(remote)
     {
         LOGGER(info, "game started!!!", remote);
         assert(remote);
-
-        sim.state().emplace<paddle>(qvm::vec2{-0.5,0}, std::min(local, remote));
-        sim.state().emplace<paddle>(qvm::vec2{0.5,0}, std::max(local, remote));
-        sim.state().emplace<ball>(qvm::vec2{0,0}, qvm::vec2{0.005,0});
-        //sim.state().insert(new paddle{qvm::vec2{0.5,0}, std::max(local, remote)});
-        //sim.state().insert(new ball{qvm::vec2{0,0}, qvm::vec2{0.01,0}});
 
         //=- register_callback('void (uint64_t)', 'on_game_start');
         g_app->script->on_game_start(remote);
