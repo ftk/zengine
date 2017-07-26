@@ -70,19 +70,19 @@ tick_input_t deserialize(string_view data)
    my $s = '';
    for my $event (dispatch('events')) {
    $s .= "\nstatic void dump(std::ostream& ss, const event::$event->{name} & e) {";
-   $s .= qq[ss << "$event->{name}: "];
-   $s .= qq[ << "$_->[1]: " << e. $_->[1]] for (@{$event->{params}});
+   $s .= qq[ss << "$event->{name}:"];
+   $s .= qq[ << " $_->[1]: " << e. $_->[1]] for (@{$event->{params}});
    $s .= ";}";
    }
    $s;
    %*/
-static void dump(std::ostream& ss, const event::connect_ack & e) {ss << "connect_ack: " << "tick: " << e. tick;}
-static void dump(std::ostream& ss, const event::connect_req & e) {ss << "connect_req: ";}
-static void dump(std::ostream& ss, const event::disconnect & e) {ss << "disconnect: ";}
-static void dump(std::ostream& ss, const event::game_start & e) {ss << "game_start: ";}
-static void dump(std::ostream& ss, const event::game_start_ack & e) {ss << "game_start_ack: ";}
-static void dump(std::ostream& ss, const event::movement & e) {ss << "movement: " << "x: " << e. x << "y: " << e. y;}
-static void dump(std::ostream& ss, const event::null & e) {ss << "null: ";}/*>*/
+static void dump(std::ostream& ss, const event::connect_ack & e) {ss << "connect_ack:" << " tick: " << e. tick;}
+static void dump(std::ostream& ss, const event::connect_req & e) {ss << "connect_req:";}
+static void dump(std::ostream& ss, const event::disconnect & e) {ss << "disconnect:";}
+static void dump(std::ostream& ss, const event::game_start & e) {ss << "game_start:";}
+static void dump(std::ostream& ss, const event::game_start_ack & e) {ss << "game_start_ack:";}
+static void dump(std::ostream& ss, const event::movement & e) {ss << "movement:" << " x: " << e. x << " y: " << e. y;}
+static void dump(std::ostream& ss, const event::null & e) {ss << "null:";}/*>*/
 
 
 
