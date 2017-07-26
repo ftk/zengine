@@ -23,6 +23,7 @@ class paddle : public col::object
 {
 public:
     qvm::vec2 pos;
+    SERIALIZABLE((pos))
 
     paddle(qvm::vec2 pos) : pos(std::move(pos))
     {
@@ -63,6 +64,7 @@ class ball : public col::object
 public:
     qvm::vec2 pos, vel;
     qvm::vec2 size {0.01, 0.01};
+    SERIALIZABLE((pos)(vel))
 
     ball(qvm::vec2 pos, qvm::vec2 vel) : pos(std::move(pos)), vel(std::move(vel)) {
     }
@@ -137,13 +139,23 @@ public:
                 p[i].on_input(input);
     }
 
+    template <class Archive>
+    void serialize(Archive& ar, const unsigned int)
+    {
+        ar & b & p[0] & p[1];
+    }
+
+    void operator=(const pongstate& rhs)
+    {
+        b = rhs.b; p[0] = rhs.p[0]; p[1] = rhs.p[1];
+    }
 };
 
 
 class gamecontroller
 {
     event::movement mov{0,0};
-    gamestate_simulator<pongstate> sim;
+    gamestate_simulator2<pongstate> sim;
     net_node_id local, remote;
 public:
     gamecontroller(net_node_id local, net_node_id remote) : sim{local, remote}, local(local), remote(remote)

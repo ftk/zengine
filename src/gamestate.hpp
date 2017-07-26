@@ -80,8 +80,11 @@ public:
 };
 
 #include <mutex>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include <sstream>
 
-// GamestateSync requirements: the same as Gamestate, operator=, TODO: serialize, deserialize
+// GamestateSync requirements: the same as Gamestate + serialize + operator=(?)(TODO)
 template <class GamestateSync>
 class gamestate_simulator2 : public gamestate_simulator<GamestateSync>
 {
@@ -119,9 +122,8 @@ public:
         if(newstate_invalidated)
         {
             // copy oldstate to newstate
-            newstate = this->oldstate;
-
-            simulated_new = this->simulated_old;
+            invalidate_new_state();
+            //newstate = this->oldstate;
             newstate_invalidated = false;
         }
 
@@ -149,7 +151,25 @@ public:
         newstate.draw();
     }
 
+private:
+    void invalidate_new_state()
+    {
+        /*std::stringstream ss;
 
+        using namespace boost::archive;
+
+        {
+            binary_oarchive oa(ss, no_header | no_codecvt);
+            oa & this->oldstate;
+        }
+        {
+            binary_iarchive ia(ss, no_header | no_codecvt);
+            ia & newstate;
+        }*/
+        newstate = this->oldstate;
+        simulated_new = this->simulated_old;
+
+    }
 };
 
 
