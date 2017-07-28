@@ -83,8 +83,9 @@ public:
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <sstream>
+#include <type_traits>
 
-// GamestateSync requirements: the same as Gamestate + serialize + operator=(?)(TODO)
+// GamestateSync requirements: the same as Gamestate + serialize + operator=(optional)
 template <class GamestateSync>
 class gamestate_simulator2 : public gamestate_simulator<GamestateSync>
 {
@@ -152,12 +153,19 @@ public:
     }
 
 private:
-    void invalidate_new_state()
+    void invalidate_new_state() { invalidate_new_state_impl(std::is_copy_assignable<GamestateSync>{}); }
+    // GamestateSync has operator=
+    void invalidate_new_state_impl(std::true_type)
     {
-        /*std::stringstream ss;
+        newstate = this->oldstate;
+        simulated_new = this->simulated_old;
+    }
 
+    // or else just serialize and deserialize it
+    void invalidate_new_state_impl(std::false_type)
+    {
+        std::stringstream ss;
         using namespace boost::archive;
-
         {
             binary_oarchive oa(ss, no_header | no_codecvt);
             oa & this->oldstate;
@@ -165,10 +173,29 @@ private:
         {
             binary_iarchive ia(ss, no_header | no_codecvt);
             ia & newstate;
-        }*/
-        newstate = this->oldstate;
+        }
         simulated_new = this->simulated_old;
+    }
 
+public:
+    std::string get_state() const
+    {
+        std::ostringstream ss;
+        using namespace boost::archive;
+        binary_oarchive oa(ss, no_header | no_codecvt);
+        oa & this->oldstate;
+        oa & this->simulated_old;
+        return ss.str();
+    }
+    void set_state(string_view state)
+    {
+        std::istringstream ss(state);
+        using namespace boost::archive;
+        binary_oarchive ia(ss, no_header | no_codecvt);
+        ia & this->oldstate;
+        ia & this->simulated_old;
+
+        invalidate_new_state();
     }
 };
 
