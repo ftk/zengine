@@ -13,6 +13,7 @@
 
 #include "util/optional.hpp"
 #include "util/assert.hpp"
+#include "util/log.hpp"
 
 
 
@@ -34,15 +35,15 @@ struct tick_input_t
 
 };
 
-constexpr int max_queued_inputs = 64;
 
 struct inputs_t
 {
-    boost::circular_buffer<tick_input_t> buf{max_queued_inputs}; // sorted by tick asc
+    boost::circular_buffer<tick_input_t> buf{32}; // sorted by tick asc
 
 
     void push_back(tick_input_t inp)
     {
+        check_capacity();
         // sorted
         assert(buf.empty() || inp.tick >= buf.back().tick);
         buf.push_back(std::move(inp));
@@ -50,25 +51,10 @@ struct inputs_t
 
     void push(tick_input_t inp)
     {
+        check_capacity();
+
         auto it = std::lower_bound(buf.begin(), buf.end(), inp);
-        /*
-        if(it != buf.end() && it->tick == inp.tick) // merge
-        {
-            while(it->inputs.size() < it->inputs.static_capacity && !inp.empty())
-            {
-                it->inputs.push_back(inp.inputs.back());
-                inp.inputs.pop_back();
-            }
-        } else
-        {
-            // O(n) insert
-            // however pushes to the end will be more frequent
-            buf.insert(it, std::move(inp));
-        }*/
-        if(it == buf.end())
-            push_back(std::move(inp));
-        else
-            buf.insert(it, std::move(inp));
+        buf.insert(it, std::move(inp));
     }
 
     bool empty() const { return buf.empty(); }
@@ -85,7 +71,17 @@ struct inputs_t
         return it;
     }
 
-
+private:
+    void check_capacity()
+    {
+        if(buf.full())
+        {
+            const auto ncap = buf.capacity() * 2;
+            LOGGER(warn, "Input buffer is overflowing, increasing to", ncap);
+            // TODO: since this incalidates iterators, fix in case of multithreading
+            buf.set_capacity(ncap);
+        }
+    }
 };
 
 std::string serialize(const tick_input_t& event);
