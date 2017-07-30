@@ -30,13 +30,11 @@ protected:
     Gamestate oldstate;
 
 public:
-
     Gamestate& state() { return oldstate; }
 
     template <typename... Args>
     gamestate_simulator(Args&&... args) : oldstate(std::forward<Args>(args)...)
     {
-        simulated_old = get_tick();
     }
 
     void push(tick_input_t ev)
@@ -44,10 +42,9 @@ public:
         inputs.push(std::move(ev));
     }
 
-    void update()
+    void update(tick_t curtick)
     {
-        auto newtick = get_tick();
-        auto oldtick = newtick - lag;
+        auto oldtick = curtick - lag;
 
 
         // simulate oldstate
@@ -103,7 +100,6 @@ public:
     template <typename... Args>
     gamestate_simulator2(Args&&... args) : Base(args...), newstate(std::forward<Args>(args)...)
     {
-        simulated_new = get_tick();
     }
 
     void push(tick_input_t ev)
@@ -115,9 +111,9 @@ public:
     }
 
 
-    void update()
+    void update(tick_t curtick)
     {
-        Base::update();
+        Base::update(curtick);
 
         std::lock_guard<std::mutex> lock(inputs_mtx);
         if(newstate_invalidated)
@@ -129,10 +125,9 @@ public:
         }
 
         // simulate newstate
-        auto newtick = get_tick();
 
         auto next_input = this->inputs.lower_bound(simulated_new);
-        while(simulated_new < newtick)
+        while(simulated_new < curtick)
         {
             while(next_input != this->inputs.buf.end())
             {
