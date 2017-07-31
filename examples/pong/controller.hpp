@@ -28,6 +28,7 @@ public:
     paddle(qvm::vec2 pos) : pos(std::move(pos))
     {
     }
+    paddle() {}
 
     qvm::vec2 size {0.05, 0.10};
     col::box bounding_box() const override
@@ -104,21 +105,15 @@ class pongstate
 {
 public:
     ball b { {0,0}, {0.01, 0}};
-    paddle p[2] {paddle{{-0.5, 0}}, paddle{{0.5, 0}}};
+    std::vector<paddle> p;
 
-    net_node_id players[2];
+    std::vector<net_node_id> players;
 
     col::simple_collider collider;
 
-    pongstate(net_node_id p1, net_node_id p2)
+    pongstate()
     {
-        assume(p1 != p2);
-        players[0] = std::min(p1, p2);
-        players[1] = std::max(p1, p2);
-
         collider.objs.push_back(&b);
-        collider.objs.push_back(&p[0]);
-        collider.objs.push_back(&p[1]);
     }
 
     void update(tick_t tick)
@@ -130,46 +125,46 @@ public:
     void draw()
     {
         b.draw();
-        p[0].draw(); p[1].draw();
+        for(unsigned int i = 0; i < p.size(); i++)
+            p[i].draw();
     }
     void on_input(const tick_input_t& input)
     {
-        for(int i = 0; i < 2; i++)
+
+        for(unsigned int i = 0; i < p.size(); i++)
             if(input.player == players[i])
                 p[i].on_input(input);
+        if(input.event.which() == event::player_join::index)
+        {
+            // new player
+            p.push_back(paddle{qvm::vec2{0.,0.}});
+            players.push_back(input.player);
+            //collider.objs.push_back(&p.back());
+        }
     }
 
-    template <class Archive>
-    void serialize(Archive& ar, const unsigned int)
-    {
-        ar & b & p[0] & p[1];
-    }
+    SERIALIZABLE((b)(p)(players))
 
-    void operator=(const pongstate& rhs)
+    /*void operator=(const pongstate& rhs)
     {
-        b = rhs.b; p[0] = rhs.p[0]; p[1] = rhs.p[1];
-    }
+        b = rhs.b; p = rhs.p; players = ;
+    }*/
 };
 
-
-class gamecontroller
+/*< register_module(name=>'controller', class=>'controller', scriptexport=>[qw(startgame)]); >*/
+class controller : public basic_module
 {
-    event::movement mov{0,0};
-    gamestate_simulator2<pongstate> sim;
-    net_node_id local, remote;
-public:
-    gamecontroller(net_node_id local, net_node_id remote) : sim{local, remote}, local(local), remote(remote)
-    {
-        LOGGER(info, "game started!!!", remote);
-        assert(remote);
+    multiplayer_game<gamestate_simulator2<pongstate>> game {g_app->netgame.get()};
 
-        //=- register_callback('void (uint64_t)', 'on_game_start');
-        g_app->script->on_game_start(remote);
+    event::movement mov;
+public:
+    void startgame(net_node_id remote)
+    {
+        LOGGER(info, "sending join to", remote);
+        game.join(remote);
     }
 
-
-
-    bool on_event(const SDL_Event& ev)
+    bool on_event(const SDL_Event& ev) override
     {
         switch(ev.type)
         {
@@ -177,13 +172,13 @@ public:
                 switch(ev.key.keysym.scancode)
                 {
                     case SDL_SCANCODE_S:
-                        push_local(event::movement{0,-10}); return false;
+                        game.push_event(event::movement{0,-10}); return false;
                     case SDL_SCANCODE_W:
-                        push_local(event::movement{0,10}); return false;
+                        game.push_event(event::movement{0,10}); return false;
                     case SDL_SCANCODE_A:
-                        push_local(event::movement{-10,0}); return false;
+                        game.push_event(event::movement{-10,0}); return false;
                     case SDL_SCANCODE_D:
-                        push_local(event::movement{10,0}); return false;
+                        game.push_event(event::movement{10,0}); return false;
                     default:
                         break;
                 }break;
@@ -198,69 +193,15 @@ public:
         return true;
     }
 
-    void draw()
-    {
-        try
-        {
-            sim.update();
-        }
-        catch(old_input_exc)
-        {
-            push_local(event::disconnect{});
-//            throw stop_game{};
-        }
-        sim.draw();
-
-        if(mov.x || mov.y)
-        {
-            push_local(mov);
-            mov.x = mov.y = 0;
-        }
-    }
-
-    void push_local(event_t event)
-    {
-        auto input = tick_input_t{g_app->netgame->id(), get_tick(), event};
-        g_app->netgame->send_event(remote, event);
-        sim.push(std::move(input));
-    }
-
-    template<typename T>
-    void on_netevent(const tick_input_t& input, T event)
-    {
-        sim.push(input);
-    }
-
-    ~gamecontroller()
-    {
-        LOGGER(info, "player disconnected :(");
-        //=- register_callback('void ()', 'on_disconnect');
-        g_app->script->on_disconnect();
-    }
-};
-
-
-/*< register_module(name=>'controller', class=>'controller', scriptexport=>[qw(startgame)]); >*/
-class controller : public basic_module
-{
-    two_player_game<gamecontroller> game {g_app->netgame.get()};
-public:
-    void startgame(net_node_id remote)
-    {
-        game.send_request(remote);
-    }
-
-    bool on_event(const SDL_Event& ev) override
-    {
-        if(game.gamecontroller)
-            return game.gamecontroller->on_event(ev);
-        return true;
-    }
-
     void draw() override
     {
-        if(game.gamecontroller)
-            game.gamecontroller->draw();
+        game.sim.draw();
+        if(mov.x || mov.y)
+        {
+            game.push_event(mov);
+            mov.x = mov.y = 0;
+        }
+        game.update();
     }
 
 };
