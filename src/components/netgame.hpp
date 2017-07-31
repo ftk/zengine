@@ -19,7 +19,8 @@ struct netgame_i
 
     virtual net_node_id id() const { return 1; } // return local player id
 
-    virtual void send_event(net_node_id id, event_t event) {};
+    virtual void send_input(net_node_id id, const tick_input_t& input) = 0;
+    virtual void send_input(const std::vector<net_node_id>& ids, const tick_input_t& input) = 0;
 
     // handler should be thread safe
     virtual void set_event_handler(std::function<void(tick_input_t)> handler) {}

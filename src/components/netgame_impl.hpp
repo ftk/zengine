@@ -12,7 +12,7 @@
 
 #include <thread>
 
-#include <boost/container/flat_map.hpp>
+#include <boost/container/flat_set.hpp>
 
 #include "util/log.hpp"
 #include "util/assert.hpp"
@@ -26,9 +26,10 @@ public:
 private:
     using header_t = uint8_t;
 
-    boost::container::flat_map<net_node_id, int> playeroffsets; // remote + offset = local
 
     std::function<void (tick_input_t)> event_callback;
+
+    boost::container::flat_set<net_node_id> allpeers;
 public:
 
     netgame_c()
@@ -41,7 +42,9 @@ public:
             network.port = g_app->config->get("network.bind.port", 0);
         }
 
-        network.id = (net_node_id) rand();
+        network.id = g_app->config->get<net_node_id>("network.id", 0);
+        while(!network.id)
+            network.id = (net_node_id) rand();
         NETLOG(info, "my id", network.id);
 
         network.add_new_node(0,
@@ -55,74 +58,39 @@ public:
 
         netthread = std::thread{[this]() { network.run(); }};
     }
-protected:
 
-    void send_input(net_node_id id, string_view inputstr)
+    void send_input(net_node_id id, const tick_input_t& input) override
+    {
+        send_evstr(id, serialize(input));
+    }
+    void send_input(const std::vector<net_node_id>& ids, const tick_input_t& input) override
+    {
+        auto str = serialize(input);
+        for(auto id : ids)
+        {
+            if(id != network.id)
+                send_evstr(id, str);
+        }
+    }
+
+protected:
+    void send_evstr(net_node_id id, string_view inputstr)
     {
         header_t header = 'E';
         network.send_data(id, inputstr.data(), inputstr.size(), &header, sizeof(header));
     }
-    std::string make_input(event_t event) const
-    {
-        return serialize({id(), get_tick(), std::move(event)});
-    }
-public:
-    void send_event(net_node_id id, event_t event) override
-    {
-        return send_input(id, make_input(std::move(event)));
-    }
+
 protected:
 
     void on_connect(net_node_id id)
     {
-        //=- register_event(name=>'connect_req');
-        send_event(id, event::connect_req{});
+        //if(id != 0)
+        allpeers.insert(id);
     }
 
-
-
-    void on_event(const tick_input_t& input, event::connect_req)
-    {
-        //=- register_event(name=>'connect_ack', params=>[[qw(uint32_t tick)]]);
-        send_event(input.player, event::connect_ack{input.tick});
-    }
-
-    void on_event(const tick_input_t& input, event::connect_ack ack)
-    {
-        tick_t ticks[3] = {ack.tick, // local tick when sent req
-                           input.tick, // remote tick when sent ack
-                           get_tick()}; // current tick
-        NETLOG(info, "pinged:", ticks[0], ticks[1], ticks[2]);
-        if(ticks[2] - ticks[0] < 6)
-        {
-            playeroffsets[input.player] = (int) (ticks[0] + ticks[2]) / 2 - (int) ticks[1];
-        }
-        else
-        {
-            NETLOG(warn, input.player, "has too big ping:", ticks[2] - ticks[0]);
-            // disconnect
-        }
-    }
-
-    template <typename E>
-    void on_event(const tick_input_t& input, const E&)
-    {
-
-    }
-
-
-
-    template <typename T>
-    void operator()(const T&) {}
-
-    //=- register_event(name=>'disconnect');
     void on_disconnect(net_node_id id)
     {
-        if(playeroffsets.erase(id))
-        {
-            // pseudo-event
-            event_callback(tick_input_t{id, get_tick(), event::disconnect{}});
-        }
+        allpeers.erase(id);
     }
 
     void on_receive(net_node_id id, const char * data, std::size_t len)
@@ -139,24 +107,18 @@ protected:
             case 'E': // event
                 try
                 {
-
                     auto inp = deserialize({data, len});
-                    NETLOG(debug3, "event", id, dump_event(inp.event));
-                    boost::apply_visitor([this, &inp](const auto& event) -> void { this->on_event(inp, event);}, inp.event);
+                    NETLOG(debug3, "event from", id, "tick", inp.tick, dump_event(inp.event));
                     //EVENT_VISITOR_ALL(inp.event, ([this, &inp](const auto& event) -> void { this->on_event(inp, event);}));
 
-                    if(!playeroffsets.count(id))
-                    {
-                        NETLOG(warn, "event from", id, ", which is disconnected");
-                        break;
-                    }
                     if(event_callback)
                     {
-                        inp.tick += playeroffsets[id];
                         if(inp.player != id)
+                        {
                             NETLOG(warn, "spoofed id", inp.player);
+                            //break;
+                        }
                         event_callback(std::move(inp));
-
                     }
                 }
                 catch(std::exception& e)
@@ -172,14 +134,6 @@ protected:
         }
     }
 public:
-    void broadcast_input(const tick_input_t& event)
-    {
-        auto str = serialize(event);
-        for(auto& p : playeroffsets)
-        {
-            send_input(p.first, str);
-        }
-    }
 
     void set_event_handler(std::function<void(tick_input_t)> handler) override
     {
@@ -193,10 +147,8 @@ public:
 
     std::vector<net_node_id> nodes_list() const override
     {
-        std::vector<net_node_id> list;
-        list.reserve(playeroffsets.size());
-        for(const auto& pair : playeroffsets) list.push_back(pair.first);
-        return list;
+        //std::vector<net_node_id> list;
+        return std::vector<net_node_id>(allpeers.begin(), allpeers.end());
     }
 
     ~netgame_c()
@@ -206,5 +158,6 @@ public:
         netthread.join();
     }
 };
+
 
 #endif //ZENGINE_NETGAME_IMPL_HPP
