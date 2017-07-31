@@ -14,8 +14,12 @@
 
 #include "util/hash.hpp"
 
+#include <vector>
+#include <boost/serialization/vector.hpp>
+
 
 #include <boost/preprocessor/seq/for_each.hpp>
+
 
 // SERIALIZABLE((field1) (field2))
 // template<class Archive> void serialize(Archive& ar, const unsigned) { ar&field1&field2; }
@@ -32,6 +36,10 @@ BOOST_PP_SEQ_FOR_EACH(SERIALIZABLE_HELPER, ar, seq) \
 #else
 #define SERIALIZABLE_HELPER(r, ar, elem) & elem
 #endif
+
+
+using tick_t = uint32_t;
+using net_node_id = uint64_t;
 
 namespace event {
 
@@ -62,15 +70,15 @@ namespace event {
    $s .= "\n\n#define EVENTS_SEQ $seq";
    $s;
    %*/
-struct connect_ack {static constexpr unsigned index = 0; uint32_t tick; SERIALIZABLE((tick))};
-struct connect_req {static constexpr unsigned index = 1; SERIALIZABLE()};
-struct disconnect {static constexpr unsigned index = 2; SERIALIZABLE()};
-struct game_start {static constexpr unsigned index = 3; SERIALIZABLE()};
-struct game_start_ack {static constexpr unsigned index = 4; SERIALIZABLE()};
-struct movement {static constexpr unsigned index = 5; int32_t x; int32_t y; SERIALIZABLE((x)(y))};
-struct null {static constexpr unsigned index = 6; SERIALIZABLE()};
+struct join {static constexpr unsigned index = 0; SERIALIZABLE()};
+struct joined {static constexpr unsigned index = 1; tick_t tick; net_node_id id; SERIALIZABLE((tick)(id))};
+struct movement {static constexpr unsigned index = 2; int32_t x; int32_t y; SERIALIZABLE((x)(y))};
+struct null {static constexpr unsigned index = 3; SERIALIZABLE()};
+struct peers {static constexpr unsigned index = 4; std::vector<net_node_id> arr; SERIALIZABLE((arr))};
+struct player_join {static constexpr unsigned index = 5; SERIALIZABLE()};
+struct statesync {static constexpr unsigned index = 6; std::string state; SERIALIZABLE((state))};
 
-#define EVENTS_SEQ (connect_ack)(connect_req)(disconnect)(game_start)(game_start_ack)(movement)(null)/*>*/
+#define EVENTS_SEQ (join)(joined)(movement)(null)(peers)(player_join)(statesync)/*>*/
 
 //static_assert(std::is_pod<null>::value == true);
 
@@ -78,7 +86,7 @@ struct null {static constexpr unsigned index = 6; SERIALIZABLE()};
 
 using event_t = boost::variant<
     /*< join ', ', map { "event::$_->{name}" } dispatch('events');
-     %*/event::connect_ack, event::connect_req, event::disconnect, event::game_start, event::game_start_ack, event::movement, event::null/*>*/
+     %*/event::join, event::joined, event::movement, event::null, event::peers, event::player_join, event::statesync/*>*/
 >;
 //static_assert(std::is_pod<event_t>::value == true);
 
@@ -96,19 +104,6 @@ default: return f2 (ev); \
 switch(ev.which()) { \
 BOOST_PP_SEQ_FOR_EACH(EVENT_VISITOR_HELPER, f1, EVENTS_SEQ) \
 }}(e,f);
-
-
-#include <SDL_timer.h>
-
-typedef uint32_t tick_t;
-
-constexpr unsigned TICKS_PER_SECOND = 50;
-
-inline tick_t get_tick() { return SDL_GetTicks() / (1000 / TICKS_PER_SECOND); }
-
-
-using net_node_id = uint64_t;
-
 
 
 

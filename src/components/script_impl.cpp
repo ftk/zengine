@@ -116,13 +116,13 @@ ModulePtr script_register_bindings(ModulePtr m)
        }
        $s;
       %*/
-	chai.add(fun([](uint32_t tick) -> event_t {return event::connect_ack{std::move(tick)};}), "event_connect_ack");
-	chai.add(fun([]() -> event_t {return event::connect_req{};}), "event_connect_req");
-	chai.add(fun([]() -> event_t {return event::disconnect{};}), "event_disconnect");
-	chai.add(fun([]() -> event_t {return event::game_start{};}), "event_game_start");
-	chai.add(fun([]() -> event_t {return event::game_start_ack{};}), "event_game_start_ack");
+	chai.add(fun([]() -> event_t {return event::join{};}), "event_join");
+	chai.add(fun([](tick_t tick, net_node_id id) -> event_t {return event::joined{std::move(tick), std::move(id)};}), "event_joined");
 	chai.add(fun([](int32_t x, int32_t y) -> event_t {return event::movement{std::move(x), std::move(y)};}), "event_movement");
-	chai.add(fun([]() -> event_t {return event::null{};}), "event_null");/*>*/
+	chai.add(fun([]() -> event_t {return event::null{};}), "event_null");
+	chai.add(fun([](std::vector<net_node_id> arr) -> event_t {return event::peers{std::move(arr)};}), "event_peers");
+	chai.add(fun([]() -> event_t {return event::player_join{};}), "event_player_join");
+	chai.add(fun([](std::string state) -> event_t {return event::statesync{std::move(state)};}), "event_statesync");/*>*/
 
     return m;
 }

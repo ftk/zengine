@@ -57,7 +57,6 @@ void script_callback<R(Args...)>::init(const char * name, ChaiScript_Basic& engi
 /*< sub uniq { my %seen; grep { !$seen{$_}++ } @_; }
    join "\n", uniq map { qq%template struct script_callback<$_->{type}>;% } dispatch('callbacks');;
    %*/template struct script_callback<void ()>;
-template struct script_callback<void (uint64_t)>;
 template struct script_callback<void (int)>;/*>*/
 
 
@@ -94,9 +93,7 @@ public:
     {
 #define CB_INIT(name) p. name .init(#name, chai);
         /*< join "\n\t\t", map { qq%CB_INIT($_->{name})% } dispatch('callbacks');
-        %*/CB_INIT(on_disconnect)
-		CB_INIT(on_game_start)
-		CB_INIT(on_init)
+        %*/CB_INIT(on_init)
 		CB_INIT(on_option_selected)/*>*/
 #undef CB_INIT
     }

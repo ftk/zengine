@@ -40,9 +40,7 @@ public:
 
     /*<
        join "\n\t", map { "script_callback<$_->{type}> $_->{name};" } dispatch('callbacks');
-     %*/script_callback<void ()> on_disconnect;
-	script_callback<void (uint64_t)> on_game_start;
-	script_callback<void ()> on_init;
+     %*/script_callback<void ()> on_init;
 	script_callback<void (int)> on_option_selected;/*>*/
 
 };
