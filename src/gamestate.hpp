@@ -31,6 +31,7 @@ protected:
 
 public:
     Gamestate& state() { return oldstate; }
+    tick_t get_oldtick() const { return simulated_old; }
 
     template <typename... Args>
     gamestate_simulator(Args&&... args) : oldstate(std::forward<Args>(args)...)
@@ -44,7 +45,7 @@ public:
 
     void update(tick_t curtick)
     {
-        auto oldtick = curtick - lag;
+        auto oldtick = (curtick < lag) ? 0 : (curtick - lag);
 
 
         // simulate oldstate
@@ -184,9 +185,9 @@ public:
     }
     void set_state(string_view state)
     {
-        std::istringstream ss(state);
+        std::istringstream ss(state.to_string());
         using namespace boost::archive;
-        binary_oarchive ia(ss, no_header | no_codecvt);
+        binary_iarchive ia(ss, no_header | no_codecvt);
         ia & this->oldstate;
         ia & this->simulated_old;
 
