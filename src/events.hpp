@@ -73,12 +73,15 @@ namespace event {
 struct join {static constexpr unsigned index = 0; SERIALIZABLE()};
 struct joined {static constexpr unsigned index = 1; tick_t tick; net_node_id id; SERIALIZABLE((tick)(id))};
 struct movement {static constexpr unsigned index = 2; int32_t x; int32_t y; SERIALIZABLE((x)(y))};
-struct null {static constexpr unsigned index = 3; SERIALIZABLE()};
-struct peers {static constexpr unsigned index = 4; std::vector<net_node_id> arr; SERIALIZABLE((arr))};
-struct player_join {static constexpr unsigned index = 5; SERIALIZABLE()};
-struct statesync {static constexpr unsigned index = 6; std::string state; SERIALIZABLE((state))};
+struct node_connect {static constexpr unsigned index = 3; SERIALIZABLE()};
+struct node_disconnect {static constexpr unsigned index = 4; SERIALIZABLE()};
+struct null {static constexpr unsigned index = 5; SERIALIZABLE()};
+struct peers {static constexpr unsigned index = 6; std::vector<net_node_id> arr; SERIALIZABLE((arr))};
+struct player_join {static constexpr unsigned index = 7; SERIALIZABLE()};
+struct player_leave {static constexpr unsigned index = 8; SERIALIZABLE()};
+struct statesync {static constexpr unsigned index = 9; std::string state; SERIALIZABLE((state))};
 
-#define EVENTS_SEQ (join)(joined)(movement)(null)(peers)(player_join)(statesync)/*>*/
+#define EVENTS_SEQ (join)(joined)(movement)(node_connect)(node_disconnect)(null)(peers)(player_join)(player_leave)(statesync)/*>*/
 
 //static_assert(std::is_pod<null>::value == true);
 
@@ -86,7 +89,7 @@ struct statesync {static constexpr unsigned index = 6; std::string state; SERIAL
 
 using event_t = boost::variant<
     /*< join ', ', map { "event::$_->{name}" } dispatch('events');
-     %*/event::join, event::joined, event::movement, event::null, event::peers, event::player_join, event::statesync/*>*/
+     %*/event::join, event::joined, event::movement, event::node_connect, event::node_disconnect, event::null, event::peers, event::player_join, event::player_leave, event::statesync/*>*/
 >;
 //static_assert(std::is_pod<event_t>::value == true);
 
