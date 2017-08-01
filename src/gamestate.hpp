@@ -31,7 +31,8 @@ protected:
 
 public:
     Gamestate& state() { return oldstate; }
-    tick_t get_oldtick() const { return simulated_old; }
+    tick_t get_oldtick() const { return simulated_old; } //
+    void clear() { inputs.buf.clear(); }
 
     template <typename... Args>
     gamestate_simulator(Args&&... args) : oldstate(std::forward<Args>(args)...)
