@@ -307,9 +307,9 @@ private:
             if(it->second.to_delete())
             {
                 NETLOG(info, "deleted", nid);
+                nodes.erase(it);
                 if(disconnect_callback)
                     disconnect_callback(it->first);
-                nodes.erase(it);
             } else
             {
                 assert(it->second.id == nid);
