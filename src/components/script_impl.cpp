@@ -77,7 +77,9 @@ ModulePtr script_register_bindings(ModulePtr m)
 %*/
 	chai.add(user_type<controller>(), "Controller");
 	chai.add(base_class<basic_module, controller>());
-	chai.add(fun(&controller::startgame), "startgame");
+	chai.add(fun(&controller::join), "join");
+	chai.add(fun(&controller::host), "host");
+	chai.add(fun(&controller::stop), "stop");
 	chai.add(fun(&modules_c::load<controller>, modules), "load_controller");
 	chai.add(user_type<controls>(), "Controls");
 	chai.add(base_class<basic_module, controls>());

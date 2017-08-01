@@ -19,7 +19,7 @@
 #include "collision.hpp"
 
 
-class paddle : public col::object
+class paddle
 {
 public:
     qvm::vec2 pos;
@@ -31,7 +31,7 @@ public:
     paddle() {}
 
     qvm::vec2 size {0.05, 0.10};
-    col::box bounding_box() const override
+    col::box bounding_box() const
     {
         return col::box{pos + size/2, size};
     }
@@ -60,7 +60,7 @@ public:
 
 };
 
-class ball : public col::object
+class ball
 {
 public:
     qvm::vec2 pos, vel;
@@ -70,17 +70,17 @@ public:
     ball(qvm::vec2 pos, qvm::vec2 vel) : pos(std::move(pos)), vel(std::move(vel)) {
     }
 
-    col::box bounding_box() const override
+    col::box bounding_box() const
     {
         return col::box{pos + size/2, size};
     }
 
-    void collide(col::object * obj) override
+    void collide(const paddle& obj)
     {
         using namespace qvm;
         try
         {
-            auto dir = normalized(pos - obj->bounding_box().center);
+            auto dir = normalized(pos - obj.bounding_box().center);
             vel = dir / 500;
         } catch(qvm::error) {}
     }
@@ -109,18 +109,15 @@ public:
 
     std::vector<net_node_id> players;
 
-    col::simple_collider collider;
-
     pongstate()
     {
-        collider.objs.push_back(&b);
     }
 
     void update(tick_t tick)
     {
         b.update(tick);
 
-        collider.test_object(&b);
+        for(auto& pp : p) if(col::simple_collider::test(b.bounding_box(), pp.bounding_box())) b.collide(pp);
     }
     void draw()
     {
@@ -139,7 +136,6 @@ public:
             // new player
             p.push_back(paddle{qvm::vec2{0.,0.}});
             players.push_back(input.player);
-            //collider.objs.push_back(&p.back());
         }
     }
 
@@ -151,17 +147,28 @@ public:
     }*/
 };
 
-/*< register_module(name=>'controller', class=>'controller', scriptexport=>[qw(startgame)]); >*/
+/*< register_module(name=>'controller', class=>'controller', scriptexport=>[qw(join host stop)]); >*/
 class controller : public basic_module
 {
     multiplayer_game<gamestate_simulator2<pongstate>> game {g_app->netgame.get()};
 
     event::movement mov;
 public:
-    void startgame(net_node_id remote)
+    void join(net_node_id remote)
     {
         LOGGER(info, "sending join to", remote);
         game.join(remote);
+    }
+
+    void host()
+    {
+        LOGGER(info, "starting game");
+        game.host();
+    }
+
+    void stop()
+    {
+        game.stop();
     }
 
     bool on_event(const SDL_Event& ev) override
