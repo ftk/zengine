@@ -86,11 +86,17 @@ protected:
     {
         //if(id != 0)
         allpeers.insert(id);
+        //=- register_event(name=>'node_connect', params=>[]);
+        if(event_callback)
+            event_callback(tick_input_t{id, 0/*???*/, event::node_connect{}});
     }
 
     void on_disconnect(net_node_id id)
     {
         allpeers.erase(id);
+        //=- register_event(name=>'node_disconnect', params=>[]);
+        if(event_callback)
+            event_callback(tick_input_t{id, 0/*???*/, event::node_disconnect{}});
     }
 
     void on_receive(net_node_id id, const char * data, std::size_t len)

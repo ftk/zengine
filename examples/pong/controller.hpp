@@ -137,6 +137,13 @@ public:
             p.push_back(paddle{qvm::vec2{0.,0.}});
             players.push_back(input.player);
         }
+        else if(input.event.which() == event::player_leave::index)
+        {
+            unsigned idx = std::find(players.begin(), players.end(), input.player) - players.begin();
+            assume(idx < players.size());
+            players.erase(players.begin() + idx);
+            p.erase(p.begin() + idx);
+        }
     }
 
     SERIALIZABLE((b)(p)(players))

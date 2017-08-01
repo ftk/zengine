@@ -139,7 +139,6 @@ private:
         netgame->send_input(remote, tick_input_t{netgame->id(), timer.get_tick(), std::move(event)});
     }
 
-
     void push_input(tick_input_t input)
     {
         netgame->send_input(clients, input);
@@ -253,6 +252,35 @@ private:
         connecting_state = CONNECTING;
         connecting_id = ev.id;
         starttick = ev.tick;
+    }
+
+    void on_netevent(const tick_input_t& input, const event::node_connect&)
+    {
+    }
+
+    void on_netevent(const tick_input_t& input, const event::node_disconnect&)
+    {
+        switch(state)
+        {
+            case CLIENT:
+                if(input.player == clients[0]) // host has disconnected :(
+                {
+                    // todo: host migration
+                    stop();
+                }
+                break; // wait about disconnect msg from host
+            case HOST:
+                //=- register_event(name=>'player_leave');
+                push_input(tick_input_t{input.player, timer.get_tick(), event::player_leave{}});
+                break;
+            case SYNC:
+                if(input.player == connecting_id) stop();
+                // todo: check if connected players DC'ed
+                break;
+            case STOPPED:
+                break;
+        }
+        clients.erase(std::remove(clients.begin(), clients.end(), input.player));
     }
 
     template <typename T>
