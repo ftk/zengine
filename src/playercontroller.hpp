@@ -22,14 +22,14 @@ private:
     uint32_t timerstart;
 
 public:
-    tick_timer(tick_t curtick = 0)
+    tick_timer()
     {
-        init(curtick);
+        init();
     }
 
-    void init(tick_t curtick = 0)
+    void init(tick_t curtick = 0, unsigned rttfix = 0)
     {
-        timerstart = SDL_GetTicks() - curtick * 1000 / TPS;
+        timerstart = SDL_GetTicks() - curtick * 1000 / TPS - rttfix / 2;
     }
 
     tick_t get_tick() const
@@ -44,15 +44,13 @@ class multiplayer_game
 {
     netgame_i * netgame;
 
-    bool host = true;
-    bool connecting = false;
+
     std::vector<net_node_id> clients;
 
-    std::list<std::pair<tick_t, net_node_id>> promised_clients; // [(starttick, id)]
-
-    //optional<Controller> gamecontroller;
-
-
+    // connecting client - only one at a time
+    tick_t starttick = 0;
+    net_node_id connecting_id = 0;
+    enum {NONE,CONNECTING,WAITING_FOR_STATE} connecting_state = NONE;
 
 public:
     tick_timer<50> timer;
@@ -60,73 +58,76 @@ public:
     GamestateSim sim;
 public:
 
-    multiplayer_game(netgame_i * netgame) : netgame(netgame), host(true)
+    enum state_t
+    {
+        HOST,
+        CLIENT,
+        SYNC, // client is waiting for state
+        STOPPED // game is stopped
+
+    } state = STOPPED;
+
+public:
+
+    multiplayer_game(netgame_i * netgame) : netgame(netgame)
     {
         // todo move to adapter
         netgame->set_event_handler([this](tick_input_t input) {
             boost::apply_visitor([this, &input](const auto& event) -> void { this->on_netevent(input, event);}, input.event);
         });
-        if(host)
-            clients.push_back(netgame->id()); // clients[0] is always host
-        sim.push(tick_input_t{netgame->id(), 0, event::player_join{}});
     }
 
+
+
 private:
+
+#define CHECK_STATE(st) if(state != st) { LOGGER(warn, "state", state, "expected", st, __PRETTY_FUNCTION__); return; }
 
     //=- register_event(name=>'join', params=>[]);
     void on_netevent(const tick_input_t& input, event::join)
     {
-
-        send_peers(input.player);
-    }
-
-    void send_peers(net_node_id remote)
-    {
-        // ...
+        CHECK_STATE(HOST);
         //=- register_event(name=>'peers', params=>[['std::vector<net_node_id>','arr']]);
-        LOGGER(info, "sent peers to", remote);
-        send(remote, event::peers{clients});
-
+        LOGGER(info, "sent peers to", input.player);
+        send(input.player, event::peers{clients});
     }
 
     void on_netevent(const tick_input_t& input, const event::peers& peers)
     {
-        if(host)
+        if(state == HOST)
         {
+            if(connecting_state != NONE)
+            {
+                LOGGER(info, "rejected", input.player, "as", connecting_id, "is already connecting");
+                return;
+            }
             // todo: check if clients changed?
             if(peers.arr == clients)
-                peers_ok(input.player);
+            {
+                // add promise to send him state of (now+lag)
+                starttick = timer.get_tick() + sim.lag;
+                connecting_id = input.player;
+                // notify other clients ?
+                //=- register_event(name=>'joined', params=>[['tick_t', 'tick'],['net_node_id','id']]);
+
+                broadcast(event::joined{starttick, input.player});
+                //send_state(remote);
+                connecting_state = CONNECTING;
+            }
         }
-        else
+        else if(state == SYNC)
         {
+            if(connecting_state == CONNECTING)
+            {
+                connecting_state = WAITING_FOR_STATE;
+                starttick = SDL_GetTicks() - starttick; // now it holds RTT
+            } else LOGGER(warn, connecting_state, __func__);
             // todo: check if connected
             clients = peers.arr;
             send(input.player, peers);
         }
+        else LOGGER(warn, __func__);
     }
-
-    void peers_ok(net_node_id remote)
-    {
-        // start
-
-        // add promise to send him state after (lag) ms
-        tick_t start = timer.get_tick() + sim.lag;
-        promised_clients.push_back({start, remote});
-        // notify other clients ?
-        //=- register_event(name=>'joined', params=>[['tick_t', 'tick'],['net_node_id','id']]);
-
-        broadcast(event::joined{start, remote});
-        //send_state(remote);
-    }
-
-
-    void send_state(net_node_id remote)
-    {
-        // send time & state ...
-        //=- register_event(name=>'statesync', params=>[['std::string', 'state']]);
-        send(remote, event::statesync{sim.get_state()});
-    }
-
 
     void broadcast(event_t event)
     {
@@ -139,88 +140,130 @@ private:
     }
 
 
-public:
     void push_input(tick_input_t input)
     {
         netgame->send_input(clients, input);
         sim.push(std::move(input));
     }
+public:
     void push_event(event_t event)
     {
-        push_input(tick_input_t{netgame->id(), timer.get_tick(), std::move(event)});
+        if(state == HOST || state == CLIENT)
+            push_input(tick_input_t{netgame->id(), timer.get_tick(), std::move(event)});
     }
 
     void update()
     {
-        if(connecting)
+        if(state != HOST && state != CLIENT)
             return;
-        while(!promised_clients.empty() && timer.get_tick() >= promised_clients.front().first)
-        {
-            const net_node_id client = promised_clients.front().second;
-            clients.push_back(client);
-            if(host)
-            {
-                send_state(client);
-                // pass join event
-                //=- register_event(name=>'player_join');
-                auto inp = tick_input_t{client, promised_clients.front().first, event::player_join{}};
-                push_input(std::move(inp));
-            }
-            promised_clients.pop_front();
-        }
+
         sim.update(timer.get_tick());
+
+        // handle connecting client
+        if(connecting_state != NONE)
+        {
+            if(timer.get_tick() > starttick)
+            {
+                if(connecting_state == CONNECTING)
+                {
+                    //=- register_event(name=>'player_join', params=>[]);
+                    LOGGER(info, "client connected", connecting_id);
+                    sim.push(tick_input_t{connecting_id, starttick, event::player_join{}});
+                    clients.push_back(connecting_id);
+                    if(state == HOST)
+                        connecting_state = WAITING_FOR_STATE;
+                    else
+                        connecting_state = NONE;
+                }
+                if(connecting_state == WAITING_FOR_STATE)
+                {
+                    if(sim.get_oldtick() > starttick)
+                    {
+                        LOGGER(info, "sending state to", connecting_id);
+                        // send time & state ...
+                        //=- register_event(name=>'statesync', params=>[['std::string', 'state']]);
+                        send(connecting_id, event::statesync{sim.get_state()});
+                        connecting_state = NONE;
+                    }
+                }
+
+            }
+        }
     }
 
-    // client
+    // state transitions
+
+    void stop()
+    {
+        sim.clear();
+        clients.clear();
+        state = STOPPED;
+        connecting_state = NONE;
+    }
+    void host()
+    {
+        CHECK_STATE(STOPPED);
+        assume(clients.empty());
+        clients.push_back(netgame->id()); // clients[0] is always host
+        sim.push(tick_input_t{netgame->id(), 0, event::player_join{}});
+        timer.init(0);
+        state = HOST;
+    }
 
     void join(net_node_id remote)
     {
-        /*if(host || !clients.empty())
-        {
-            LOGGER(warn, __func__);
-            return;
-        }*/
-        host = false; // todo
-        connecting = true;
+        CHECK_STATE(STOPPED);
+
+        state = SYNC;
+        connecting_state = CONNECTING;
+        starttick = SDL_GetTicks(); // special meaning, in ms
+        connecting_id = remote;
+
         // send join ev...
         send(remote, event::join{});
     }
+
+
 
 private:
 
 
     void on_netevent(const tick_input_t& input, const event::statesync& ev)
     {
-        if(clients.empty() || host || !connecting)
-        {
-            LOGGER(warn, __func__);
-            return;
-        }
+        CHECK_STATE(SYNC);
+        if(connecting_state != WAITING_FOR_STATE) LOGGER(warn, __func__);
+
         // set_state todo
         LOGGER(info, "setting state", timer.get_tick(), input.tick);
         sim.set_state(ev.state);
-        timer.init(input.tick); // + rtt/2
+        timer.init(input.tick, starttick); // + rtt/2
         LOGGER(info, "new oldtick", sim.get_oldtick(), timer.get_tick());
-        connecting = false;
+
+        state = CLIENT;
+        connecting_state = NONE;
     }
     //
     void on_netevent(const tick_input_t& input, const event::joined& ev)
     {
-        if(clients.empty() || host)
-        {
-            LOGGER(warn, __func__);
-            return;
-        }
+        CHECK_STATE(CLIENT);
+
         if(input.player != clients[0])
             LOGGER(warn, "fake joined msg from", input.player);
-        promised_clients.push_back({ev.tick, ev.id});
+
+        connecting_state = CONNECTING;
+        connecting_id = ev.id;
+        starttick = ev.tick;
     }
 
     template <typename T>
     void on_netevent(const tick_input_t& input, const T&)
     {
-        sim.push(input);
+        if(state != STOPPED)
+            sim.push(input);
     }
 
 };
+
+#undef CHECK_STATE
+
 #endif //ZENGINE_PLAYERCONTROLLER_HPP
