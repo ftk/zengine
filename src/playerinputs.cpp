@@ -5,64 +5,6 @@
 #include "events.hpp"
 #include "playerinputs.hpp"
 
-#ifdef DEBUG_EVENTS
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/xml_oarchive.hpp>
-#include <boost/archive/xml_iarchive.hpp>
-#define ARCHIVE text
-#else
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-//#include <boost/archive/text_oarchive.hpp>
-//#include <boost/archive/text_iarchive.hpp>
-#define ARCHIVE binary
-#endif
-
-//#include <boost/serialization/export.hpp>
-#include <boost/serialization/variant.hpp>
-#include <boost/serialization/array.hpp>
-
-#include <boost/preprocessor/cat.hpp>
-
-#include <sstream>
-
-std::string serialize(const tick_input_t& event)
-{
-    std::ostringstream ss;
-    using namespace boost::archive;
-    BOOST_PP_CAT(ARCHIVE, _oarchive) oa(ss, no_header | no_codecvt | no_tracking);
-    oa & event;
-    return ss.str();
-}
-
-
-
-class stream_view : public std::streambuf {
-public:
-    stream_view(char *data, size_t size)
-    {
-        this->setg(data, data, data + size);
-    }
-    stream_view(string_view data)
-    {
-        this->setg(const_cast<char *>(data.data()),
-                   const_cast<char *>(data.data()),
-                   const_cast<char *>(data.data() + data.size()));
-    }
-};
-
-tick_input_t deserialize(string_view data)
-{
-    tick_input_t event;
-    stream_view sv(data);
-    std::istream s(&sv);
-    using namespace boost::archive;
-
-    BOOST_PP_CAT(ARCHIVE, _iarchive) ia(s, no_header | no_codecvt | no_tracking);
-    ia & event;
-    return event;
-}
 
 template<typename T>
 inline std::ostream& operator << (std::ostream& o, const std::vector<T>& v)

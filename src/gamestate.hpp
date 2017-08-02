@@ -13,7 +13,7 @@
 #include "util/movable.hpp"
 #include "util/log.hpp"
 
-class old_input_exc {};
+struct old_input_exc {tick_input_t input; tick_t curtick;};
 
 // Gamestate requirements: update, on_input, draw
 template <class Gamestate>
@@ -39,7 +39,7 @@ public:
     {
     }
 
-    void push(tick_input_t ev)
+    void on_input(tick_input_t ev)
     {
         inputs.push(std::move(ev));
     }
@@ -55,8 +55,9 @@ public:
             if(!inputs.buf.empty() && inputs.buf.front().tick < simulated_old)
             {
                 LOGGER(error, "TOO old", inputs.buf.front().tick, simulated_old);
-                inputs.pop_old(simulated_old);
-                throw old_input_exc{};
+                auto exc = old_input_exc{std::move(inputs.buf.front()), simulated_old};
+                inputs.pop_old(simulated_old); // ?
+                throw exc;
                 //
             }
 
@@ -73,14 +74,13 @@ public:
 
     void draw()
     {
-        oldstate.draw();//newstate.draw();
+        oldstate.draw();
     }
 
 };
 
 #include <mutex>
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
+#include <cereal/archives/binary.hpp>
 #include <sstream>
 #include <type_traits>
 
@@ -104,12 +104,12 @@ public:
     {
     }
 
-    void push(tick_input_t ev)
+    void on_input(tick_input_t ev)
     {
         std::lock_guard<std::mutex> lock(inputs_mtx);
         if(ev.tick < simulated_new)
             newstate_invalidated = true;
-        Base::push(std::move(ev));
+        Base::on_input(std::move(ev));
     }
 
 
@@ -162,37 +162,31 @@ private:
     void invalidate_new_state_impl(std::false_type)
     {
         std::stringstream ss;
-        using namespace boost::archive;
+        using namespace cereal;
         {
-            binary_oarchive oa(ss, no_header | no_codecvt);
-            oa & this->oldstate;
+            BinaryOutputArchive ar(ss);
+            ar(this->oldstate);
         }
         {
-            binary_iarchive ia(ss, no_header | no_codecvt);
-            ia & newstate;
+            BinaryInputArchive ar(ss);
+            ar(newstate);
         }
         simulated_new = this->simulated_old;
     }
 
 public:
-    std::string get_state() const
+    // serializable
+    template <class Archive>
+    void save(Archive& ar) const
     {
-        std::ostringstream ss;
-        using namespace boost::archive;
-        binary_oarchive oa(ss, no_header | no_codecvt);
-        oa & this->oldstate;
-        oa & this->simulated_old;
-        return ss.str();
+        ar(this->oldstate, this->simulated_old);
     }
-    void set_state(string_view state)
-    {
-        std::istringstream ss(state.to_string());
-        using namespace boost::archive;
-        binary_iarchive ia(ss, no_header | no_codecvt);
-        ia & this->oldstate;
-        ia & this->simulated_old;
 
-        invalidate_new_state();
+    template <class Archive>
+    void load(Archive& ar)
+    {
+        ar(this->oldstate, this->simulated_old);
+        newstate_invalidated = true;
     }
 };
 

@@ -10,9 +10,9 @@
 #include "util/optional.hpp"
 #include "util/log.hpp"
 #include "util/assert.hpp"
+#include "util/serialization.hpp"
 
 #include <SDL_timer.h>
-
 
 
 template <unsigned TPS> // ticks per second
@@ -142,7 +142,7 @@ private:
     void push_input(tick_input_t input)
     {
         netgame->send_input(clients, input);
-        sim.push(std::move(input));
+        sim.on_input(std::move(input));
     }
 public:
     void push_event(event_t event)
@@ -167,7 +167,7 @@ public:
                 {
                     //=- register_event(name=>'player_join', params=>[]);
                     LOGGER(info, "client connected", connecting_id);
-                    sim.push(tick_input_t{connecting_id, starttick, event::player_join{}});
+                    sim.on_input(tick_input_t{connecting_id, starttick, event::player_join{}});
                     clients.push_back(connecting_id);
                     if(state == HOST)
                         connecting_state = WAITING_FOR_STATE;
@@ -181,7 +181,7 @@ public:
                         LOGGER(info, "sending state to", connecting_id);
                         // send time & state ...
                         //=- register_event(name=>'statesync', params=>[['std::string', 'state']]);
-                        send(connecting_id, event::statesync{sim.get_state()});
+                        send(connecting_id, event::statesync{cserialize(sim)});
                         connecting_state = NONE;
                     }
                 }
@@ -204,7 +204,7 @@ public:
         CHECK_STATE(STOPPED);
         assume(clients.empty());
         clients.push_back(netgame->id()); // clients[0] is always host
-        sim.push(tick_input_t{netgame->id(), 0, event::player_join{}});
+        sim.on_input(tick_input_t{netgame->id(), 0, event::player_join{}});
         timer.init(0);
         state = HOST;
     }
@@ -234,7 +234,7 @@ private:
 
         // set_state todo
         LOGGER(info, "setting state", timer.get_tick(), input.tick);
-        sim.set_state(ev.state);
+        deserialize(ev.state, sim);
         timer.init(input.tick, starttick); // + rtt/2
         LOGGER(info, "new oldtick", sim.get_oldtick(), timer.get_tick());
 
@@ -287,7 +287,7 @@ private:
     void on_netevent(const tick_input_t& input, const T&)
     {
         if(state != STOPPED)
-            sim.push(input);
+            sim.on_input(input);
     }
 
 };

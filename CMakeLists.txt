@@ -30,7 +30,7 @@ add_subdirectory(libSDL2pp)
 # boost
 set(Boost_USE_STATIC_LIBS   ON)
 
-find_package(Boost 1.62 COMPONENTS serialization system REQUIRED )
+find_package(Boost 1.62 COMPONENTS system REQUIRED )
 
 include_directories(${Boost_INCLUDE_DIR})
 #link_libraries(${Boost_LIBRARIES})
