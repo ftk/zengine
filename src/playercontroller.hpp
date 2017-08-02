@@ -182,6 +182,7 @@ public:
                         // send time & state ...
                         //=- register_event(name=>'statesync', params=>[['std::string', 'state']]);
                         send(connecting_id, event::statesync{sim.get_state()});
+                        LOGGER(info, "state", sim.get_state().size(), sim.get_state());
                         connecting_state = NONE;
                     }
                 }

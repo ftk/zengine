@@ -14,7 +14,7 @@
 /*<
         join "", map { qq(\n#include "$_"\n) } (dispatch_s('module_headers'));#, dispatch('component_headers')) .  ;
     %*/
-#include "examples/pong/controller.hpp"
+#include "examples/zwarudo/controller.hpp"
 
 #include "src/modules/controls.hpp"
 

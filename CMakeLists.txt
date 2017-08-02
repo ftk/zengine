@@ -58,7 +58,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DNDEBUG")
 
 
 #set(GAME_PATH game)
-set(GAME_PATH examples/pong)
+set(GAME_PATH examples/zwarudo)
 include_directories(${GAME_PATH})
 add_subdirectory(${GAME_PATH})
 
