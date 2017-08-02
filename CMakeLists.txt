@@ -38,6 +38,9 @@ include_directories(${Boost_INCLUDE_DIR})
 add_definitions(-DCHAISCRIPT_NO_THREADS -DCHAISCRIPT_NO_THREADS_WARNING -DCHAISCRIPT_NO_DYNLOAD)
 include_directories(ChaiScript/include)
 
+
+include_directories(cereal/include)
+
 if(WIN32)
     link_libraries(ws2_32 mswsock)
     #set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mwindows")
