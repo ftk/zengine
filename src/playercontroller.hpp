@@ -260,6 +260,13 @@ private:
 
     void on_netevent(const tick_input_t& input, const event::node_disconnect&)
     {
+        auto rm_player = [this](net_node_id player) -> bool {
+            auto it = std::find(clients.begin(), clients.end(), player);
+            if(it == clients.end()) return false;
+            *it = clients.back();
+            clients.pop_back();
+            return true;
+        };
         switch(state)
         {
             case CLIENT:
@@ -268,19 +275,23 @@ private:
                     // todo: host migration
                     stop();
                 }
+                rm_player(input.player);
                 break; // wait about disconnect msg from host
             case HOST:
-                //=- register_event(name=>'player_leave');
-                push_input(tick_input_t{input.player, timer.get_tick(), event::player_leave{}});
+                if(rm_player(input.player))
+                {
+                    //=- register_event(name=>'player_leave');
+                    push_input(tick_input_t{input.player, timer.get_tick(), event::player_leave{}});
+                }
                 break;
             case SYNC:
                 if(input.player == connecting_id) stop();
                 // todo: check if connected players DC'ed
+                rm_player(input.player);
                 break;
             case STOPPED:
                 break;
         }
-        clients.erase(std::remove(clients.begin(), clients.end(), input.player));
     }
 
     template <typename T>
