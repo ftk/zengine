@@ -30,13 +30,16 @@ add_subdirectory(libSDL2pp)
 # boost
 set(Boost_USE_STATIC_LIBS   ON)
 
-find_package(Boost 1.62 COMPONENTS serialization system REQUIRED )
+find_package(Boost 1.62 COMPONENTS system REQUIRED )
 
 include_directories(${Boost_INCLUDE_DIR})
 #link_libraries(${Boost_LIBRARIES})
 
 add_definitions(-DCHAISCRIPT_NO_THREADS -DCHAISCRIPT_NO_THREADS_WARNING -DCHAISCRIPT_NO_DYNLOAD)
 include_directories(ChaiScript/include)
+
+
+include_directories(cereal/include)
 
 if(WIN32)
     link_libraries(ws2_32 mswsock)

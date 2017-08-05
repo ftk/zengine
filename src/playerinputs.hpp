@@ -84,10 +84,6 @@ private:
     }
 };
 
-std::string serialize(const tick_input_t& event);
-
-tick_input_t deserialize(string_view data);
-
 std::string dump_event(const event_t& event);
 
 

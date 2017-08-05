@@ -61,11 +61,11 @@ public:
 
     void send_input(net_node_id id, const tick_input_t& input) override
     {
-        send_evstr(id, serialize(input));
+        send_evstr(id, cserialize(input));
     }
     void send_input(const std::vector<net_node_id>& ids, const tick_input_t& input) override
     {
-        auto str = serialize(input);
+        auto str = cserialize(input);
         for(auto id : ids)
         {
             if(id != network.id)
@@ -113,7 +113,8 @@ protected:
             case 'E': // event
                 try
                 {
-                    auto inp = deserialize({data, len});
+                    tick_input_t inp;
+                    deserialize({data, len}, inp);
                     NETLOG(debug3, "event from", id, "tick", inp.tick, dump_event(inp.event));
                     //EVENT_VISITOR_ALL(inp.event, ([this, &inp](const auto& event) -> void { this->on_event(inp, event);}));
 

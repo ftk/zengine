@@ -152,14 +152,14 @@ return $s;
 
 } // namespace qvm
 
-namespace boost { namespace serialization {
+namespace cereal {
 // todo: optimize?
 template <class Archive, class T, int D>
-void serialize(Archive & ar, boost::qvm::vec<T, D> & vec, unsigned int)
+void serialize(Archive& ar, boost::qvm::vec<T, D>& vec)
 {
     ar & vec.a;
 };
 
-}} // namespace boost
+} // namespace cereal
 
 #endif //ZENGINE_MATH_HPP

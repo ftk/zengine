@@ -7,35 +7,18 @@
 
 #include <cstdint>
 
-#include <boost/variant/variant.hpp>
-#include <boost/variant.hpp>
+#include "util/serialization.hpp"
 
-//#include <type_traits>
+#include <boost/variant/variant.hpp>
+#include <cereal/types/boost_variant.hpp>
 
 #include "util/hash.hpp"
 
 #include <vector>
-#include <boost/serialization/vector.hpp>
+#include <cereal/types/vector.hpp>
 
-
-#include <boost/preprocessor/seq/for_each.hpp>
-
-
-// SERIALIZABLE((field1) (field2))
-// template<class Archive> void serialize(Archive& ar, const unsigned) { ar&field1&field2; }
-#define SERIALIZABLE(seq) \
-template<class Archive> void serialize(Archive& ar, const unsigned) { (void)(ar \
-BOOST_PP_SEQ_FOR_EACH(SERIALIZABLE_HELPER, ar, seq) \
-); }
-
-//#define DEBUG_EVENTS
-
-#ifdef DEBUG_EVENTS
-#include <boost/serialization/nvp.hpp>
-#define SERIALIZABLE_HELPER(r, ar, elem) & BOOST_SERIALIZATION_NVP(elem)
-#else
-#define SERIALIZABLE_HELPER(r, ar, elem) & elem
-#endif
+#include <string>
+#include <cereal/types/string.hpp>
 
 
 using tick_t = uint32_t;
