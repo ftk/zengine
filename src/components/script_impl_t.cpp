@@ -1,7 +1,7 @@
 //
 // Created by fotyev on 2017-02-27.
 //
-
+#ifndef NO_SCRIPTING
 #include "script.hpp"
 #include <chaiscript/chaiscript.hpp>
 #include "util/assert.hpp"
@@ -29,3 +29,4 @@ std::unique_ptr<chaiscript::parser::ChaiScript_Parser_Base> create_chaiscript_pa
     return std::make_unique<chaiscript::parser::ChaiScript_Parser<chaiscript::eval::Noop_Tracer, chaiscript::optimizer::Optimizer_Default>>();
 }
 
+#endif

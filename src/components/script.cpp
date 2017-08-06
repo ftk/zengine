@@ -3,11 +3,11 @@
 //
 
 #include "script.hpp"
-#include <iostream>
+#include "util/log.hpp"
 
 
 
-#if 1
+#ifndef NO_SCRIPTING
 
 #include <chaiscript/chaiscript_basic.hpp>
 
@@ -133,24 +133,33 @@ public:
 };
 
 #else
+
+template <typename R, typename... Args>
+R script_callback<R(Args...)>::operator ()(Args... args)
+{
+}
+
+/*< sub uniq { my %seen; grep { !$seen{$_}++ } @_; }
+   join "\n", uniq map { qq%template struct script_callback<$_->{type}>;% } dispatch('callbacks');;
+   %*/template struct script_callback<void ()>;
+template struct script_callback<void (int)>;/*>*/
+
+
 class script_c::impl
 {
 public:
     void eval(const std::string& input)
     {
-        std::cout << "eval: " << input << std::endl;
+        LOGGER(info, "eval:", input);
     }
     void eval_file(const std::string& filename)
     {
-        std::cout << "eval file: " << filename << std::endl;
+        LOGGER(info, "eval file:", filename);
     }
-        void register_callbacks(script_c * p) {}
+    void register_callbacks(script_c& p) {}
 
 };
 #endif
-
-
-
 
 
 script_c::script_c() : pimpl{std::make_unique<impl>()}

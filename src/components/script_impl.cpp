@@ -2,6 +2,8 @@
 // Created by fotyev on 2017-01-28.
 //
 
+#ifndef NO_SCRIPTING
+
 #include "script.hpp"
 //#include <chaiscript/dispatchkit/dispatchkit.hpp>
 //#include <chaiscript/dispatchkit/register_function.hpp>
@@ -131,3 +133,5 @@ ModulePtr script_register_bindings(ModulePtr m)
 
     return m;
 }
+
+#endif
