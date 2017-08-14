@@ -137,6 +137,10 @@ public:
 template <typename R, typename... Args>
 R script_callback<R(Args...)>::operator ()(Args... args)
 {
+    if(f)
+    {
+        f(std::forward<Args>(args)...);
+    }
 }
 
 /*< sub uniq { my %seen; grep { !$seen{$_}++ } @_; }
