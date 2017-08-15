@@ -122,7 +122,17 @@ private:
                 connecting_state = WAITING_FOR_STATE;
                 starttick = SDL_GetTicks() - starttick; // now it holds RTT
             } else LOGGER(warn, connecting_state, __func__);
-            // todo: check if connected
+            // check if connected
+            const auto connected = netgame->nodes_list(); // assume list is sorted
+            for(net_node_id id : peers.arr)
+            {
+                if(id != netgame->id() && !std::binary_search(connected.begin(), connected.end(), id))
+                {
+                    LOGGER(error, id, "is not connected, stopping");
+                    stop();
+                    return;
+                }
+            }
             clients = peers.arr;
             send(input.player, peers);
         }
