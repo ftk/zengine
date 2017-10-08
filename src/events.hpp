@@ -55,7 +55,7 @@ namespace event {
    %*/
 struct join {static constexpr unsigned index = 0; SERIALIZABLE()};
 struct joined {static constexpr unsigned index = 1; tick_t tick; net_node_id id; SERIALIZABLE((tick)(id))};
-struct movement {static constexpr unsigned index = 2; int32_t x; int32_t y; SERIALIZABLE((x)(y))};
+struct movement {static constexpr unsigned index = 2; int32_t x; int32_t y; uint8_t down; SERIALIZABLE((x)(y)(down))};
 struct node_connect {static constexpr unsigned index = 3; SERIALIZABLE()};
 struct node_disconnect {static constexpr unsigned index = 4; SERIALIZABLE()};
 struct null {static constexpr unsigned index = 5; SERIALIZABLE()};

@@ -122,7 +122,7 @@ ModulePtr script_register_bindings(ModulePtr m)
       %*/
 	chai.add(fun([]() -> event_t {return event::join{};}), "event_join");
 	chai.add(fun([](tick_t tick, net_node_id id) -> event_t {return event::joined{std::move(tick), std::move(id)};}), "event_joined");
-	chai.add(fun([](int32_t x, int32_t y) -> event_t {return event::movement{std::move(x), std::move(y)};}), "event_movement");
+	chai.add(fun([](int32_t x, int32_t y, uint8_t down) -> event_t {return event::movement{std::move(x), std::move(y), std::move(down)};}), "event_movement");
 	chai.add(fun([]() -> event_t {return event::node_connect{};}), "event_node_connect");
 	chai.add(fun([]() -> event_t {return event::node_disconnect{};}), "event_node_disconnect");
 	chai.add(fun([]() -> event_t {return event::null{};}), "event_null");
