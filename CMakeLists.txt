@@ -116,8 +116,9 @@ target_link_libraries(nettest ${Boost_LIBRARIES})
 set (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/build")
 
 
+
 # options for backtrace to work
-if(CMAKE_COMPILER_IS_GNUCXX)
+if(0 AND CMAKE_COMPILER_IS_GNUCXX) # disabled
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -finstrument-functions -finstrument-functions-exclude-file-list=include/")
     set_source_files_properties(src/util/backtrace.cpp PROPERTIES COMPILE_FLAGS -fno-instrument-functions)
 else()
