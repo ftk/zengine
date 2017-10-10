@@ -21,6 +21,7 @@
 
 #include "opengl/opengl.hpp"
 #include "opengl/render2d.hpp"
+#include "opengl/math.hpp"
 
 
 //=- register_component(class=>'window_c', name=>'window', priority=>10);
@@ -53,6 +54,12 @@ public:
     }
 
     void swap();
+
+    qvm::vec2 to_gl_coords(Point p) const
+    {
+        Point s = get_size();
+        return qvm::vec2{2.f * p.x / s.x - 1.f, -2.f * p.y / s.y + 1.f};
+    }
 
 };
 
