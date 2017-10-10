@@ -38,19 +38,21 @@ public:
     }
 };
 
-// GamestateSim reqs : update(tick), push(input), get_state, set_state
+// GamestateSim reqs : update(tick), on_input(input), Serializable
 template <class GamestateSim>
 class multiplayer_game
 {
     netgame_i * netgame;
 
 
-    std::vector<net_node_id> clients;
+    std::vector<net_node_id> clients; // list of peers
 
     // connecting client - only one at a time
     tick_t starttick = 0;
     net_node_id connecting_id = 0;
     enum {NONE,CONNECTING,WAITING_FOR_STATE} connecting_state = NONE;
+
+    uint32_t rtt = 0; // round trip time to host, in ms
 
 public:
     tick_timer<50> timer;
@@ -62,10 +64,41 @@ public:
     {
         HOST,
         CLIENT,
-        SYNC, // client is waiting for state
+        SYNC, // client is connecting
         STOPPED // game is stopped
 
     } state = STOPPED;
+    /* multiplayer_game is a state machine
+     * connecting process:
+     *  1. the client sends event::join to host (state -> SYNC)
+     *  2. host replies with a list of peers (event::peers)
+     *  3. the client checks whether all peers are known to him and replies with event::peers
+     *  4. host sends all connected clients that new player is connecting with his start time (starttick)
+     *  5. clients save that information in starttick, connecting_id
+     *  6. at starttick, clients and host add client to clients list (he will now receive inputs from them)
+     *  7. when sim.oldtick == starttick, host sends state to the client
+     *  8. the client receives state from host, initializes (state -> CLIENT)
+     *
+     * State:
+     *  HOST - this game instance acts as a host
+     *  - all new players should connect to it (by join())
+     *  - it will handle disconnect of players
+     *   connecting_state:
+     *    NONE - normal operation
+     *    CONNECTING - [connecting_id] is connecting to the game and he will join at tick [starttick]
+     *    WAITING_FOR_STATE - tick [starttick] has passed and [connecting_id] has started receiving inputs, but not the state
+     *    (he'll receive the state when sim.oldstate will be at [starttick])
+     *  CLIENT - this game instance acts as a client to host [clients[0]]
+     *   connecting_state:
+     *    NONE - normal operation
+     *    CONNECTING - [connecting_id] is connecting to the game and he will join at tick [starttick]
+     *  SYNC - this game is stopped, but has started joining host [connecting_id]
+     *   starttick: time when client has sent join msg, in ms
+     *   connecting_state:
+     *    CONNECTING - host has not responded to peers request yet
+     *    WAITING_FOR_STATE - host has responded with peers and all peers are connected
+     *  STOPPED - game is stopped
+     **/
 
 public:
 
@@ -86,6 +119,7 @@ private:
     //=- register_event(name=>'join', params=>[]);
     void on_netevent(const tick_input_t& input, event::join)
     {
+        //connect2
         CHECK_STATE(HOST);
         //=- register_event(name=>'peers', params=>[['std::vector<net_node_id>','arr']]);
         LOGGER(info, "sent peers to", input.player);
@@ -96,6 +130,7 @@ private:
     {
         if(state == HOST)
         {
+            //connect4
             if(connecting_state != NONE)
             {
                 LOGGER(info, "rejected", input.player, "as", connecting_id, "is already connecting");
@@ -117,12 +152,23 @@ private:
         }
         else if(state == SYNC)
         {
+            //connect3
             if(connecting_state == CONNECTING)
             {
                 connecting_state = WAITING_FOR_STATE;
-                starttick = SDL_GetTicks() - starttick; // now it holds RTT
+                rtt = SDL_GetTicks() - starttick;
             } else LOGGER(warn, connecting_state, __func__);
-            // todo: check if connected
+            // check if connected
+            const auto connected = netgame->nodes_list(); // assume list is sorted
+            for(net_node_id id : peers.arr)
+            {
+                if(id != netgame->id() && !std::binary_search(connected.begin(), connected.end(), id))
+                {
+                    LOGGER(error, id, "is not connected, stopping");
+                    stop();
+                    return;
+                }
+            }
             clients = peers.arr;
             send(input.player, peers);
         }
@@ -165,6 +211,7 @@ public:
             {
                 if(connecting_state == CONNECTING)
                 {
+                    //connect6
                     //=- register_event(name=>'player_join', params=>[]);
                     LOGGER(info, "client connected", connecting_id);
                     sim.on_input(tick_input_t{connecting_id, starttick, event::player_join{}});
@@ -176,6 +223,7 @@ public:
                 }
                 if(connecting_state == WAITING_FOR_STATE)
                 {
+                    //connect7
                     if(sim.get_oldtick() > starttick)
                     {
                         LOGGER(info, "sending state to", connecting_id);
@@ -198,6 +246,7 @@ public:
         clients.clear();
         state = STOPPED;
         connecting_state = NONE;
+        rtt = 0;
     }
     void host()
     {
@@ -212,10 +261,11 @@ public:
     void join(net_node_id remote)
     {
         CHECK_STATE(STOPPED);
+        //connect1
 
         state = SYNC;
         connecting_state = CONNECTING;
-        starttick = SDL_GetTicks(); // special meaning, in ms
+        starttick = SDL_GetTicks(); // special meaning, join time in ms
         connecting_id = remote;
 
         // send join ev...
@@ -232,11 +282,13 @@ private:
         CHECK_STATE(SYNC);
         if(connecting_state != WAITING_FOR_STATE) LOGGER(warn, __func__);
 
-        // set_state todo
+        // connect8
         LOGGER(info, "setting state", timer.get_tick(), input.tick);
         deserialize(ev.state, sim);
-        timer.init(input.tick, starttick); // + rtt/2
+        timer.init(input.tick, rtt); // + rtt/2
         LOGGER(info, "new oldtick", sim.get_oldtick(), timer.get_tick());
+
+        clients.push_back(netgame->id()); // add self to client list
 
         state = CLIENT;
         connecting_state = NONE;
@@ -245,6 +297,7 @@ private:
     void on_netevent(const tick_input_t& input, const event::joined& ev)
     {
         CHECK_STATE(CLIENT);
+        //connect5
 
         if(input.player != clients[0])
             LOGGER(warn, "fake joined msg from", input.player);
@@ -260,6 +313,13 @@ private:
 
     void on_netevent(const tick_input_t& input, const event::node_disconnect&)
     {
+        auto rm_player = [this](net_node_id player) -> bool {
+            auto it = std::find(clients.begin(), clients.end(), player);
+            if(it == clients.end()) return false;
+            *it = clients.back();
+            clients.pop_back();
+            return true;
+        };
         switch(state)
         {
             case CLIENT:
@@ -268,19 +328,23 @@ private:
                     // todo: host migration
                     stop();
                 }
+                rm_player(input.player);
                 break; // wait about disconnect msg from host
             case HOST:
-                //=- register_event(name=>'player_leave');
-                push_input(tick_input_t{input.player, timer.get_tick(), event::player_leave{}});
+                if(rm_player(input.player))
+                {
+                    //=- register_event(name=>'player_leave');
+                    push_input(tick_input_t{input.player, timer.get_tick(), event::player_leave{}});
+                }
                 break;
             case SYNC:
                 if(input.player == connecting_id) stop();
                 // todo: check if connected players DC'ed
+                rm_player(input.player);
                 break;
             case STOPPED:
                 break;
         }
-        clients.erase(std::remove(clients.begin(), clients.end(), input.player));
     }
 
     template <typename T>
