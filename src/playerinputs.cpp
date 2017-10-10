@@ -27,6 +27,7 @@ inline std::ostream& operator << (std::ostream& o, const std::vector<T>& v)
    }
    $s;
    %*/
+static void dump(std::ostream& ss, const event::click & e) {ss << "click:" << " x: " << e. x << " y: " << e. y;}
 static void dump(std::ostream& ss, const event::join & e) {ss << "join:";}
 static void dump(std::ostream& ss, const event::joined & e) {ss << "joined:" << " tick: " << e. tick << " id: " << e. id;}
 static void dump(std::ostream& ss, const event::movement & e) {ss << "movement:" << " x: " << e. x << " y: " << e. y << " down: " << e. down;}
