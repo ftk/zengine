@@ -32,7 +32,7 @@ protected:
 public:
     Gamestate& state() { return oldstate; }
     tick_t get_oldtick() const { return simulated_old; } //
-    void clear() { inputs.buf.clear(); }
+    void clear() { inputs.buf.clear(); simulated_old = 0; }
 
     template <typename... Args>
     gamestate_simulator(Args&&... args) : oldstate(std::forward<Args>(args)...)
@@ -121,6 +121,7 @@ public:
         if(newstate_invalidated)
         {
             // copy oldstate to newstate
+            LOGGER(debug3, "invalidating newstate", curtick, simulated_new, "->", this->simulated_old);
             invalidate_new_state();
             //newstate = this->oldstate;
             newstate_invalidated = false;

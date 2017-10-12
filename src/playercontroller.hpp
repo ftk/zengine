@@ -187,6 +187,7 @@ private:
 
     void push_input(tick_input_t input)
     {
+        LOGGER(debug4, "event push", input.player, "tick", input.tick, dump_event(input.event));
         netgame->send_input(clients, input);
         sim.on_input(std::move(input));
     }
@@ -197,9 +198,11 @@ public:
             push_input(tick_input_t{netgame->id(), timer.get_tick(), std::move(event)});
     }
 
+    bool playing() const { return state == HOST || state == CLIENT; }
+
     void update()
     {
-        if(state != HOST && state != CLIENT)
+        if(!playing())
             return;
 
         sim.update(timer.get_tick());
