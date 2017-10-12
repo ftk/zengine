@@ -93,7 +93,10 @@ public:
     {
 #define CB_INIT(name) p. name .init(#name, chai);
         /*< join "\n\t\t", map { qq%CB_INIT($_->{name})% } dispatch('callbacks');
-        %*/CB_INIT(on_init)
+        %*/CB_INIT(on_connect)
+		CB_INIT(on_disconnect)
+		CB_INIT(on_host)
+		CB_INIT(on_init)
 		CB_INIT(on_option_selected)/*>*/
 #undef CB_INIT
     }
