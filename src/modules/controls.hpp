@@ -60,9 +60,8 @@ public:
             case SDL_MOUSEBUTTONUP:
                 if(mousemap.count(ev.button.button))
                 {
-                    float x = float(2 * ev.button.x) / g_app->window->get_size().x - 1;
-                    float y = float(-2 * ev.button.y) / g_app->window->get_size().y + 1;
-                    mousemap[ev.button.button]((ev.button.state == SDL_PRESSED) ? 1 : 0, x, y);
+                    auto pos = g_app->window->to_gl_coords({ev.button.x, ev.button.y});
+                    mousemap[ev.button.button]((ev.button.state == SDL_PRESSED) ? 1 : 0, qvm::X(pos), qvm::Y(pos));
                     return false;
                 }
                 break;
