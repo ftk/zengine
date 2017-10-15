@@ -17,7 +17,7 @@
 
 
 /*< register_module(class=>'controls', name=>'controls',
-     scriptexport=>[qw(set_key_handler set_mouse_handler)]); >*/
+     scriptexport=>[qw(set_key_handler set_mouse_handler unset_key_handler unset_mouse_handler)]); >*/
 
 class controls : public basic_module
 {
@@ -33,15 +33,32 @@ private:
     cb_map<uint8_t, mousecallback_t> mousemap;
     // ...
 
+    static SDL_Scancode get_scancode(const std::string& key)
+    {
+        auto code = SDL_GetScancodeFromName(key.c_str());
+        if(code == SDL_SCANCODE_UNKNOWN)
+            throw std::runtime_error("Unknown key: " + key);
+        return code;
+    }
+
 public:
     void set_key_handler(const std::string& key, const kbcallback_t& f)
     {
-        kbmap[SDL_GetScancodeFromName(key.c_str())] = (f);
+        kbmap[get_scancode(key)] = (f);
+    }
+    void unset_key_handler(const std::string& key)
+    {
+        kbmap.erase(get_scancode(key));
     }
 
+    // set callback for mouse button press (1 - left, 2 - middle, 3 - right, ...) or mouse movement(button=0)
     void set_mouse_handler(int button, const mousecallback_t& f)
     {
         mousemap[static_cast<uint8_t>(button)] = (f);
+    }
+    void unset_mouse_handler(int button)
+    {
+        mousemap.erase(static_cast<uint8_t>(button));
     }
 
     bool on_event(const SDL_Event& ev) override
@@ -65,6 +82,15 @@ public:
                     return false;
                 }
                 break;
+            case SDL_MOUSEMOTION:
+                if(mousemap.count(0))
+                {
+                    auto pos = g_app->window->to_gl_coords({ev.motion.x, ev.motion.y});
+                    mousemap[0](0, qvm::X(pos), qvm::Y(pos));
+                    return false;
+                }
+                break;
+
 
         }
         return true;
