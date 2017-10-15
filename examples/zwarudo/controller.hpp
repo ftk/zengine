@@ -183,6 +183,7 @@ public:
         {
             players.erase(input.player);
         }
+        //=- register_event(name=>'click', params=>[[qw(float x)], [qw(float y)]]);
         else if(const event::click * ev = boost::get<event::click>(&input.event))
         {
             w.flip({ev->x, ev->y});
@@ -192,7 +193,7 @@ public:
     SERIALIZABLE((players)(w))
 };
 
-/*< register_module(name=>'controller', class=>'controller', scriptexport=>[qw(join host stop)]); >*/
+/*< register_module(name=>'controller', class=>'controller', scriptexport=>[qw(join host stop send_event playing)]); >*/
 class controller : public basic_module
 {
     multiplayer_game<gamestate_simulator2<zwstate>> game {g_app->netgame.get()};
@@ -215,56 +216,6 @@ public:
     void stop()
     {
         game.stop();
-    }
-
-    bool on_event(const SDL_Event& ev) override
-    {
-        if(!game.playing())
-            return true;
-        switch(ev.type)
-        {
-            case SDL_KEYDOWN:
-            case SDL_KEYUP:
-            {
-                if(ev.key.repeat)
-                    break;
-                bool down = (ev.key.type == SDL_KEYDOWN);
-                switch(ev.key.keysym.scancode)
-                {
-                    case SDL_SCANCODE_S:
-                        game.push_event(event::movement{0, -1, down});
-                        return false;
-                    case SDL_SCANCODE_W:
-                        game.push_event(event::movement{0, 1, down});
-                        return false;
-                    case SDL_SCANCODE_A:
-                        game.push_event(event::movement{-1, 0, down});
-                        return false;
-                    case SDL_SCANCODE_D:
-                        game.push_event(event::movement{1, 0, down});
-                        return false;
-                    case SDL_SCANCODE_ESCAPE:
-                        game.stop();
-                        return false;
-
-                    default:
-                        break;
-                }
-                break;
-            }
-            case SDL_MOUSEBUTTONDOWN:
-            {
-                if(ev.button.state == SDL_PRESSED && ev.button.button == 3)
-                {
-                    auto pos = g_app->window->to_gl_coords({ev.button.x, ev.button.y});
-                    //=- register_event(name=>'click', params=>[[qw(float x)], [qw(float y)]]);
-                    game.push_event(event::click{qvm::X(pos), qvm::Y(pos)});
-                }
-                break;
-            }
-        }
-
-        return true;
     }
 
     void draw() override
@@ -299,6 +250,14 @@ public:
 
         prevstate = newstate;
     }
+
+    void send_event(event_t event)
+    {
+        if(game.playing())
+            game.push_event(std::move(event));
+    }
+
+    bool playing() const { return game.playing(); }
 
 };
 #endif //ZENGINE_CONTROLLER_HPP
