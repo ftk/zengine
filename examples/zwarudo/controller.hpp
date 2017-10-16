@@ -30,7 +30,7 @@
 class world
 {
     static const unsigned gw = 40, gh = 40;
-    static const qvm::vec2 size { 2.f / gw, 2.f / gh };
+    const qvm::vec2 size { 2.f / gw, 2.f / gh }; //blcck size
 
     std::bitset<gw * gh> w;
 public:
@@ -129,7 +129,7 @@ class player
 
     int dir = 0;
 
-    static const qvm::vec2 size{0.05, 0.05};
+    const qvm::vec2 size{0.05, 0.05};
 public:
 
     void draw()
