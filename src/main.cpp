@@ -34,6 +34,7 @@ int main(int argc, char * argv[])
     g_app->config.load();
 
     int argn;
+    bool config_loaded = false;
     for(argn = 1; argn < argc; argn++)
     {
         auto arg = string_view{argv[argn]};
@@ -48,11 +49,19 @@ int main(int argc, char * argv[])
         {
             g_app->config->configfile = value.to_string();
             if(!value.empty())
+            {
                 g_app->config->load_from_file(g_app->config->configfile);
+            }
+            config_loaded = true;
         }
         else
             g_app->config->set(key.to_string(), value.to_string());
     }
+    if(!config_loaded)
+    {
+        g_app->config->load_from_file(g_app->config->configfile);
+    }
+
     // start in app's dir
     if(argn != argc)
         chdir(argv[argn++]);
