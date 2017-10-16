@@ -57,15 +57,20 @@ ModulePtr script_register_bindings(ModulePtr m)
     my $sname = $name;# ~ s/::/_/g;
     #add class
     $s .= qq[\n\tchai.add(user_type<$name>(), "\u$sname");];
-    $s .= qq[\n\tchai.add(base_class<basic_module, $name>());];
+
+    if (!defined($module->{unmanaged})) {
+    	$s .= qq[\n\tchai.add(base_class<basic_module, $name>());];
+    	#add constructors
+    	my $ctors = $module->{ctors} // [''];
+    	$s .= qq[\n\tchai.add(fun(&modules_c::load<$name] . ($_ ? ", $_" : '') . qq[>, modules), "load_${sname}");] for (@$ctors);
+	}
 
     #add functions
-    $s .= qq[\n\tchai.add(fun(&$name::$_), "$_");] for (@{$module->{scriptexport}});
+    for (@{$module->{scriptexport}}) {
+        $s .= qq[\n\tchai.add(fun(&$name::$_), "$_");];
+    }
 
-    #add constructors
-    my $ctors = $module->{ctors} // [''];
-    $s .= qq[\n\tchai.add(fun(&modules_c::load<$name] . ($_ ? ", $_" : '') . qq[>, modules), "load_${sname}");] for (@$ctors);
-    #$s .=         Dumper($module);
+
     }
 
     # components
@@ -79,26 +84,30 @@ ModulePtr script_register_bindings(ModulePtr m)
 %*/
 	chai.add(user_type<controller>(), "Controller");
 	chai.add(base_class<basic_module, controller>());
+	chai.add(fun(&modules_c::load<controller>, modules), "load_controller");
 	chai.add(fun(&controller::join), "join");
 	chai.add(fun(&controller::host), "host");
 	chai.add(fun(&controller::stop), "stop");
-	chai.add(fun(&modules_c::load<controller>, modules), "load_controller");
+	chai.add(fun(&controller::send_event), "send_event");
+	chai.add(fun(&controller::playing), "playing");
 	chai.add(user_type<controls>(), "Controls");
 	chai.add(base_class<basic_module, controls>());
+	chai.add(fun(&modules_c::load<controls>, modules), "load_controls");
 	chai.add(fun(&controls::set_key_handler), "set_key_handler");
 	chai.add(fun(&controls::set_mouse_handler), "set_mouse_handler");
-	chai.add(fun(&modules_c::load<controls>, modules), "load_controls");
+	chai.add(fun(&controls::unset_key_handler), "unset_key_handler");
+	chai.add(fun(&controls::unset_mouse_handler), "unset_mouse_handler");
 	chai.add(user_type<fps>(), "Fps");
 	chai.add(base_class<basic_module, fps>());
 	chai.add(fun(&modules_c::load<fps>, modules), "load_fps");
 	chai.add(user_type<optionbox>(), "Optionbox");
 	chai.add(base_class<basic_module, optionbox>());
+	chai.add(fun(&modules_c::load<optionbox>, modules), "load_optionbox");
+	chai.add(fun(&modules_c::load<optionbox, float,float>, modules), "load_optionbox");
 	chai.add(fun(&optionbox::add), "add");
 	chai.add(fun(&optionbox::clear), "clear");
 	chai.add(fun(&optionbox::update), "update");
 	chai.add(fun(&optionbox::set_offset), "set_offset");
-	chai.add(fun(&modules_c::load<optionbox>, modules), "load_optionbox");
-	chai.add(fun(&modules_c::load<optionbox, float,float>, modules), "load_optionbox");
 	chai.add(fun(&config_c::get_param, g_app->config.get()), "config_get_param");
 	chai.add(fun(&config_c::set_param, g_app->config.get()), "config_set_param");
 	chai.add(fun(&modules_c::get, g_app->modules.get()), "modules_get");
