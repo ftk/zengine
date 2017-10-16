@@ -29,8 +29,8 @@
 
 class world
 {
-    static constexpr unsigned gw = 40, gh = 40;
-    static constexpr qvm::vec2 size { 2.f / gw, 2.f / gh };
+    static const unsigned gw = 40, gh = 40;
+    static const qvm::vec2 size { 2.f / gw, 2.f / gh };
 
     std::bitset<gw * gh> w;
 public:
@@ -85,6 +85,41 @@ public:
         w[bx * gh + by] = !w[bx * gh + by];
     }
 
+    // pos is center
+    qvm::vec2 check_collision(qvm::vec2 pos, qvm::vec2 size) // returns vector of counter force is object is stuck somewhere, or 0,0
+    {
+        using namespace qvm;
+        vec2 f {0,0 };
+        unsigned c = 0;
+        if(solid(pos)) // bottom left corner stuck
+        {
+            f += vec2{1, 1};
+            c++;
+        }
+        if(solid(pos + X0(size))) // bottom right
+        {
+            f += vec2{-1, 1};
+            c++;
+        }
+        if(solid(pos + _0Y(size))) // up left
+        {
+            f += vec2{1, -1};
+            c++;
+        }
+        if(solid(pos + size)) // up right
+        {
+            f += vec2{-1, -1};
+            c++;
+        }
+
+        if(!c)
+            return vec2{0, 0};
+
+        if(f == vec2{0, 0} && c)
+            f = -pos; // push to 0,0 if all 4 corners are stuck
+        return normalized(f) / 500;
+    }
+
     SERIALIZABLE((w))
 };
 
@@ -94,7 +129,7 @@ class player
 
     int dir = 0;
 
-    static constexpr qvm::vec2 size{0.05, 0.05};
+    static const qvm::vec2 size{0.05, 0.05};
 public:
 
     void draw()
@@ -116,9 +151,10 @@ public:
 
 
         // stop
-        if(w.solid(pos) || w.solid(pos + size) || w.solid(pos + X0(size)) || w.solid(pos + _0Y(size)))
-            vel = vec2{0,0};
-
+        vec2 force = w.check_collision(pos, size);
+        if(force != vec2{0,0})
+            vel *= 0.5;
+        vel += force;
         if(dir && abs(X(vel)) < 0.004)
             X(vel) += dir / 400.f;
 
@@ -162,10 +198,10 @@ public:
 
     void draw()
     {
-        for(auto& p : players)
-            p.second.draw();
         // draw world
         w.draw();
+        for(auto& p : players)
+            p.second.draw();
     }
 
     void on_input(const tick_input_t& input)
