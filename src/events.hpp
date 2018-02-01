@@ -63,9 +63,10 @@ struct null {static constexpr unsigned index = 6; SERIALIZABLE()};
 struct peers {static constexpr unsigned index = 7; std::vector<net_node_id> arr; SERIALIZABLE((arr))};
 struct player_join {static constexpr unsigned index = 8; SERIALIZABLE()};
 struct player_leave {static constexpr unsigned index = 9; SERIALIZABLE()};
-struct statesync {static constexpr unsigned index = 10; std::string state; SERIALIZABLE((state))};
+struct shoot {static constexpr unsigned index = 10; float x; float y; SERIALIZABLE((x)(y))};
+struct statesync {static constexpr unsigned index = 11; std::string state; SERIALIZABLE((state))};
 
-#define EVENTS_SEQ (click)(join)(joined)(movement)(node_connect)(node_disconnect)(null)(peers)(player_join)(player_leave)(statesync)/*>*/
+#define EVENTS_SEQ (click)(join)(joined)(movement)(node_connect)(node_disconnect)(null)(peers)(player_join)(player_leave)(shoot)(statesync)/*>*/
 
 //static_assert(std::is_pod<null>::value == true);
 
@@ -73,7 +74,7 @@ struct statesync {static constexpr unsigned index = 10; std::string state; SERIA
 
 using event_t = boost::variant<
     /*< join ', ', map { "event::$_->{name}" } dispatch('events');
-     %*/event::click, event::join, event::joined, event::movement, event::node_connect, event::node_disconnect, event::null, event::peers, event::player_join, event::player_leave, event::statesync/*>*/
+     %*/event::click, event::join, event::joined, event::movement, event::node_connect, event::node_disconnect, event::null, event::peers, event::player_join, event::player_leave, event::shoot, event::statesync/*>*/
 >;
 //static_assert(std::is_pod<event_t>::value == true);
 

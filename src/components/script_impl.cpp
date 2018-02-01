@@ -139,6 +139,7 @@ ModulePtr script_register_bindings(ModulePtr m)
 	chai.add(fun([](std::vector<net_node_id> arr) -> event_t {return event::peers{std::move(arr)};}), "event_peers");
 	chai.add(fun([]() -> event_t {return event::player_join{};}), "event_player_join");
 	chai.add(fun([]() -> event_t {return event::player_leave{};}), "event_player_leave");
+	chai.add(fun([](float x, float y) -> event_t {return event::shoot{std::move(x), std::move(y)};}), "event_shoot");
 	chai.add(fun([](std::string state) -> event_t {return event::statesync{std::move(state)};}), "event_statesync");/*>*/
 
     return m;

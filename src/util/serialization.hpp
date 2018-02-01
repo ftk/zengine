@@ -14,6 +14,7 @@ using std::experimental::string_view;
 
 // SERIALIZABLE((field1) (field2))
 // template<class Archive> void serialize(Archive& ar) { ar&field1&field2; }
+
 #define SERIALIZABLE(seq) \
 template<class Archive> void serialize(Archive& ar) { (void)(ar \
 BOOST_PP_SEQ_FOR_EACH(SERIALIZABLE_HELPER, ar, seq) \
@@ -24,6 +25,9 @@ BOOST_PP_SEQ_FOR_EACH(SERIALIZABLE_HELPER, ar, seq) \
 #else
 #define SERIALIZABLE_HELPER(r, ar, elem) & elem
 #endif
+
+#define SERIALIZABLE2(...) \
+template<class Archive> void serialize(Archive& ar) { (void)ar(__VA_ARGS__); }
 
 
 //#define SERIALIZABLE(...) template<class Archive> void serialize(Archive& ar) { ar(__VA_ARGS__); }

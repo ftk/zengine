@@ -37,6 +37,7 @@ static void dump(std::ostream& ss, const event::null & e) {ss << "null:";}
 static void dump(std::ostream& ss, const event::peers & e) {ss << "peers:" << " arr: " << e. arr;}
 static void dump(std::ostream& ss, const event::player_join & e) {ss << "player_join:";}
 static void dump(std::ostream& ss, const event::player_leave & e) {ss << "player_leave:";}
+static void dump(std::ostream& ss, const event::shoot & e) {ss << "shoot:" << " x: " << e. x << " y: " << e. y;}
 static void dump(std::ostream& ss, const event::statesync & e) {ss << "statesync:" << " state: " << e. state;}/*>*/
 
 
