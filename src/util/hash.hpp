@@ -8,9 +8,9 @@
 #include <cstdint>
 #include <utility>
 
-#include <experimental/string_view>
+#include <string_view>
 
-using std::experimental::string_view;
+using std::string_view;
 
 
 
@@ -63,6 +63,12 @@ struct fnv1a
 
     template <typename Arg>
     constexpr static inline uint64_t foldr(Arg&& arg)
+    {
+        return hash(std::forward<Arg>(arg));
+    }
+
+    template <typename Arg>
+    constexpr uint64_t operator()(Arg&& arg)
     {
         return hash(std::forward<Arg>(arg));
     }

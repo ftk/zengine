@@ -4,7 +4,6 @@
 
 #include "components/config.hpp"
 #include "main.hpp"
-#include "components/modules.hpp"
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
@@ -40,11 +39,11 @@ bool config_c::load_from_file(string_view filename) noexcept
     try
     {
         if(ends_with(filename, ".xml"))
-            read_xml(filename.to_string(), tree, xml_parser::trim_whitespace);
+            read_xml(std::string{filename}, tree, xml_parser::trim_whitespace);
         else if(ends_with(filename, ".json"))
-            read_json(filename.to_string(), tree);
+            read_json(std::string{filename}, tree);
         else
-            read_ini(filename.to_string(), tree);
+            read_ini(std::string{filename}, tree);
         return true;
     }
     catch(file_parser_error)
@@ -57,11 +56,11 @@ bool config_c::save_to_file(string_view filename) noexcept
     try
     {
         if(ends_with(filename, ".xml"))
-            write_xml(filename.to_string(), tree, std::locale(), {'\t', 1});
+            write_xml(std::string{filename}, tree, std::locale(), {'\t', 1});
         else if(ends_with(filename, ".json"))
-            write_json(filename.to_string(), tree);
+            write_json(std::string{filename}, tree);
         else
-            write_ini(filename.to_string(), tree);
+            write_ini(std::string{filename}, tree);
         return true;
     }
     catch(file_parser_error)

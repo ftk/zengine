@@ -27,9 +27,8 @@ int main(int argc, char * argv[])
 {
     srand(time(nullptr));
 
-    auto alloc = std::allocator<application>();
-    g_app = alloc.allocate(1);
-    alloc.construct(g_app);
+    auto app = std::make_unique<application>();
+    g_app = app.get();
 
     g_app->config.load();
 
@@ -47,15 +46,14 @@ int main(int argc, char * argv[])
 
         if(key == "file")
         {
-            g_app->config->configfile = value.to_string();
+            g_app->config->configfile = value;
             if(!value.empty())
             {
                 g_app->config->load_from_file(g_app->config->configfile);
             }
             config_loaded = true;
-        }
-        else
-            g_app->config->set(key.to_string(), value.to_string());
+        } else
+            g_app->config->set(std::string{key}, std::string{value});
     }
     if(!config_loaded)
     {
@@ -66,7 +64,7 @@ int main(int argc, char * argv[])
     if(argn != argc)
         chdir(argv[argn++]);
     //if(SDL_GetBasePath())
-        //chdir(SDL_GetBasePath());
+    //chdir(SDL_GetBasePath());
 
 
     if(auto filename = g_app->config->get_optional<std::string>("log.file"))
@@ -75,31 +73,19 @@ int main(int argc, char * argv[])
         loggers().push_back({logfile, log_level::all, log_detail::TIME});
     }
 
-
+    g_app->init_components();
     try
     {
-        g_app->init_components();
-        try
-        {
-            g_app->run();
-        }
-        catch(const std::exception& e)
-        {
-            std::cerr << "Uncaught exception: " << e.what() << std::endl;
-            LOGGER(fatal, "Uncaught exception:", e.what());
-            throw;
-        }
-        LOGGER(info, "Unloading application...");
-        alloc.destroy(g_app);
-        alloc.deallocate(g_app, 1);
-
-        return 0;
+        void init_game();
+        init_game();
+        g_app->run();
     }
-    catch(...)
+    catch(const std::exception& e)
     {
-        alloc.destroy(g_app);
-        alloc.deallocate(g_app, 1);
+        std::cerr << "Uncaught exception: " << e.what() << std::endl;
+        LOGGER(fatal, "Uncaught exception:", e.what());
         throw;
     }
-
+    LOGGER(info, "Unloading application...");
+    return 0;
 }
