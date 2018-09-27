@@ -16,13 +16,9 @@
 
 #include "opengl.hpp"
 
-#include "util/geometry.hpp"
 #include "util/assert.hpp"
 
-
-#include "resource.hpp"
-
-class shader : public gl_resource
+class shader
 {
     GLuint glshader;
 
@@ -42,7 +38,7 @@ public:
 
 
 
-class program : public gl_resource
+class program
 {
     GLuint prog = 0;
 
@@ -406,14 +402,14 @@ public:
 
 };
 
-class array_buf : public gl_resource
+class array_buf
 {
     GLuint buf = 0;
 
 NONCOPYABLE_BUT_SWAPPABLE(array_buf, (buf))
 
 public:
-    array_buf(const void * data, std::size_t size, GLenum hint = GL_STATIC_DRAW);
+    array_buf(const void * data = nullptr, std::size_t size = 0, GLenum hint = GL_STATIC_DRAW);
 
     template<class Container>
     array_buf(const Container& container) : array_buf(container.data(), container.size() * sizeof(container[0]))
@@ -440,6 +436,7 @@ public:
     static void unbind();
 
     void update(const void * data, std::size_t size, std::size_t offset = 0);
+    void set(const void * data, std::size_t size, GLenum hint = GL_STATIC_DRAW);
 
 };
 

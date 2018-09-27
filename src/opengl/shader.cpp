@@ -191,10 +191,10 @@ array_buf::array_buf(const void * data, std::size_t size, GLenum hint)
 {
     gl::GenBuffers(1, &buf);
     GL_CHECK_ERROR();
-    gl::BindBuffer(GL_ARRAY_BUFFER, buf);
-    GL_CHECK_ERROR();
-    gl::BufferData(GL_ARRAY_BUFFER, size, data, hint);
-    GL_CHECK_ERROR();
+    if(size)
+    {
+        set(data, size, hint);
+    }
 }
 
 array_buf::~array_buf()
@@ -215,6 +215,15 @@ void array_buf::update(const void * data, std::size_t size, size_t offset)
 void array_buf::unbind()
 {
     gl::BindBuffer(GL_ARRAY_BUFFER, 0);
+    GL_CHECK_ERROR();
+}
+
+void array_buf::set(const void * data, std::size_t size, GLenum hint)
+{
+    assume(data);
+    assume(size);
+    bind();
+    gl::BufferData(GL_ARRAY_BUFFER, size, data, hint);
     GL_CHECK_ERROR();
 }
 
