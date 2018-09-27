@@ -4,6 +4,7 @@
 
 #include "opengl.hpp"
 //#include <SDL_opengl.h>
+#include <GLFW/glfw3.h>
 
 #include <string>
 
@@ -55,29 +56,12 @@ static void debug_log(GLenum source,GLenum type,GLuint id,GLenum severity,GLsize
 #endif
 
 
-gl::gl(SDL_Window * window)
+gl::gl()
 {
-    // opengl es 2
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-
-#if GL_DEBUG >= 2
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
-#endif
-
-    context = SDL_GL_CreateContext(window);
-    if(!context)
-        throw std::runtime_error(SDL_GetError());
-
-    if(SDL_GL_MakeCurrent(window, context) < 0)
-        throw std::runtime_error(SDL_GetError());
-
         // initialize
 
-
 #define GLFUNC(ret,name,params) \
-        this->name = reinterpret_cast<ret (*) params>(SDL_GL_GetProcAddress("gl" #name)); \
+        this->name = reinterpret_cast<ret (*) params>(glfwGetProcAddress("gl" #name)); \
         if(this->name == nullptr) throw std::runtime_error{"Function " "gl" #name " is null"};
 #include "opengl.inl"
 #undef GLFUNC
@@ -86,7 +70,7 @@ gl::gl(SDL_Window * window)
 
 #if GL_DEBUG >= 2
 
-    auto glDebugMessageCallback = reinterpret_cast<void (*) (DEBUGPROC callback, void* userParam)>(SDL_GL_GetProcAddress("glDebugMessageCallback"));
+    auto glDebugMessageCallback = reinterpret_cast<void (*) (DEBUGPROC callback, void* userParam)>(glfwGetProcAddress("glDebugMessageCallback"));
     if(glDebugMessageCallback)
     {
         glDebugMessageCallback(&debug_log, nullptr);
@@ -101,8 +85,6 @@ gl::gl(SDL_Window * window)
 
 gl::~gl()
 {
-    if(context)
-        SDL_GL_DeleteContext(context);
 }
 
 // initialize static variables

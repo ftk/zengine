@@ -6,8 +6,6 @@
 #define ZENGINE_OPENGL_HPP
 
 
-#include <SDL_video.h>
-
 #include <stdexcept>
 
 #include "gl2.h"
@@ -24,11 +22,9 @@ public:
 
 class gl
 {
-    SDL_GLContext context = nullptr;
-
     NONCOPYABLE(gl)
 public:
-    gl(SDL_Window * window);
+    gl();
     ~gl();
 
 #define GLFUNC(ret,name,params) static ret (*name) params;
@@ -93,7 +89,7 @@ template<> struct type_to_gl<GLushort> { static constexpr GLenum value = GL_UNSI
 #ifdef NDEBUG
 #define GL_DEBUG 0
 #else
-#define GL_DEBUG 3
+#define GL_DEBUG 2
 #endif
 #endif
 

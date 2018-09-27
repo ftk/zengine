@@ -5,9 +5,9 @@
 #ifndef ZENGINE_SERIALIZATION_HPP
 #define ZENGINE_SERIALIZATION_HPP
 
-#include <experimental/string_view>
+#include <string_view>
 
-using std::experimental::string_view;
+using std::string_view;
 
 #include <boost/preprocessor/seq/for_each.hpp>
 

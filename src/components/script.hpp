@@ -24,7 +24,7 @@ struct script_callback<R (Args...)>
 
 
 
-//=- register_component(class=>'script_c', name=>'script', priority=>100);
+//=- #register_component(class=>'script_c', name=>'script', priority=>100);
 class script_c
 {
     class impl;
@@ -40,11 +40,7 @@ public:
 
     /*<
        join "\n\t", map { "script_callback<$_->{type}> $_->{name};" } dispatch('callbacks');
-     %*/script_callback<void ()> on_connect;
-	script_callback<void ()> on_disconnect;
-	script_callback<void ()> on_host;
-	script_callback<void ()> on_init;
-	script_callback<void (int)> on_option_selected;/*>*/
+     %*//*>*/
 
 };
 

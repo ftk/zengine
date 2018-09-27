@@ -7,46 +7,36 @@
 
 
 #include "util/movable.hpp"
-#include "util/geometry.hpp"
 #include "util/hash.hpp"
+#include "math.hpp"
 
-#include "resource.hpp"
+#include "gl2.h"
 
 
-namespace SDL2pp { class Surface; }
-
-class texture : public gl_resource
+class texture
 {
     unsigned idx = 0;
-    Point size;
+    unsigned width, height;
 
-NONCOPYABLE_BUT_SWAPPABLE(texture, (idx) (size))
+NONCOPYABLE_BUT_SWAPPABLE(texture, (idx) (width) (height))
 
 
 public:
-    texture(SDL2pp::Surface&& surface);
+    // RGB 24bit or RGBA 32 bit sufrace.
+    texture(const uint8_t * surface, unsigned surface_len, unsigned width, unsigned height, int format = -1);
+
+    static texture from_file(const char * filename);
     texture(string_view filename);
     //texture() : size(-1,-1) {};
 
     // uninitialized texture
-    explicit texture(Point size, bool alpha = false);
+    explicit texture(unsigned width, unsigned height, int format = GL_RGB);
 
     // already created
-    explicit texture(unsigned gl_idx, Point size) : idx(gl_idx), size(size) {}
-
-
-    static texture from_surface(SDL2pp::Surface&& surface);
-    static texture from_file(string_view filename);
-
-
-    //texture(texture&& rhs) noexcept { std::swap(idx, rhs.idx); std::swap(size, rhs.size); };
+    explicit texture(unsigned gl_idx, unsigned width, unsigned height) : idx(gl_idx), width(width), height(height) {}
 
 
     void bind(unsigned tex_unit = 0) const;
-
-    Point get_size() const { return size; }
-
-    void set_params(unsigned mag, unsigned min, unsigned wrap_s, unsigned wrap_t);
 
     ~texture();
 
@@ -59,13 +49,10 @@ public:
 
     unsigned get() const noexcept { return idx; }
 
+    qvm::ivec2 get_size() const { return {(int)width, (int)height}; }
 };
 
-SDL2pp::Surface create_optimized_surface(Point size);
-//SDL2pp::Surface create_optimized_surface_noalpha(Point size);
-
-
-class framebuf : public gl_resource
+class framebuf
 { // todo: test
     unsigned buf = 0;
     unsigned rbo = 0;
@@ -76,7 +63,7 @@ public:
 //NONCOPYABLE_BUT_SWAPPABLE(framebuf, (buf)(rbo)(tex))
 
 public:
-    framebuf(Point size);
+    framebuf(unsigned width, unsigned height);
 
     ~framebuf();
 

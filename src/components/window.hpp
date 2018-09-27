@@ -5,104 +5,91 @@
 #ifndef ZENGINE_WINDOW_HPP
 #define ZENGINE_WINDOW_HPP
 
-
-//#include <SDL.h>
-//#include <SDL_image.h>
-
-//#include <SDL2pp/SDL.hh>
-//#include <SDL2pp/SDLImage.hh>
-#include <SDL2pp/Window.hh>
-//#include <SDL2pp/Renderer.hh>
-//#include <SDL2pp/Texture.hh>
-//#include <SDL2pp/Surface.hh>
-
-//#include "util/optional.hpp"
-#include "util/geometry.hpp"
+#include <GLFW/glfw3.h>
 
 #include "opengl/opengl.hpp"
 #include "opengl/render2d.hpp"
 #include "opengl/math.hpp"
 
+#include "util/signals.hpp"
 
 //=- register_component(class=>'window_c', name=>'window', priority=>10);
 
 // opengl window
 class window_c
 {
-    struct window_setup
+    struct window_handle
     {
-        window_setup();
-    } setup;
-    SDL2pp::Window window;
+        GLFWwindow * h;
+
+        window_handle(int w, int h, const char * title);
+        ~window_handle();
+    } window;
     gl ctx;
 public:
-    renderer_2d render;
+    renderer_2d render { "resources/shd/texture.glsl" };
+    renderer_2d text_render { "resources/shd/smoothtext.glsl" };
+
+    // events
+    sig::signal<void ()> draw;
+
+    struct key_event { int key, scancode, action, mods; };
+    sig::signal<void (key_event)> key; //
+
+    struct mouse_click_event { int button,action,mods; qvm::vec2 pos; };
+    sig::signal<void (mouse_click_event)> mouse_click; //
+
+    sig::signal<void (qvm::vec2)> mouse_move; //
+
+    sig::signal<void (double x, double y)> mouse_scroll; // in glfw coordinates
 
 public:
+
     window_c();
+    ~window_c();
 
-
-    Point get_size() const
+    qvm::ivec2 get_size() const
     {
-        return window.GetDrawableSize(); // window_->GetDrawableSize();
+        int width, height;
+        glfwGetFramebufferSize(window.h, &width, &height);
+        return {width, height};
     }
 
-    double get_aspect_ratio() const
+    void swap()
     {
-        Point size = get_size();
-        return double(size.x) / size.y;
+        glfwSwapBuffers(window.h);
     }
 
-    void swap();
-
-    qvm::vec2 to_gl_coords(Point p) const
+    bool closing()
     {
-        Point s = get_size();
-        return qvm::vec2{2.f * p.x / s.x - 1.f, -2.f * p.y / s.y + 1.f};
+        return glfwWindowShouldClose(window.h);
     }
+
+    void close()
+    {
+        glfwSetWindowShouldClose(window.h, GLFW_TRUE);
+    }
+
+    void poll()
+    {
+        glfwPollEvents();
+    }
+
+    // from pixels to gl (-1,1)^2
+    qvm::vec2 convert_from_pixel_coords(double x, double y);
+    qvm::vec2 convert_from_pixel_coords_size(double x, double y);
+
+    // from gl to pixels
+    qvm::vec2 convert_to_pixel_coords(qvm::vec2 v);
+
+    qvm::vec2 convert_to_pixel_coords_size(qvm::vec2 v);
+
+    // win32 handle
+    void * get_hwnd();
+
+    GLFWwindow * wnd() { return window.h; }
 
 };
 
-// sdl window
-#if 0
-struct window_c
-{
-    optional<SDL2pp::Window> window_;
-    optional<SDL2pp::Renderer> render_;
-
-
-    void create_window(unsigned window_flags = SDL_WINDOW_RESIZABLE,
-                       optional<unsigned> renderer_flags = SDL_RENDERER_ACCELERATED)
-    {
-        window_ = SDL2pp::Window{"window",
-                                SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-                                1280, 720,
-                                window_flags};
-        if(renderer_flags)
-        {
-            render_ = SDL2pp::Renderer{*window_, -1, *renderer_flags};
-        }
-    }
-
-    SDL2pp::Renderer& render()
-    {
-        return *render_;
-    }
-
-    Point get_size() const
-    {
-        return render_ ?
-        render_->GetOutputSize()
-        : window_->GetDrawableSize(); // window_->GetDrawableSize();
-    }
-
-    double get_aspect_ratio() const
-    {
-        Point size = get_size();
-        return double(size.x) / size.y;
-    }
-
-};
-#endif
 
 #endif //ZENGINE_WINDOW_HPP

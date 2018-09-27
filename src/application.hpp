@@ -12,7 +12,7 @@
 
 // in case of Component being an interface class, you need to call load<implementation>()
 template <typename Component>
-class component : public std::unique_ptr<Component>
+class app_component : public std::unique_ptr<Component>
 {
     typedef std::unique_ptr<Component> base;
 public:
@@ -41,17 +41,15 @@ public:
 public:
     /*<
      join '', map { my $class = $_->{interface} // $_->{class};
-     				"\n\tcomponent<class $class> $_->{name};" } get_components;
+     				"\n\tapp_component<class $class> $_->{name};" } get_components;
      %*/
-	component<class config_c> config;
-	component<class modules_c> modules;
-	component<class sdl_c> sdl_init;
-	component<class window_c> window;
-	component<class textures_c> textures;
-	component<class fonts_c> fonts;
-	component<class network_c> network;
-	component<class netgame_i> netgame;
-	component<class script_c> script;/*>*/
+	app_component<class config_c> config;
+	app_component<class glfw_c> glfw_init;
+	app_component<class window_c> window;
+	app_component<class resources_c> resources;
+	app_component<class mixer_c> mixer;
+	app_component<class network_c> network;
+	app_component<class netgame_i> netgame;/*>*/
 
 //private:
     application() noexcept;
@@ -63,9 +61,7 @@ public:
 
     void run();
 
-    void get_input();
-
-    void draw();
+	void draw();
 
 };
 
