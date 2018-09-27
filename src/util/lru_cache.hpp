@@ -78,8 +78,8 @@ public:
             items.erase(it->second);
             dict.erase(it);
         }
-        items.push_front(std::make_pair(k, std::move(v)));
-        dict.insert(std::make_pair(std::move(k), items.begin()));
+        items.emplace_front(k, std::move(v));
+        dict.emplace(std::move(k), items.begin());
         return begin();
     }
 
