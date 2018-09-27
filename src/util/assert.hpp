@@ -22,7 +22,7 @@
 
 #if !defined(NDEBUG)
 // enable asserts
-#ifndef NO_SDL
+#ifdef SDL
 #include <SDL_assert.h>
 #define assert(cond) SDL_enabled_assert(cond)
 #else
