@@ -12,14 +12,17 @@
 #include "util/assert.hpp"
 #include "util/serialization.hpp"
 
-#include <SDL_timer.h>
+#include <glfw/glfw3.h>
 
+#ifndef TICKS_PER_SECOND
+#define TICKS_PER_SECOND 60
+#endif
 
 template <unsigned TPS> // ticks per second
 class tick_timer
 {
 private:
-    uint32_t timerstart;
+    double timerstart;
 
 public:
     tick_timer()
@@ -27,14 +30,14 @@ public:
         init();
     }
 
-    void init(tick_t curtick = 0, unsigned rttfix = 0)
+    void init(tick_t curtick = 0, double rttfix = 0)
     {
-        timerstart = SDL_GetTicks() - curtick * 1000 / TPS - rttfix / 2;
+        timerstart = glfwGetTime() - double(curtick) / TPS - rttfix / 2;
     }
 
     tick_t get_tick() const
     {
-        return (SDL_GetTicks() - timerstart) * TPS / 1000;
+        return static_cast<tick_t>((glfwGetTime() - timerstart) * TPS);
     }
 };
 
@@ -55,7 +58,7 @@ class multiplayer_game
     uint32_t rtt = 0; // round trip time to host, in ms
 
 public:
-    tick_timer<50> timer;
+    tick_timer<TICKS_PER_SECOND> timer;
 
     GamestateSim sim;
 public:
@@ -156,7 +159,7 @@ private:
             if(connecting_state == CONNECTING)
             {
                 connecting_state = WAITING_FOR_STATE;
-                rtt = SDL_GetTicks() - starttick;
+                rtt = glfwGetTime() / 1000 - starttick;
             } else LOGGER(warn, connecting_state, __func__);
             // check if connected
             const auto connected = netgame->nodes_list(); // assume list is sorted
@@ -268,7 +271,7 @@ public:
 
         state = SYNC;
         connecting_state = CONNECTING;
-        starttick = SDL_GetTicks(); // special meaning, join time in ms
+        starttick = glfwGetTime() / 1000; // special meaning, join time in ms
         connecting_id = remote;
 
         // send join ev...
@@ -353,7 +356,7 @@ private:
     template <typename T>
     void on_netevent(const tick_input_t& input, const T&)
     {
-        if(state != STOPPED)
+        if(state != STOPPED) // ?
             sim.on_input(input);
     }
 
