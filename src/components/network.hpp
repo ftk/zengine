@@ -81,7 +81,7 @@ struct net_msg_header_t
         } ping;
         struct
         {
-            net_node_id id;
+            net_uint64_t id;
             net_uint16_t port;
             char ip[64];
         } peer_exchange;
