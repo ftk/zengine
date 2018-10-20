@@ -31,7 +31,7 @@ namespace event {
    sub register_event {
     collect('events', {@_});
    }
-   register_event(name=>'null');
+   #register_event(name=>'null');
 
    my $s = '';
    my $seq = '';
@@ -42,31 +42,32 @@ namespace event {
    $s .= "static constexpr unsigned index = $index; ";
    $index++;
    $s .= "$_->[0] $_->[1]; " for (@{$event->{params}});
-   $s .= 'SERIALIZABLE(';
-   $s .= "($_->[1])" for (@{$event->{params}});
-   $s .= ')};';
+   $s .= 'SERIALIZABLE(' . join(',', map { $_->[1] } @{$event->{params}}) . ')';
+
+
+   #$s .= 'bool check() const {return true';
+   #$s .= join " ", map { "&&" . ((scalar @$_ >= 4) ? "$_->[1] >= $_->[3] && $_->[1] <= $_->[4]" : "true") } @{$event->{params}};
+   #$s .= ';}';
+   $s .= '};';
 
    #$s .= 'template <class Archive> void serialize(Archive& ar, const unsigned int) { ';
    #$s .= "ar & $_->[1];" for (@{$event->{params}});
    #$s .= "};";
    }
-   $s .= "\n\n#define EVENTS_SEQ $seq";
+   $s .= "\n\nconstexpr unsigned events_num = $index;\n#define EVENTS_SEQ $seq";
    $s;
    %*/
-struct click {static constexpr unsigned index = 0; float x; float y; SERIALIZABLE((x)(y))};
-struct join {static constexpr unsigned index = 1; SERIALIZABLE()};
-struct joined {static constexpr unsigned index = 2; tick_t tick; net_node_id id; SERIALIZABLE((tick)(id))};
-struct movement {static constexpr unsigned index = 3; int32_t x; int32_t y; uint8_t down; SERIALIZABLE((x)(y)(down))};
-struct node_connect {static constexpr unsigned index = 4; SERIALIZABLE()};
-struct node_disconnect {static constexpr unsigned index = 5; SERIALIZABLE()};
-struct null {static constexpr unsigned index = 6; SERIALIZABLE()};
-struct peers {static constexpr unsigned index = 7; std::vector<net_node_id> arr; SERIALIZABLE((arr))};
-struct player_join {static constexpr unsigned index = 8; SERIALIZABLE()};
-struct player_leave {static constexpr unsigned index = 9; SERIALIZABLE()};
-struct shoot {static constexpr unsigned index = 10; float x; float y; SERIALIZABLE((x)(y))};
-struct statesync {static constexpr unsigned index = 11; std::string state; SERIALIZABLE((state))};
+struct join {static constexpr unsigned index = 0; SERIALIZABLE()};
+struct joined {static constexpr unsigned index = 1; tick_t tick; net_node_id id; SERIALIZABLE(tick,id)};
+struct node_connect {static constexpr unsigned index = 2; SERIALIZABLE()};
+struct node_disconnect {static constexpr unsigned index = 3; SERIALIZABLE()};
+struct peers {static constexpr unsigned index = 4; std::vector<net_node_id> arr; SERIALIZABLE(arr)};
+struct player_join {static constexpr unsigned index = 5; SERIALIZABLE()};
+struct player_leave {static constexpr unsigned index = 6; SERIALIZABLE()};
+struct statesync {static constexpr unsigned index = 7; std::string state; SERIALIZABLE(state)};
 
-#define EVENTS_SEQ (click)(join)(joined)(movement)(node_connect)(node_disconnect)(null)(peers)(player_join)(player_leave)(shoot)(statesync)/*>*/
+constexpr unsigned events_num = 8;
+#define EVENTS_SEQ (join)(joined)(node_connect)(node_disconnect)(peers)(player_join)(player_leave)(statesync)/*>*/
 
 //static_assert(std::is_pod<null>::value == true);
 
@@ -74,7 +75,7 @@ struct statesync {static constexpr unsigned index = 11; std::string state; SERIA
 
 using event_t = boost::variant<
     /*< join ', ', map { "event::$_->{name}" } dispatch('events');
-     %*/event::click, event::join, event::joined, event::movement, event::node_connect, event::node_disconnect, event::null, event::peers, event::player_join, event::player_leave, event::shoot, event::statesync/*>*/
+     %*/event::join, event::joined, event::node_connect, event::node_disconnect, event::peers, event::player_join, event::player_leave, event::statesync/*>*/
 >;
 //static_assert(std::is_pod<event_t>::value == true);
 
@@ -93,7 +94,9 @@ switch(ev.which()) { \
 BOOST_PP_SEQ_FOR_EACH(EVENT_VISITOR_HELPER, f1, EVENTS_SEQ) \
 }}(e,f);
 
-
-
+// IF_EVENT(input.event, my_event, ev) { int x = ev->param; ... }
+#define IF_EVENT(variant, type, name) if(event:: type * name = boost::get<event:: type>(&variant))
+// IF_EVENT_(input.event, player_join) { ... }
+#define IF_EVENT_(variant, type) if(boost::get<event:: type>(&variant))
 
 #endif //ZENGINE_EVENTS_HPP

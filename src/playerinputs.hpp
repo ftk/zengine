@@ -31,7 +31,7 @@ struct tick_input_t
     bool operator <(const tick_t tick) const { return this->tick < tick; }
 
     // serialize ...
-    SERIALIZABLE((player)(tick)(event))
+    SERIALIZABLE(player, tick, event)
 
 };
 
