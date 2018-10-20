@@ -15,7 +15,7 @@
 
 struct old_input_exc {tick_input_t input; tick_t curtick;};
 
-// Gamestate requirements: update, on_input, draw
+// Gamestate requirements: update(tick_t), on_input(tick_input_t)
 template <class Gamestate>
 class gamestate_simulator
 {
@@ -72,11 +72,10 @@ public:
 
     }
 
-    void draw()
+    Gamestate& gamestate()
     {
-        oldstate.draw();
+        return oldstate;
     }
-
 };
 
 #include <mutex>
@@ -145,9 +144,9 @@ public:
         }
     }
 
-    void draw()
+    GamestateSync& gamestate()
     {
-        newstate.draw();
+        return newstate;
     }
 
 private:
