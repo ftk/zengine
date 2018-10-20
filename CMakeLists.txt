@@ -1,48 +1,46 @@
 cmake_minimum_required(VERSION 3.0)
 
-
 if (WIN32)
     add_definitions(-DWIN32)
 endif ()
 
 #if (CMAKE_COMPILER_IS_GNUCXX)
-    add_definitions(-Wall -std=c++1z)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++1z")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O1")
 #endif ()
 
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ")
-
-
 project(zengine)
+include_directories(. src external)
 
-include_directories(. src)
-
-# sld2pp
-
-set(SDL2PP_CXXSTD "c++1z")
-
-set(SDL2PP_WITH_EXPERIMENTAL_OPTIONAL "Y")
-set(SDL2PP_WITH_TTF "Y")
-set(SDL2PP_WITH_IMAGE "Y")
-set(SDL2PP_WITH_MIXER "Y")
-
-add_subdirectory(libSDL2pp)
 
 # boost
-set(Boost_USE_STATIC_LIBS   ON)
-
-find_package(Boost 1.62 COMPONENTS system REQUIRED )
-
+find_package(Boost 1.62  REQUIRED)
+set(EXTERNAL_FILES ${EXTERNAL_FILES} external/boost.cpp)
 include_directories(${Boost_INCLUDE_DIR})
 #link_libraries(${Boost_LIBRARIES})
 
-add_definitions(-DCHAISCRIPT_NO_THREADS -DCHAISCRIPT_NO_THREADS_WARNING -DCHAISCRIPT_NO_DYNLOAD)
-include_directories(ChaiScript/include)
+# chaiscript
+add_definitions(-DNO_SCRIPTING)
+#add_definitions(-DCHAISCRIPT_NO_THREADS -DCHAISCRIPT_NO_THREADS_WARNING -DCHAISCRIPT_NO_DYNLOAD)
+#include_directories(ChaiScript/include)
 
+# glfw
+include_directories(external/glfw/include)
+#
+if (EMSCRIPTEN)
+    set(CMAKE_EXECUTABLE_SUFFIX ".html")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s USE_GLFW=3 -s DISABLE_EXCEPTION_CATCHING=0 --preload-file ../resources")
+else()
+    set(EXTERNAL_FILES ${EXTERNAL_FILES} external/rglfw.c)
+endif()
 
-include_directories(cereal/include)
+if (MATH_LIBRARY)
+    link_libraries("${MATH_LIBRARY}")
+endif()
+
 
 if(WIN32)
-    link_libraries(ws2_32 mswsock)
+    link_libraries(ws2_32 mswsock dsound)
     #set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mwindows")
     #set (CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -static -static-libgcc -static-libstdc++")
 else()
@@ -61,14 +59,14 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DNDEBUG")
 
 
 #set(GAME_PATH game)
-set(GAME_PATH examples/zwarudo)
+set(GAME_PATH examples/snake)
 include_directories(${GAME_PATH})
 add_subdirectory(${GAME_PATH})
 
 
 macro(srcDir var dir)
     file(GLOB ${var} RELATIVE ${PROJECT_SOURCE_DIR}
-            ${dir}/*.hpp ${dir}/*.cpp)
+            ${dir}/*.hpp ${dir}/*.cpp ${dir}/*.c)
     #foreach(f ${FILES})
     #    list(APPEND ${var} "src/${f}")
     #endforeach()
@@ -76,15 +74,15 @@ macro(srcDir var dir)
 endmacro()
 
 srcDir(COMPONENTS_FILES src/components)
-srcDir(MODULES_FILES src/modules)
 srcDir(OPENGL_FILES src/opengl)
 srcDir(UTIL_FILES src/util)
 srcDir(ENGINE_FILES src)
+#srcDir(EXTERNAL_FILES external)
 
-set(ALL_FILES ${UTIL_FILES} ${OPENGL_FILES} ${COMPONENTS_FILES} ${ENGINE_FILES} ${MODULES_FILES} ${GAME_FILES})
+set(ALL_FILES ${UTIL_FILES} ${OPENGL_FILES} ${COMPONENTS_FILES} ${ENGINE_FILES} ${GAME_FILES} ${EXTERNAL_FILES})
 #message(${ALL_FILES})
 
-include_directories(${SDL2PP_INCLUDE_DIRS})
+#include_directories(${SDL2PP_INCLUDE_DIRS})
 add_executable(zengine ${ALL_FILES})
 target_link_libraries(zengine ${SDL2PP_LIBRARIES} ${Boost_LIBRARIES})
 
@@ -94,7 +92,6 @@ find_package(Perl)
 if(PERL_FOUND)
     add_custom_command(OUTPUT build/.timestamp
             COMMAND ${PERL_EXECUTABLE} build/pp.pl build/inc.pl ${ALL_FILES}
-            #COMMAND ${CMAKE_COMMAND} -E echo ok
             COMMAND ${CMAKE_COMMAND} -E touch build/.timestamp
             DEPENDS build/pp.pl build/inc.pl ${ALL_FILES}
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
@@ -104,18 +101,11 @@ if(PERL_FOUND)
     add_dependencies(zengine RunGenerator)
 endif()
 
-
-add_executable(nettest  network_test.cpp src/components/network.cpp src/util/asio_impl.cpp)
-
+add_executable(nettest  network_test.cpp src/components/network.cpp external/boost.cpp)
 
 #target_compile_definitions(nettest PUBLIC -DBOOST_ASIO_ENABLE_HANDLER_TRACKING)
-target_compile_definitions(nettest PUBLIC -DNO_SDL -DLOG_HEADER_ONLY)
-target_link_libraries(nettest ${Boost_LIBRARIES})
-
-
-set (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/build")
-
-
+target_compile_definitions(nettest PUBLIC -DLOG_HEADER_ONLY)
+#target_link_libraries(nettest ${Boost_LIBRARIES})
 
 # options for backtrace to work
 if(0 AND CMAKE_COMPILER_IS_GNUCXX) # disabled
@@ -125,16 +115,7 @@ else()
     add_definitions(-DNO_BACKTRACE)
 endif()
 
-if(MINGW OR CYGWIN)
-    # prevent 'too many sections' errors in debug build
-    set_source_files_properties(src/components/script.cpp src/components/script_impl.cpp src/components/script_impl_t.cpp
-            PROPERTIES COMPILE_FLAGS "-g0 -Os")
+set_source_files_properties(src/util/audio.cpp PROPERTIES COMPILE_FLAGS "-fpermissive -w")
 
-    #add_definitions(-Wa,-mbig-obj)
-    #add_definitions(-O1)
-endif()
-
-#include(cotire)
-#cotire(zengine)
 
 #set_property(TARGET zengine PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
