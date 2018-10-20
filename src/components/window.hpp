@@ -55,6 +55,12 @@ public:
         return {width, height};
     }
 
+    float aspect() const
+    {
+        auto size = get_size();
+        return static_cast<float>(qvm::X(size)) / qvm::Y(size);
+    }
+
     void swap()
     {
         glfwSwapBuffers(window.h);
