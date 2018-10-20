@@ -23,12 +23,12 @@ namespace sig {
     class signal<R(Args...)> : std::vector<std::function<R(Args...)>>
     {
     public:
-        void connect(auto&& f)
+        template <typename F>
+        void connect(F&& f)
         {
-            this->push_back(std::move(f));
+            this->push_back(std::forward<F>(f));
         }
 
-       // template <typename... Args2>
         void operator ()(Args... args)
         {
             for(auto& f : (*this))
