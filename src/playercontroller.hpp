@@ -12,7 +12,7 @@
 #include "util/assert.hpp"
 #include "util/serialization.hpp"
 
-#include <glfw/glfw3.h>
+#include <GLFW/glfw3.h>
 
 #ifndef TICKS_PER_SECOND
 #define TICKS_PER_SECOND 60
