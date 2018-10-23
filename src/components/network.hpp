@@ -257,7 +257,7 @@ private:
         bool to_delete() const {
             return (connection_tries < 0 ||
                     (boost::posix_time::microsec_clock::universal_time() - last_ack) >
-                            boost::posix_time::seconds(30)
+                            boost::posix_time::seconds(10)
                    )
                    && id != 0;
 
@@ -274,6 +274,8 @@ public:
     net_node_id id;
     uint16_t port = 0;
     const char * bind_ip = nullptr;
+
+    unsigned ping_rate = 5000; // in ms
 
     // callbacks
     std::function<void (net_node_id, const char *, std::size_t)> receive_callback;

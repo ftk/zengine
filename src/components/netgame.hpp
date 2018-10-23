@@ -9,7 +9,7 @@
 #include "playerinputs.hpp"
 
 #include <vector>
-
+#include "util/signals.hpp"
 
 
 struct netgame_i
@@ -22,10 +22,10 @@ struct netgame_i
     virtual void send_input(net_node_id id, const tick_input_t& input) = 0;
     virtual void send_input(const std::vector<net_node_id>& ids, const tick_input_t& input) = 0;
 
-    // handler should be thread safe
-    virtual void set_event_handler(std::function<void(tick_input_t)> handler) {}
-
     virtual std::vector<net_node_id> nodes_list() const { return std::vector<net_node_id> {};}
+
+public:
+    sig::signal<void (tick_input_t)> on_event;
 };
 
 

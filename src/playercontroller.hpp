@@ -108,7 +108,7 @@ public:
     multiplayer_game(netgame_i * netgame) : netgame(netgame)
     {
         // todo move to adapter
-        netgame->set_event_handler([this](tick_input_t input) {
+        netgame->on_event.connect([this](tick_input_t input) {
             boost::apply_visitor([this, &input](const auto& event) -> void { this->on_netevent(input, event);}, input.event);
         });
     }
@@ -208,7 +208,24 @@ public:
         if(!playing())
             return;
 
-        sim.update(timer.get_tick());
+        try
+        {
+            sim.update(timer.get_tick());
+        }
+        catch(const old_input_exc& e)
+        {
+            LOGGER(warn, "old input received from", e.input.player, dump_event(e.input.event));
+            if(e.input.player == netgame->id())
+                LOGGER(error, "old input from myself? wtf oldtick", e.input.tick, "curtick", e.curtick);
+            // TODO: resynchronize client
+            if(state == HOST)
+            {
+                // remove player...
+                netgame->on_event({e.input.player, timer.get_tick(), event::node_disconnect{}});
+            }
+            else
+                stop();
+        }
 
         // handle connecting client
         if(connecting_state != NONE)
@@ -357,7 +374,12 @@ private:
     void on_netevent(const tick_input_t& input, const T&)
     {
         if(state != STOPPED) // ?
-            sim.on_input(input);
+        {
+            if(input.tick == 0)
+                LOGGER(debug, "skipping event", dump_event(input.event));
+            else
+                sim.on_input(input);
+        }
     }
 
 };

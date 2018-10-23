@@ -91,7 +91,7 @@ void network_c::on_timer()
     }
 
 
-    timer.expires_from_now(boost::posix_time::seconds(7));
+    timer.expires_from_now(boost::posix_time::milliseconds(ping_rate));
     timer.async_wait(boost::bind(&network_c::on_timer, this));
 }
 
