@@ -28,7 +28,7 @@ class window_c
     gl ctx;
 public:
     renderer_2d render { "resources/shd/texture.glsl" };
-    renderer_2d text_render { "resources/shd/smoothtext.glsl" };
+    renderer_2d text_render { "resources/shd/text.glsl" };
 
     // events
     sig::signal<void ()> draw;
@@ -95,6 +95,15 @@ public:
 
     GLFWwindow * wnd() { return window.h; }
 
+    // todo: move this from window class
+    /** Render text (wraps text). Caches text texture
+     *
+     * @param ll lower left corner in screen coordinates
+     * @param size size of text box
+     * @param text string to be rendered
+     * @param lines amount of lines of text to be fitted in the text box
+     */
+    void render_text_box(qvm::vec2 ll, qvm::vec2 size, string_view text, unsigned lines = 1);
 };
 
 

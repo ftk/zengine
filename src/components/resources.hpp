@@ -49,20 +49,14 @@ struct resource_traits<Sound>
 };
 */
 //=- register_component(class=>'resources_c', name=>'resources', priority=>50);
+
 class resources_c
-        {
-        public:
+{
+public:
     resource_cache<texture> textures{8 * 1024 * 1024};
     resource_cache<sound> sounds{8 * 1024 * 1024};
 
     font default_font { "resources/default.ttf" };
-
-    texture& text(string_view string)
-    {
-        return textures.get(string, [this](string_view string){
-            return render_text(default_font, string);
-        });
-    }
-        };
+};
 
 #endif //ZENGINE_RESOURCES_HPP

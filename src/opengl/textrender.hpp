@@ -123,12 +123,13 @@ public:
 #include "texture.hpp"
 
 // creates alpha texture (opengl maps color to 0,0,0)
-texture render_text(const font& font, std::string_view string, float pixelh = 36);
+texture make_text(const font& font, std::string_view string, float pixelh = 36);
 
 
 
 //
-texture render_text_box(const font& font, std::string_view string, qvm::vec2 size, int max_lines, int max_words = -1, std::string_view delimiters = " \t\n");
+texture make_text_box(const font& font, std::string_view string, qvm::vec2 size, int max_lines, int max_words = -1,
+                      std::string_view delimiters = " \t\n");
 
 
 #endif //ZENGINE_TEXTRENDER_HPP

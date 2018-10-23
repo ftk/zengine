@@ -167,3 +167,23 @@ void * window_c::get_hwnd()
     return nullptr;
 #endif
 }
+
+
+
+#include "opengl/textrender.hpp"
+#include "components/resources.hpp"
+void window_c::render_text_box(qvm::vec2 ll, qvm::vec2 size, string_view text, unsigned int lines)
+{
+    using namespace qvm;
+    vec2 pixsize = convert_to_pixel_coords_size(size);
+    X(pixsize) = ceil(X(pixsize));
+    Y(pixsize) = ceil(Y(pixsize));
+    size = convert_from_pixel_coords_size(X(pixsize), Y(pixsize));
+    texture& tex = g_app->resources->textures.get(text, [lines, pixsize](string_view text){
+        return make_text_box(g_app->resources->default_font, text, pixsize, lines);
+    });
+    //tex.bind();
+    //gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    //gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    text_render.copy(tex, ll, size);
+}

@@ -152,7 +152,7 @@ qvm::vec2 font::get_string_size(std::string_view string, float pixelh) const
     return size;
 }
 
-texture render_text(const font& font, std::string_view string, float pixelh)
+texture make_text(const font& font, std::string_view string, float pixelh)
 {
     auto buf = font.render(string, pixelh);
     auto tex = texture{buf.buffer.data(), (unsigned) buf.buffer.size(), buf.width, buf.height, GL_ALPHA};
@@ -161,7 +161,8 @@ texture render_text(const font& font, std::string_view string, float pixelh)
     return tex;
 }
 
-texture render_text_box(const font& font, std::string_view string, qvm::vec2 size, int max_lines, int max_words, std::string_view delimiters)
+texture make_text_box(const font& font, std::string_view string, qvm::vec2 size, int max_lines, int max_words,
+                      std::string_view delimiters)
 {
     using namespace qvm;
     {
