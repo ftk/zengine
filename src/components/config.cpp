@@ -24,8 +24,8 @@ config_c::config_c()
 
 config_c::~config_c()
 {
-    if(!configfile.empty())
-        save_to_file(configfile);
+    if(auto file = get_optional<std::string>("config.file"))
+        save_to_file(*file);
 }
 
 static bool ends_with(string_view src, string_view sub)

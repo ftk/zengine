@@ -20,9 +20,6 @@
 
 application * g_app = nullptr;
 
-
-#include "opengl/math.hpp"
-
 int main(int argc, char * argv[])
 {
     srand(time(nullptr));
@@ -31,9 +28,9 @@ int main(int argc, char * argv[])
     g_app = app.get();
 
     g_app->config.load();
+    g_app->config->load_from_file("config.xml");
 
     int argn;
-    bool config_loaded = false;
     for(argn = 1; argn < argc; argn++)
     {
         auto arg = string_view{argv[argn]};
@@ -46,26 +43,16 @@ int main(int argc, char * argv[])
 
         if(key == "file")
         {
-            g_app->config->configfile = value;
             if(!value.empty())
             {
-                g_app->config->load_from_file(g_app->config->configfile);
+                g_app->config->load_from_file(value);
             }
-            config_loaded = true;
         } else
             g_app->config->set(std::string{key}, std::string{value});
     }
-    if(!config_loaded)
-    {
-        g_app->config->load_from_file(g_app->config->configfile);
-    }
-
     // start in app's dir
     if(argn != argc)
         chdir(argv[argn++]);
-    //if(SDL_GetBasePath())
-    //chdir(SDL_GetBasePath());
-
 
     if(auto filename = g_app->config->get_optional<std::string>("log.file"))
     {

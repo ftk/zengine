@@ -16,9 +16,6 @@ class config_c
 	boost::property_tree::ptree tree;
 public:
 
-	std::string configfile = "config.xml";
-public:
-
 	bool load_from_file(string_view filename) noexcept;
     bool save_to_file(string_view filename) noexcept;
     config_c();
