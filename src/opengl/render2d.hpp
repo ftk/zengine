@@ -60,7 +60,7 @@ public:
 
 
 private:
-    void copy_from_custom_buf(texture& tex, GLenum mode, unsigned first, unsigned count)
+    void copy_from_custom_buf(const texture& tex, GLenum mode, unsigned first, unsigned count)
     {
         shader.bind();
         tex.bind(0);
@@ -68,42 +68,73 @@ private:
     }
 public:
     // lower left corners and size
-    void copy(texture &tex,
-              qvm::vec2 ll = {0.f, 0.f},
+    void copy(const texture &tex,
+              qvm::vec2 ll = {-1.f, -1.f},
               qvm::vec2 size = {2.f, 2.f},
               qvm::vec2 src_ll = {0.f, 0.f},
               qvm::vec2 src_size = {1.f, 1.f}
     )
     {
         using namespace qvm;
-        // ul
-        const float up = Y(src_ll);
-        const float left = X(src_ll);
-        vertices[0].a_position = XY(ll) + _0Y(size);
-        vertices[0].a_texCoord = vec2{left,up};
-        // ll
-        const float low = Y(src_ll + src_size);
-        vertices[1].a_position = ll;
-        vertices[1].a_texCoord = vec2{left,low};
-        // ur
-        const float right = X(src_ll + src_size);
-        vertices[2].a_position = ll + size;
-        vertices[2].a_texCoord = vec2{right,up};
-        // lr
-        vertices[3].a_position = XY(ll) + X0(size);
-        vertices[3].a_texCoord = vec2{right,low};
+#define GEN_V(i,x,y) \
+        vertices[i].a_position = ll + vec2{x * X(size), y * Y(size)}; \
+        vertices[i].a_texCoord = src_ll + vec2{x * X(src_size), /* mirror y */ (1 - y) * Y(src_size)}; \
+        /* GEN_V */
 
+        GEN_V(0,0,1) // ul
+        GEN_V(1,0,0) // ll
+        GEN_V(2,1,1) // ur
+        GEN_V(3,1,0) // lr
+#undef GEN_V
         vertices_buf.update(vertices.data(), sizeof(vertices)); // binded
-
         copy_from_custom_buf(tex, GL_TRIANGLE_STRIP, 0, vertices.size());
     }
 
     // calculate x preserving aspect ratio of texture
-    void copy_y(texture& tex, qvm::vec2 ll, float sizey)
+    void copy_y(const texture& tex, qvm::vec2 ll, float sizey)
     {
         using namespace qvm;
         auto size = tex.get_size();
         return copy(tex, ll, {(float(X(size)) / Y(size)) * sizey, sizey});
+    }
+
+    /** Copy a rectangle (of size src_size with center at src_center and rotated by src_rot radians)
+     *  from texture tex to screen rectange (size, center, rot)
+     *
+     * @param tex texture
+     * @param center target center point in screen coordinates
+     * @param size target rectangle size
+     * @param rot counter clockwise rotation around center in radians
+     * @param src_center center point in source texture coordinates
+     * @param src_size
+     * @param src_rot
+     */
+    void copy_center(texture &tex,
+              qvm::vec2 center = {0.f, 0.f},
+              qvm::vec2 size = {2.f, 2.f},
+              float rot = 0.f,
+              qvm::vec2 src_center = {0.5f, 0.5f},
+              qvm::vec2 src_size = {1.f, 1.f},
+              float src_rot = 0.f
+    )
+    {
+        using namespace qvm;
+        mat2 tr {cos(rot), -sin(rot), sin(rot), cos(rot)};
+        mat2 str {cos(src_rot), -sin(src_rot), sin(src_rot), cos(src_rot)};
+
+#define GEN_V(i,xs,ys) \
+        vertices[i].a_position = center + tr * vec2{xs X(size),ys Y(size)} / 2.f; \
+        vertices[i].a_texCoord = src_center + str * vec2{xs X(src_size), -(ys Y(src_size))} / 2.f; \
+        /* GEN_V */
+
+        GEN_V(0,-,+) // ul
+        GEN_V(1,-,-) // ll
+        GEN_V(2,+,+) // ur
+        GEN_V(3,+,-) // lr
+#undef GEN_V
+        vertices_buf.update(vertices.data(), sizeof(vertices)); // binded
+        copy_from_custom_buf(tex, GL_TRIANGLE_STRIP, 0, vertices.size());
+
     }
 };
 
