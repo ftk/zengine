@@ -107,13 +107,6 @@ add_executable(nettest  network_test.cpp src/components/network.cpp external/boo
 target_compile_definitions(nettest PUBLIC -DLOG_HEADER_ONLY)
 #target_link_libraries(nettest ${Boost_LIBRARIES})
 
-# options for backtrace to work
-if(0 AND CMAKE_COMPILER_IS_GNUCXX) # disabled
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -finstrument-functions -finstrument-functions-exclude-file-list=include/")
-    set_source_files_properties(src/util/backtrace.cpp PROPERTIES COMPILE_FLAGS -fno-instrument-functions)
-else()
-    add_definitions(-DNO_BACKTRACE)
-endif()
 
 set_source_files_properties(src/util/audio.cpp PROPERTIES COMPILE_FLAGS "-fpermissive -w")
 
