@@ -8,13 +8,7 @@
 #include <utility>
 #include "util/hash.hpp"
 #include "util/lru_cache.hpp"
-
-template <class Resource>
-struct resource_traits
-        {
-            static unsigned int get_size(const Resource& rsc) { return 1; }
-            static Resource from_id(string_view id) { return Resource{id}; }
-        };
+#include "util/resource_traits.hpp"
 
 template <class Resource>
 class resource_cache

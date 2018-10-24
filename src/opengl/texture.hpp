@@ -73,4 +73,17 @@ public:
 
 };
 
+#include "util/resource_traits.hpp"
+
+template <>
+struct resource_traits<texture>
+{
+    static unsigned int get_size(const texture& rsc)
+    {
+        return static_cast<unsigned>(qvm::X(rsc.get_size()) * qvm::Y(rsc.get_size()) * 4);
+    }
+    static texture from_id(string_view id) { return texture{id}; }
+};
+
+
 #endif //ZENGINE_TEXTURE_HPP

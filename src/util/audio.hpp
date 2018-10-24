@@ -104,5 +104,18 @@ public:
 };
 
 
+#include "util/resource_traits.hpp"
+
+template <>
+struct resource_traits<sound>
+{
+    static unsigned int get_size(const sound& rsc)
+    {
+        return static_cast<unsigned>(rsc.size());
+    }
+    static sound from_id(std::string_view id) { return sound{id}; }
+};
+
+
 
 #endif //ZENGINE_AUDIO_HPP
