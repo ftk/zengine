@@ -27,6 +27,8 @@ public:
     gl();
     ~gl();
 
+    static bool initialized;
+
 #define GLFUNC(ret,name,params) static ret (*name) params;
 #include "opengl.inl"
 #undef GLFUNC

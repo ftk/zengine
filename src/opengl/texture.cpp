@@ -2,7 +2,7 @@
 // Created by fotyev on 2016-11-06.
 //
 
-#include <src/util/log.hpp>
+#include "util/log.hpp"
 #include "texture.hpp"
 
 #include "opengl.hpp"
@@ -92,7 +92,7 @@ void texture::bind(unsigned tex_unit) const
 
 texture::~texture()
 {
-    if(idx)
+    if(gl::initialized && idx)
     {
         gl::DeleteTextures(1, &idx);
         GL_CHECK_ERROR();

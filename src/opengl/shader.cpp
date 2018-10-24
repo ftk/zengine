@@ -104,7 +104,7 @@ program::program(const std::initializer_list <GLuint>& shaders)
 
 program::~program()
 {
-    if(prog)
+    if(gl::initialized && prog)
     {
         //GL_CHECK_ERROR();
         gl::DeleteProgram(prog);

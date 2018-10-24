@@ -55,10 +55,12 @@ static void debug_log(GLenum source,GLenum type,GLuint id,GLenum severity,GLsize
 
 #endif
 
+bool gl::initialized = false;
 
 gl::gl()
 {
         // initialize
+        assume(!initialized);
 
 #define GLFUNC(ret,name,params) \
         this->name = reinterpret_cast<ret (*) params>(glfwGetProcAddress("gl" #name)); \
@@ -81,10 +83,13 @@ gl::gl()
     }
 
 #endif
+    initialized = true;
 }
 
 gl::~gl()
 {
+    assume(initialized);
+    initialized = false;
 }
 
 // initialize static variables
