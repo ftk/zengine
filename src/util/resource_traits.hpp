@@ -12,7 +12,7 @@ struct resource_traits
 {
     static unsigned int get_size(const Resource& rsc) { return 1; }
     template <typename T>
-    static Resource from_id(T id) { return Resource{std::move(id)}; }
+    static T from_id(T id) { return std::forward<T>(id); }
 };
 
 #endif //ZENGINE_RESOURCE_TRAITS_HPP
