@@ -11,7 +11,6 @@
 
 #include "events.hpp"
 
-#include "util/optional.hpp"
 #include "util/assert.hpp"
 #include "util/log.hpp"
 

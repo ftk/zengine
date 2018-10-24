@@ -7,7 +7,6 @@
 
 #include "components/netgame.hpp"
 
-#include "util/optional.hpp"
 #include "util/log.hpp"
 #include "util/assert.hpp"
 #include "util/serialization.hpp"

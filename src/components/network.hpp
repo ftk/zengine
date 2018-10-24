@@ -6,20 +6,15 @@
 #define ZENGINE_NETWORK_HPP
 
 #include <boost/asio.hpp>
-
 #include <boost/date_time/posix_time/posix_time.hpp>
-
 
 #include <boost/noncopyable.hpp>
 #include <boost/endian/arithmetic.hpp>
-
 
 #include <array>
 #include <cstdint>
 #include <atomic>
 #include <map>
-
-#include "util/optional.hpp"
 
 
 #ifndef NETLOG
