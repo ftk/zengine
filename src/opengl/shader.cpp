@@ -13,9 +13,8 @@ shader::shader(GLenum type, const char * source)
 {
     // Create the shader object
     glshader = gl::CreateShader(type);
-
-    if(glshader == 0)
-        throw gl_exc{};
+    GL_CHECK_ERROR();
+    assert(glshader != 0);
 
     // Load the shader source
     gl::ShaderSource(glshader, 1, &source, NULL);
@@ -199,8 +198,11 @@ array_buf::array_buf(const void * data, std::size_t size, GLenum hint)
 
 array_buf::~array_buf()
 {
-    gl::DeleteBuffers(1, &buf);
-    GL_CHECK_ERROR();
+    if(gl::initialized)
+    {
+        gl::DeleteBuffers(1, &buf);
+        GL_CHECK_ERROR();
+    }
 }
 
 

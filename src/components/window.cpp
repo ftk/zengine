@@ -10,11 +10,12 @@
 #include <GLFW/glfw3.h>
 
 #include "util/log.hpp"
+#include "opengl/opengl.hpp"
 
 window_c::window_handle::window_handle(int width, int height, const char * title)
 {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, GLES_VERSION);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 
 

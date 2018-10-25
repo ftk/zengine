@@ -57,6 +57,7 @@ extern "C" {
 #ifndef GL_ES_VERSION_2_0
 #define GL_ES_VERSION_2_0 1
 #include <stdint.h>
+#include <stddef.h>
 typedef int8_t GLbyte;
 typedef float GLclampf;
 typedef int32_t GLfixed;
@@ -70,7 +71,7 @@ typedef unsigned int GLenum;
 typedef unsigned int GLuint;
 typedef char GLchar;
 typedef float GLfloat;
-typedef ssize_t GLsizeiptr;
+typedef ptrdiff_t GLsizeiptr;
 typedef intptr_t GLintptr;
 typedef unsigned int GLbitfield;
 typedef int GLint;

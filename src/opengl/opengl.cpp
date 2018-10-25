@@ -64,10 +64,16 @@ gl::gl()
 
 #define GLFUNC(ret,name,params) \
         this->name = reinterpret_cast<ret (*) params>(glfwGetProcAddress("gl" #name)); \
-        if(this->name == nullptr) throw std::runtime_error{"Function " "gl" #name " is null"};
-#include "opengl.inl"
+        if(this->name == nullptr) throw std::runtime_error{"Function " + std::string{"gl" #name} + " is null"};
+#include GLFUNC_FILE
 #undef GLFUNC
 
+#ifdef GLES_EXTENSIONS
+#define GLFUNC(ret,name,params) \
+        this->name = reinterpret_cast<ret (*) params>(glfwGetProcAddress("gl" #name));
+#include "openglext.inl"
+#undef GLFUNC
+#endif
 
 
 #if GL_DEBUG >= 2
@@ -94,16 +100,9 @@ gl::~gl()
 
 // initialize static variables
 #define GLFUNC(ret,name,params) ret (*gl::name) params = nullptr;
-#include "opengl.inl"
+#include GLFUNC_FILE
+#ifdef GLES_EXTENSIONS
+#include "openglext.inl"
+#endif
 #undef GLFUNC
-
-gl_exc::gl_exc() : std::runtime_error("OpenGL error!")
-{
-    error = gl::GetError();
-}
-gl_exc::gl_exc(GLenum err) : std::runtime_error("OpenGL error! " + std::to_string(err)), error(err)
-{
-}
-
-
 

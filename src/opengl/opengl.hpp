@@ -6,19 +6,26 @@
 #define ZENGINE_OPENGL_HPP
 
 
-#include <stdexcept>
+#ifndef GLES_VERSION
+#define GLES_VERSION 2
+#endif
 
+#if GLES_VERSION == 2
 #include "gl2.h"
+#define GLFUNC_FILE "opengles2.inl"
+#elif GLES_VERSION == 3
+#include "gl3.h"
+#define GLFUNC_FILE "opengles3.inl"
+#else
+#error unknown GLES_VERSION
+#endif
+
+#ifdef GLES_EXTENSIONS
+#include "gl2ext.h"
+#endif
+
 #include "util/movable.hpp"
 #include "util/assert.hpp"
-
-class gl_exc : public std::runtime_error
-{
-    GLenum error;
-public:
-    gl_exc();
-    gl_exc(GLenum err);
-};
 
 class gl
 {
@@ -30,22 +37,15 @@ public:
     static bool initialized;
 
 #define GLFUNC(ret,name,params) static ret (*name) params;
-#include "opengl.inl"
+#include GLFUNC_FILE
+#ifdef GLES_EXTENSIONS
+#include "openglext.inl"
+#endif
 #undef GLFUNC
 
     static void feature(GLenum mask, bool toggle) { return (toggle ? gl::Enable(mask) : gl::Disable(mask)); }
 
 };
-
-
-
-#ifdef GL_USE_GLOBAL_FUNCTIONS
-
-#define GLFUNC(ret,name,params) const auto& gl ## name = gl :: name;
-#include "opengl.inl"
-#undef GLFUNC
-
-#endif
 
 
 template <GLenum GLnum>
@@ -91,7 +91,7 @@ template<> struct type_to_gl<GLushort> { static constexpr GLenum value = GL_UNSI
 #ifdef NDEBUG
 #define GL_DEBUG 0
 #else
-#define GL_DEBUG 2
+#define GL_DEBUG 3
 #endif
 #endif
 
