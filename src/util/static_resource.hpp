@@ -23,7 +23,7 @@ template <class Rsc>
 class static_resource
 {
     template <typename Id>
-    static inline std::optional<Rsc> resource;
+    static/* inline*/ std::optional<Rsc> resource;
 
 public:
     template <typename Id>
@@ -65,9 +65,9 @@ public:
 
 };
 
-/*template <class Rsc>
+template <class Rsc>
 template <typename>
-std::optional<Rsc> static_resource<Rsc>::resource;*/
+std::optional<Rsc> static_resource<Rsc>::resource;
 
 #undef IF_LIKELY
 
