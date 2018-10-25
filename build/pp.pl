@@ -137,6 +137,7 @@ for our $pass (1,2) {
         }
         if($pass == 2 && $dirty) {
             print $newfile substr($content, $pos);
+            close $newfile;
             print "$filename updated!\n";
             rename($filename . '.ppnew', $filename) or die $!;
         }
