@@ -27,17 +27,16 @@ inline std::ostream& operator << (std::ostream& o, const std::vector<T>& v)
    }
    $s;
    %*/
-static void dump(std::ostream& ss, const event::click & e) {ss << "click:" << " x: " << e. x << " y: " << e. y;}
+static void dump(std::ostream& ss, const event::host_adv & e) {ss << "host_adv:";}
 static void dump(std::ostream& ss, const event::join & e) {ss << "join:";}
 static void dump(std::ostream& ss, const event::joined & e) {ss << "joined:" << " tick: " << e. tick << " id: " << e. id;}
-static void dump(std::ostream& ss, const event::movement & e) {ss << "movement:" << " x: " << e. x << " y: " << e. y << " down: " << e. down;}
+static void dump(std::ostream& ss, const event::make_new_snake & e) {ss << "make_new_snake:";}
+static void dump(std::ostream& ss, const event::new_food & e) {ss << "new_food:" << " x: " << e. x << " y: " << e. y;}
 static void dump(std::ostream& ss, const event::node_connect & e) {ss << "node_connect:";}
 static void dump(std::ostream& ss, const event::node_disconnect & e) {ss << "node_disconnect:";}
-static void dump(std::ostream& ss, const event::null & e) {ss << "null:";}
 static void dump(std::ostream& ss, const event::peers & e) {ss << "peers:" << " arr: " << e. arr;}
 static void dump(std::ostream& ss, const event::player_join & e) {ss << "player_join:";}
 static void dump(std::ostream& ss, const event::player_leave & e) {ss << "player_leave:";}
-static void dump(std::ostream& ss, const event::shoot & e) {ss << "shoot:" << " x: " << e. x << " y: " << e. y;}
 static void dump(std::ostream& ss, const event::statesync & e) {ss << "statesync:" << " state: " << e. state;}/*>*/
 
 

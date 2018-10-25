@@ -92,17 +92,17 @@ ModulePtr script_register_bindings(ModulePtr m)
        }
        $s;
       %*/
-	chai.add(fun([](int8_t gas) -> event_t {return event::accelerate{std::move(gas)};}), "event_accelerate");
+	chai.add(fun([]() -> event_t {return event::host_adv{};}), "event_host_adv");
 	chai.add(fun([]() -> event_t {return event::join{};}), "event_join");
 	chai.add(fun([](tick_t tick, net_node_id id) -> event_t {return event::joined{std::move(tick), std::move(id)};}), "event_joined");
+	chai.add(fun([]() -> event_t {return event::make_new_snake{};}), "event_make_new_snake");
+	chai.add(fun([](float x, float y) -> event_t {return event::new_food{std::move(x), std::move(y)};}), "event_new_food");
 	chai.add(fun([]() -> event_t {return event::node_connect{};}), "event_node_connect");
 	chai.add(fun([]() -> event_t {return event::node_disconnect{};}), "event_node_disconnect");
 	chai.add(fun([](std::vector<net_node_id> arr) -> event_t {return event::peers{std::move(arr)};}), "event_peers");
 	chai.add(fun([]() -> event_t {return event::player_join{};}), "event_player_join");
 	chai.add(fun([]() -> event_t {return event::player_leave{};}), "event_player_leave");
-	chai.add(fun([]() -> event_t {return event::shoot{};}), "event_shoot");
-	chai.add(fun([](std::string state) -> event_t {return event::statesync{std::move(state)};}), "event_statesync");
-	chai.add(fun([](int8_t d_angle) -> event_t {return event::turn{std::move(d_angle)};}), "event_turn");/*>*/
+	chai.add(fun([](std::string state) -> event_t {return event::statesync{std::move(state)};}), "event_statesync");/*>*/
 
     return m;
 }

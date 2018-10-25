@@ -57,17 +57,20 @@ namespace event {
    $s .= "\n\nconstexpr unsigned events_num = $index;\n#define EVENTS_SEQ $seq";
    $s;
    %*/
-struct join {static constexpr unsigned index = 0; SERIALIZABLE()};
-struct joined {static constexpr unsigned index = 1; tick_t tick; net_node_id id; SERIALIZABLE(tick,id)};
-struct node_connect {static constexpr unsigned index = 2; SERIALIZABLE()};
-struct node_disconnect {static constexpr unsigned index = 3; SERIALIZABLE()};
-struct peers {static constexpr unsigned index = 4; std::vector<net_node_id> arr; SERIALIZABLE(arr)};
-struct player_join {static constexpr unsigned index = 5; SERIALIZABLE()};
-struct player_leave {static constexpr unsigned index = 6; SERIALIZABLE()};
-struct statesync {static constexpr unsigned index = 7; std::string state; SERIALIZABLE(state)};
+struct host_adv {static constexpr unsigned index = 0; SERIALIZABLE()};
+struct join {static constexpr unsigned index = 1; SERIALIZABLE()};
+struct joined {static constexpr unsigned index = 2; tick_t tick; net_node_id id; SERIALIZABLE(tick,id)};
+struct make_new_snake {static constexpr unsigned index = 3; SERIALIZABLE()};
+struct new_food {static constexpr unsigned index = 4; float x; float y; SERIALIZABLE(x,y)};
+struct node_connect {static constexpr unsigned index = 5; SERIALIZABLE()};
+struct node_disconnect {static constexpr unsigned index = 6; SERIALIZABLE()};
+struct peers {static constexpr unsigned index = 7; std::vector<net_node_id> arr; SERIALIZABLE(arr)};
+struct player_join {static constexpr unsigned index = 8; SERIALIZABLE()};
+struct player_leave {static constexpr unsigned index = 9; SERIALIZABLE()};
+struct statesync {static constexpr unsigned index = 10; std::string state; SERIALIZABLE(state)};
 
-constexpr unsigned events_num = 8;
-#define EVENTS_SEQ (join)(joined)(node_connect)(node_disconnect)(peers)(player_join)(player_leave)(statesync)/*>*/
+constexpr unsigned events_num = 11;
+#define EVENTS_SEQ (host_adv)(join)(joined)(make_new_snake)(new_food)(node_connect)(node_disconnect)(peers)(player_join)(player_leave)(statesync)/*>*/
 
 //static_assert(std::is_pod<null>::value == true);
 
@@ -75,7 +78,7 @@ constexpr unsigned events_num = 8;
 
 using event_t = boost::variant<
     /*< join ', ', map { "event::$_->{name}" } dispatch('events');
-     %*/event::join, event::joined, event::node_connect, event::node_disconnect, event::peers, event::player_join, event::player_leave, event::statesync/*>*/
+     %*/event::host_adv, event::join, event::joined, event::make_new_snake, event::new_food, event::node_connect, event::node_disconnect, event::peers, event::player_join, event::player_leave, event::statesync/*>*/
 >;
 //static_assert(std::is_pod<event_t>::value == true);
 
