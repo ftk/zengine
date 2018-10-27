@@ -18,6 +18,52 @@
 
 #include "util/assert.hpp"
 
+namespace detail {
+    namespace {
+        template <typename T, int D>
+        constexpr auto glUniform = nullptr;
+        template <typename T, int D>
+        constexpr auto glUniformMatrix = nullptr;
+        template <typename T, int D>
+        constexpr auto glVertexAttrib = nullptr;
+
+        /*<
+        sub generate_wrappers {
+        my $k = shift;
+        my %types = %{shift(@_)};
+        my @dim = @{shift(@_)};
+        my $s = '';
+        for my $t (sort keys %types) {
+         for my $d (@dim) {
+          $s .= "template<> constexpr auto& gl${k}<$t, $d> = gl::${k}${d}${types{$t}}v;
+          ";
+         }
+        }
+        $s;
+        }
+
+        generate_wrappers('Uniform', {'GLfloat' => 'f', 'GLint' => 'i'}, [1..4]) .
+        generate_wrappers('UniformMatrix', {'GLfloat' => 'f'}, [2..4]) .
+        generate_wrappers('VertexAttrib', {'GLfloat' => 'f'}, [1..4]);
+        %*/template<> constexpr auto& glUniform<GLfloat, 1> = gl::Uniform1fv;
+          template<> constexpr auto& glUniform<GLfloat, 2> = gl::Uniform2fv;
+          template<> constexpr auto& glUniform<GLfloat, 3> = gl::Uniform3fv;
+          template<> constexpr auto& glUniform<GLfloat, 4> = gl::Uniform4fv;
+          template<> constexpr auto& glUniform<GLint, 1> = gl::Uniform1iv;
+          template<> constexpr auto& glUniform<GLint, 2> = gl::Uniform2iv;
+          template<> constexpr auto& glUniform<GLint, 3> = gl::Uniform3iv;
+          template<> constexpr auto& glUniform<GLint, 4> = gl::Uniform4iv;
+          template<> constexpr auto& glUniformMatrix<GLfloat, 2> = gl::UniformMatrix2fv;
+          template<> constexpr auto& glUniformMatrix<GLfloat, 3> = gl::UniformMatrix3fv;
+          template<> constexpr auto& glUniformMatrix<GLfloat, 4> = gl::UniformMatrix4fv;
+          template<> constexpr auto& glVertexAttrib<GLfloat, 1> = gl::VertexAttrib1fv;
+          template<> constexpr auto& glVertexAttrib<GLfloat, 2> = gl::VertexAttrib2fv;
+          template<> constexpr auto& glVertexAttrib<GLfloat, 3> = gl::VertexAttrib3fv;
+          template<> constexpr auto& glVertexAttrib<GLfloat, 4> = gl::VertexAttrib4fv;
+          /*>*/
+    }
+}
+
 class shader
 {
     GLuint glshader;
@@ -33,9 +79,6 @@ public:
     ~shader();
 
 };
-
-
-
 
 
 class program
@@ -146,169 +189,19 @@ private:
     }
 public:
 
-    /*<
-     sub generate_setters {
-     my $setter = shift;
-     my %types = %{shift(@_)};
-     my $s = '';
-     for my $t (sort keys %types) {
-     for my $d (1..4) {
-     my $params = '';
-     #$params .= ", qvm::vec_traits<T>::template read_element<$_>(rhs)" for (0 .. $d-1);
-     $params .= ", qvm::A<$_>(rhs)" for (0 .. $d-1);
-     $s .= qq%
-     // vec $t $d
-     template <typename T>
-     std::enable_if_t<qvm::is_vec<T>::value && qvm::vec_traits<T>::dim == $d &&
-     std::is_same<$t, typename qvm::vec_traits<T>::scalar_type>::value>
-     inline operator = (const T& rhs) {
-        ${setter}${d}${types{$t}}(idx $params); GL_CHECK_ERROR();
-     }
-     %;
-     }
-     }
-
-     return $s;
-     }
-
-     generate_setters('gl::Uniform', { 'GLfloat' => 'f', 'GLint' => 'i' });
-     %*/
-     // vec GLfloat 1
-     template <typename T>
-     std::enable_if_t<qvm::is_vec<T>::value && qvm::vec_traits<T>::dim == 1 &&
-     std::is_same<GLfloat, typename qvm::vec_traits<T>::scalar_type>::value>
-     inline operator = (const T& rhs) {
-        gl::Uniform1f(idx , qvm::A<0>(rhs)); GL_CHECK_ERROR();
-     }
-     
-     // vec GLfloat 2
-     template <typename T>
-     std::enable_if_t<qvm::is_vec<T>::value && qvm::vec_traits<T>::dim == 2 &&
-     std::is_same<GLfloat, typename qvm::vec_traits<T>::scalar_type>::value>
-     inline operator = (const T& rhs) {
-        gl::Uniform2f(idx , qvm::A<0>(rhs), qvm::A<1>(rhs)); GL_CHECK_ERROR();
-     }
-     
-     // vec GLfloat 3
-     template <typename T>
-     std::enable_if_t<qvm::is_vec<T>::value && qvm::vec_traits<T>::dim == 3 &&
-     std::is_same<GLfloat, typename qvm::vec_traits<T>::scalar_type>::value>
-     inline operator = (const T& rhs) {
-        gl::Uniform3f(idx , qvm::A<0>(rhs), qvm::A<1>(rhs), qvm::A<2>(rhs)); GL_CHECK_ERROR();
-     }
-     
-     // vec GLfloat 4
-     template <typename T>
-     std::enable_if_t<qvm::is_vec<T>::value && qvm::vec_traits<T>::dim == 4 &&
-     std::is_same<GLfloat, typename qvm::vec_traits<T>::scalar_type>::value>
-     inline operator = (const T& rhs) {
-        gl::Uniform4f(idx , qvm::A<0>(rhs), qvm::A<1>(rhs), qvm::A<2>(rhs), qvm::A<3>(rhs)); GL_CHECK_ERROR();
-     }
-     
-     // vec GLint 1
-     template <typename T>
-     std::enable_if_t<qvm::is_vec<T>::value && qvm::vec_traits<T>::dim == 1 &&
-     std::is_same<GLint, typename qvm::vec_traits<T>::scalar_type>::value>
-     inline operator = (const T& rhs) {
-        gl::Uniform1i(idx , qvm::A<0>(rhs)); GL_CHECK_ERROR();
-     }
-     
-     // vec GLint 2
-     template <typename T>
-     std::enable_if_t<qvm::is_vec<T>::value && qvm::vec_traits<T>::dim == 2 &&
-     std::is_same<GLint, typename qvm::vec_traits<T>::scalar_type>::value>
-     inline operator = (const T& rhs) {
-        gl::Uniform2i(idx , qvm::A<0>(rhs), qvm::A<1>(rhs)); GL_CHECK_ERROR();
-     }
-     
-     // vec GLint 3
-     template <typename T>
-     std::enable_if_t<qvm::is_vec<T>::value && qvm::vec_traits<T>::dim == 3 &&
-     std::is_same<GLint, typename qvm::vec_traits<T>::scalar_type>::value>
-     inline operator = (const T& rhs) {
-        gl::Uniform3i(idx , qvm::A<0>(rhs), qvm::A<1>(rhs), qvm::A<2>(rhs)); GL_CHECK_ERROR();
-     }
-     
-     // vec GLint 4
-     template <typename T>
-     std::enable_if_t<qvm::is_vec<T>::value && qvm::vec_traits<T>::dim == 4 &&
-     std::is_same<GLint, typename qvm::vec_traits<T>::scalar_type>::value>
-     inline operator = (const T& rhs) {
-        gl::Uniform4i(idx , qvm::A<0>(rhs), qvm::A<1>(rhs), qvm::A<2>(rhs), qvm::A<3>(rhs)); GL_CHECK_ERROR();
-     }
-     /*>*/
-
-    // faster overloads
-    // mat4
-    void
-    operator = (const qvm::mat4& rhs)
-    {
-        gl::UniformMatrix4fv(idx, 1, true, &rhs.a[0][0]);
-        GL_CHECK_ERROR();
+    template <typename T, int D>
+    inline void assign(const qvm::vec<T, D> * begin, const qvm::vec<T, D> * end) {
+        detail::glUniform<T, D>(idx, end - begin, &begin->a[0]); GL_CHECK_ERROR();
     }
-    // mat3
-    void
-    operator = (const qvm::mat3& rhs)
-    {
-        gl::UniformMatrix3fv(idx, 1, true, &rhs.a[0][0]);
-        GL_CHECK_ERROR();
+    template <typename T, int D>
+    inline void operator = (const qvm::vec<T, D>& rhs) { assign(&rhs, &rhs + 1); }
+
+    template <typename T, int D>
+    inline void assign(const qvm::mat<T, D, D> * begin, const qvm::mat<T, D, D> * end) {
+        detail::glUniformMatrix<T, D>(idx, end - begin, &begin->a[0][0]); GL_CHECK_ERROR();
     }
-
-    // generic qvm overloads
-    /*<
-     my $s = '';
-     for my $d (2..4) {
-     my $mat = '';
-     for my $col (0..$d-1) { for my $row (0..$d-1) {
-         $mat .= "qvm::A<$row,$col>(rhs),";
-     }}
-
-     $s .= qq%
-     // mat GLfloat $d
-     template <typename T>
-     std::enable_if_t<qvm::is_mat<T>::value &&
-        qvm::mat_traits<T>::rows == $d && qvm::mat_traits<T>::cols == $d &&
-        std::is_same<GLfloat, typename qvm::mat_traits<T>::scalar_type>::value>
-     inline operator = (const T& rhs) {
-        const GLfloat mat[$d * $d] = {$mat};
-        gl::UniformMatrix${d}fv(idx, 1, GL_FALSE, mat); GL_CHECK_ERROR();
-     }
- %;
- }
-
- return $s;
- %*/
-     // mat GLfloat 2
-     template <typename T>
-     std::enable_if_t<qvm::is_mat<T>::value &&
-        qvm::mat_traits<T>::rows == 2 && qvm::mat_traits<T>::cols == 2 &&
-        std::is_same<GLfloat, typename qvm::mat_traits<T>::scalar_type>::value>
-     inline operator = (const T& rhs) {
-        const GLfloat mat[2 * 2] = {qvm::A<0,0>(rhs),qvm::A<1,0>(rhs),qvm::A<0,1>(rhs),qvm::A<1,1>(rhs),};
-        gl::UniformMatrix2fv(idx, 1, GL_FALSE, mat); GL_CHECK_ERROR();
-     }
- 
-     // mat GLfloat 3
-     template <typename T>
-     std::enable_if_t<qvm::is_mat<T>::value &&
-        qvm::mat_traits<T>::rows == 3 && qvm::mat_traits<T>::cols == 3 &&
-        std::is_same<GLfloat, typename qvm::mat_traits<T>::scalar_type>::value>
-     inline operator = (const T& rhs) {
-        const GLfloat mat[3 * 3] = {qvm::A<0,0>(rhs),qvm::A<1,0>(rhs),qvm::A<2,0>(rhs),qvm::A<0,1>(rhs),qvm::A<1,1>(rhs),qvm::A<2,1>(rhs),qvm::A<0,2>(rhs),qvm::A<1,2>(rhs),qvm::A<2,2>(rhs),};
-        gl::UniformMatrix3fv(idx, 1, GL_FALSE, mat); GL_CHECK_ERROR();
-     }
- 
-     // mat GLfloat 4
-     template <typename T>
-     std::enable_if_t<qvm::is_mat<T>::value &&
-        qvm::mat_traits<T>::rows == 4 && qvm::mat_traits<T>::cols == 4 &&
-        std::is_same<GLfloat, typename qvm::mat_traits<T>::scalar_type>::value>
-     inline operator = (const T& rhs) {
-        const GLfloat mat[4 * 4] = {qvm::A<0,0>(rhs),qvm::A<1,0>(rhs),qvm::A<2,0>(rhs),qvm::A<3,0>(rhs),qvm::A<0,1>(rhs),qvm::A<1,1>(rhs),qvm::A<2,1>(rhs),qvm::A<3,1>(rhs),qvm::A<0,2>(rhs),qvm::A<1,2>(rhs),qvm::A<2,2>(rhs),qvm::A<3,2>(rhs),qvm::A<0,3>(rhs),qvm::A<1,3>(rhs),qvm::A<2,3>(rhs),qvm::A<3,3>(rhs),};
-        gl::UniformMatrix4fv(idx, 1, GL_FALSE, mat); GL_CHECK_ERROR();
-     }
- /*>*/
-
+    template <typename T, int D>
+    inline void operator = (const qvm::mat<T, D, D>& rhs) { assign(&rhs, &rhs + 1); }
 };
 
 class attribute
@@ -339,41 +232,8 @@ public:
         GL_CHECK_ERROR();
     }
 
-    /*<
-     generate_setters('gl::VertexAttrib', { 'GLfloat' => 'f' });
-     %*/
-     // vec GLfloat 1
-     template <typename T>
-     std::enable_if_t<qvm::is_vec<T>::value && qvm::vec_traits<T>::dim == 1 &&
-     std::is_same<GLfloat, typename qvm::vec_traits<T>::scalar_type>::value>
-     inline operator = (const T& rhs) {
-        gl::VertexAttrib1f(idx , qvm::A<0>(rhs)); GL_CHECK_ERROR();
-     }
-     
-     // vec GLfloat 2
-     template <typename T>
-     std::enable_if_t<qvm::is_vec<T>::value && qvm::vec_traits<T>::dim == 2 &&
-     std::is_same<GLfloat, typename qvm::vec_traits<T>::scalar_type>::value>
-     inline operator = (const T& rhs) {
-        gl::VertexAttrib2f(idx , qvm::A<0>(rhs), qvm::A<1>(rhs)); GL_CHECK_ERROR();
-     }
-     
-     // vec GLfloat 3
-     template <typename T>
-     std::enable_if_t<qvm::is_vec<T>::value && qvm::vec_traits<T>::dim == 3 &&
-     std::is_same<GLfloat, typename qvm::vec_traits<T>::scalar_type>::value>
-     inline operator = (const T& rhs) {
-        gl::VertexAttrib3f(idx , qvm::A<0>(rhs), qvm::A<1>(rhs), qvm::A<2>(rhs)); GL_CHECK_ERROR();
-     }
-     
-     // vec GLfloat 4
-     template <typename T>
-     std::enable_if_t<qvm::is_vec<T>::value && qvm::vec_traits<T>::dim == 4 &&
-     std::is_same<GLfloat, typename qvm::vec_traits<T>::scalar_type>::value>
-     inline operator = (const T& rhs) {
-        gl::VertexAttrib4f(idx , qvm::A<0>(rhs), qvm::A<1>(rhs), qvm::A<2>(rhs), qvm::A<3>(rhs)); GL_CHECK_ERROR();
-     }
-     /*>*/
+    template <typename T, int D>
+    inline void operator = (const qvm::vec<T, D>& rhs) { detail::glVertexAttrib<T, D>(idx, &rhs.a[0]); GL_CHECK_ERROR(); }
 };
 
 
