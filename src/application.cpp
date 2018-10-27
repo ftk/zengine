@@ -10,7 +10,6 @@
 #else
 #include "src/components/config.hpp"
 #include "src/components/glfw.hpp"
-#include "src/components/mixer.hpp"
 #include "src/components/netgame_impl.hpp"
 #include "src/components/network.hpp"
 #include "src/components/resources.hpp"
@@ -20,8 +19,16 @@
 #include "opengl/opengl.hpp"
 #include "util/log.hpp"
 
+#ifdef __EMSCRIPTEN__
+#include "emscripten.h"
+static void app_loop();
+#endif
+
 void application::run()
 {
+#ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(&app_loop, 0, 1);
+#else
     while(running)
     {
         // frame limiter loop
@@ -32,6 +39,7 @@ void application::run()
 
         draw();
     }
+#endif
 }
 
 void application::draw()
@@ -58,7 +66,6 @@ void application::init_components()
 		LOAD_COMPONENT(glfw_init, glfw_c)
 		LOAD_COMPONENT(window, window_c)
 		LOAD_COMPONENT(resources, resources_c)
-		LOAD_COMPONENT(mixer, mixer_c)
 		LOAD_COMPONENT(network, network_c)
 		LOAD_COMPONENT(netgame, netgame_c)/*>*/
 #undef LOAD_COMPONENT
@@ -80,4 +87,13 @@ application::application() noexcept
 application::~application()
 {
 }
+
+#ifdef __EMSCRIPTEN__
+#include "main.hpp"
+void app_loop()
+{
+    g_app->window->poll();
+    g_app->draw();
+}
+#endif
 

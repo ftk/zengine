@@ -12,7 +12,7 @@
 #include "components/config.hpp"
 
 // depends on window
-//=- register_component(class=>'mixer_c', name=>'mixer', priority=>70);
+//= register_component(class=>'mixer_c', name=>'mixer', priority=>70);
 
 class mixer_c : public mixer
 {

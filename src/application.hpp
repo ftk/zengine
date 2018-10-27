@@ -47,7 +47,6 @@ public:
 	app_component<class glfw_c> glfw_init;
 	app_component<class window_c> window;
 	app_component<class resources_c> resources;
-	app_component<class mixer_c> mixer;
 	app_component<class network_c> network;
 	app_component<class netgame_i> netgame;/*>*/
 

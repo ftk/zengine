@@ -11,7 +11,7 @@
 #include "opengl/textrender.hpp"
 
 
-#include "util/audio.hpp"
+//#include "util/audio.hpp"
 
 
 /*
@@ -33,7 +33,7 @@ class resources_c
 {
 public:
     resource_cache<texture> textures{8 * 1024 * 1024};
-    resource_cache<sound> sounds{8 * 1024 * 1024};
+    //resource_cache<sound> sounds{8 * 1024 * 1024};
 
     font default_font { "resources/default.ttf" };
 };
