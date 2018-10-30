@@ -111,8 +111,10 @@ program::~program()
     }
 }
 
-program program::from_file(const char * file, std::set<std::string> params)
+program program::from_file(const char * file)
 {
+    std::set<std::string> params;
+
     LOGGER(debug, "Loading GL program from", file);
 
     std::ifstream f(file);

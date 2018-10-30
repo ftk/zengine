@@ -9,7 +9,6 @@
 
 //#include <boost/noncopyable.hpp>
 #include <boost/container/flat_map.hpp>
-#include <set>
 
 #include "util/hash.hpp"
 #include "util/movable.hpp"
@@ -79,6 +78,23 @@ namespace detail {
           template<> constexpr auto& glUniformMatrix<GLfloat, 43> = gl::UniformMatrix4x3fv;
           /*>*/
 #endif
+
+#if GLES_VERSION >= 3
+        constexpr bool use_vao = true;
+        constexpr auto& glGenVertexArrays = gl::GenVertexArrays;
+        constexpr auto& glBindVertexArray = gl::BindVertexArray;
+        constexpr auto& glDeleteVertexArrays = gl::DeleteVertexArrays;
+#elif defined(GLES_EXTENSIONS)
+        constexpr auto& glGenVertexArrays = gl::GenVertexArraysOES;
+        constexpr auto& glBindVertexArray = gl::BindVertexArrayOES;
+        constexpr auto& glDeleteVertexArrays = gl::DeleteVertexArraysOES;
+        constexpr auto& use_vao = glBindVertexArray; // by casting to bool we will detect if extension is loaded at runtime
+#else
+        using voidfn = void (*)(...);
+        voidfn glGenVertexArrays = nullptr, glBindVertexArray = nullptr, glDeleteVertexArrays = nullptr;
+        constexpr bool use_vao = false;
+#endif
+
     }
 }
 
@@ -113,7 +129,7 @@ public:
     explicit program(const std::initializer_list<GLuint>& shaders);
 
     // load both vertex and fragment shader from 1 file (contains preprocessor)
-    static program from_file(const char * file, std::set<std::string> params = std::set<std::string>());
+    static program from_file(const char * file);
 
     void bind() const
     {
@@ -205,6 +221,7 @@ public:
     inline void operator = (const qvm::mat<T, D, D>& rhs) { assign(&rhs, &rhs + 1); }
 
 #if GLES_VERSION >= 3
+// TODO: test
     template <typename T, int D1, int D2>
     inline std::enable_if_t<D1 != D2> assign(const qvm::mat<T, D1, D2> * begin, const qvm::mat<T, D1, D2> * end) {
         detail::glUniformMatrix<T, D1 * 10 + D2>(idx, end - begin, true, &begin->a[0][0]); GL_CHECK_ERROR();
@@ -228,15 +245,18 @@ public:
     inline void operator = (const qvm::vec<T, D>& rhs) { detail::glVertexAttrib<T, D>(idx, &rhs.a[0]); GL_CHECK_ERROR(); }
 };
 
-template <typename T, class Base>
-class vertex_buffer : public Base
+/* contains opengl vertex buffer object (array buffer), vertex array object, and stores an array of attributes
+ * Storage requirements: (unsigned)size() - amount of elements stored, (const T *)data() - pointer to beginning
+ */
+template <typename T, class Storage>
+class vertex_buffer : public Storage
 {
 private:
     GLuint vbo;
     GLuint vao = 0;
 public:
     template <typename ... Args>
-    vertex_buffer(Args&&... args) : Base(std::forward<Args...>(args)...)
+    vertex_buffer(Args&&... args) : Storage(std::forward<Args...>(args)...)
     {
         gl::GenBuffers(1, &vbo);
         GL_CHECK_ERROR();
@@ -249,7 +269,7 @@ public:
         GL_CHECK_ERROR();
     }
 
-    void update(typename Base::iterator begin, typename Base::iterator end) const
+    void update(typename Storage::iterator begin, typename Storage::iterator end) const
     {
         gl::BindBuffer(GL_ARRAY_BUFFER, vbo);
         gl::BufferSubData(GL_ARRAY_BUFFER, sizeof(T) * (begin - this->begin()), sizeof(T) * (end - begin), this->data());
@@ -259,25 +279,14 @@ public:
     /* You should only call draw with the same program, or make sure attribute locations in these programs match */
     void draw(program& p, GLenum mode = GL_TRIANGLES, unsigned skip = 0, int count = -1)
     {
+        using namespace detail;
+
         assume(skip <= (unsigned)this->size());
         assume(count == -1 || unsigned(count) <= (this->size() - skip));
         unsigned cnt = static_cast<unsigned>((count != -1) ? count : (this->size() - skip));
 
         p.bind();
 
-#if GLES_VERSION >= 3
-        constexpr bool use_vao = true;
-        constexpr auto& glGenVertexArrays = gl::GenVertexArrays;
-        constexpr auto& glBindVertexArray = gl::BindVertexArray;
-#elif defined(GLES_EXTENSIONS)
-        constexpr auto& glGenVertexArrays = gl::GenVertexArraysOES;
-        constexpr auto& glBindVertexArray = gl::BindVertexArrayOES;
-        const bool use_vao = glGenVertexArrays && glBindVertexArray;
-#else
-        using voidfn = void (*)(...);
-        voidfn glGenVertexArrays = nullptr, glBindVertexArray = nullptr;
-        constexpr bool use_vao = false;
-#endif
 #ifdef __GNUC__
         if(__builtin_expect(vao == 0, false))
 #else
@@ -287,6 +296,7 @@ public:
             if(use_vao)
             {
                 glGenVertexArrays(1, &vao);
+                assume(vao);
                 glBindVertexArray(vao);
             }
             gl::BindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -297,7 +307,8 @@ public:
             glBindVertexArray(vao);
         }
         gl::DrawArrays(mode, skip, cnt);
-        if(use_vao)
+        GL_CHECK_ERROR();
+        if(vao)
             glBindVertexArray(0);
         else
             T::disable(p);
@@ -311,12 +322,9 @@ public:
             gl::DeleteBuffers(1, &vbo);
             if(vao)
             {
-#if GLES_VERSION >= 3
-                gl::DeleteVertexArrays(1, &vao);
-#elif defined(GLES_EXTENSIONS)
-                gl::DeleteVertexArraysOES(1, &vao);
-#endif
+                detail::glDeleteVertexArrays(1, &vao);
             }
+            GL_CHECK_ERROR();
         }
     }
 };
