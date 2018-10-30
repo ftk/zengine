@@ -62,6 +62,8 @@ gl::gl()
         // initialize
         assume(!initialized);
 
+        unsigned extloaded = 0, extfailed = 0;
+
 #define GLFUNC(ret,name,params) \
         this->name = reinterpret_cast<ret (*) params>(glfwGetProcAddress("gl" #name)); \
         if(this->name == nullptr) throw std::runtime_error{"Function " + std::string{"gl" #name} + " is null"};
@@ -70,9 +72,11 @@ gl::gl()
 
 #ifdef GLES_EXTENSIONS
 #define GLFUNC(ret,name,params) \
-        this->name = reinterpret_cast<ret (*) params>(glfwGetProcAddress("gl" #name));
+        this->name = reinterpret_cast<ret (*) params>(glfwGetProcAddress("gl" #name)); \
+        if(this->name) extloaded++; else extfailed++;
 #include "openglext.inl"
 #undef GLFUNC
+    LOGGER(info, "OpenGL ES", GLES_VERSION, "extensions loaded:", extloaded, "failed:", extfailed);
 #endif
 
 
@@ -96,6 +100,14 @@ gl::~gl()
 {
     assume(initialized);
     initialized = false;
+#if 0
+#define GLFUNC(ret,name,params) this->name = nullptr;
+#include GLFUNC_FILE
+#ifdef GLES_EXTENSIONS
+#include "openglext.inl"
+#endif
+#undef GLFUNC
+#endif
 }
 
 // initialize static variables
@@ -106,3 +118,15 @@ gl::~gl()
 #endif
 #undef GLFUNC
 
+/*
+  $filehandlers{'glfuncs'} = sub {
+     my ($fn, $content) = @_;
+     while ($$content =~ m{gl::([A-Z]\w*)}ga) {
+         collect('glfuncs', $1);
+     }
+  };
+
+
+  make_include('generated/opengl.txt', join("\n", map { '\b' . $_ . '\b' } dispatch_s('glfuncs')));
+  system('grep -h -f generated/opengl.txt src/opengl/opengl*.inl > generated/opengl.inl') if ($pass == 2);
+ */

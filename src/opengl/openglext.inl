@@ -5,7 +5,7 @@ cat gl2ext.h | grep '^GL_APICALL' | perl -pe 's/GL_APICALL\s+(.+?)\s+GL_APIENTRY
 #ifndef GLFUNC
 #error do not include
 #endif
-#if 0
+#if 1
 GLFUNC(void, BlendBarrierKHR, (void))
 GLFUNC(void, DebugMessageControlKHR, (GLenum source, GLenum type, GLenum severity, GLsizei count, const GLuint *ids, GLboolean enabled))
 GLFUNC(void, DebugMessageInsertKHR, (GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *buf))
@@ -41,7 +41,7 @@ GLFUNC(void, MultiDrawElementsBaseVertexOES, (GLenum mode, const GLsizei *count,
 GLFUNC(void, FramebufferTextureOES, (GLenum target, GLenum attachment, GLuint texture, GLint level))
 GLFUNC(void, GetProgramBinaryOES, (GLuint program, GLsizei bufSize, GLsizei *length, GLenum *binaryFormat, void *binary))
 GLFUNC(void, ProgramBinaryOES, (GLuint program, GLenum binaryFormat, const void *binary, GLint length))
-GL_APICALL void *GL_APIENTRY glMapBufferOES (GLenum target, GLenum access);
+GLFUNC(void *, glMapBufferOES, (GLenum target, GLenum access))
 GLFUNC(GLboolean, UnmapBufferOES, (GLenum target))
 GLFUNC(void, GetBufferPointervOES, (GLenum target, GLenum pname, void **params))
 GLFUNC(void, PrimitiveBoundingBoxOES, (GLfloat minX, GLfloat minY, GLfloat minZ, GLfloat minW, GLfloat maxX, GLfloat maxY, GLfloat maxZ, GLfloat maxW))
@@ -152,7 +152,7 @@ GLFUNC(void, DrawTransformFeedbackEXT, (GLenum mode, GLuint id))
 GLFUNC(void, DrawTransformFeedbackInstancedEXT, (GLenum mode, GLuint id, GLsizei instancecount))
 GLFUNC(void, FramebufferTextureEXT, (GLenum target, GLenum attachment, GLuint texture, GLint level))
 GLFUNC(void, VertexAttribDivisorEXT, (GLuint index, GLuint divisor))
-GL_APICALL void *GL_APIENTRY glMapBufferRangeEXT (GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access);
+GLFUNC(void *, glMapBufferRangeEXT, (GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access))
 GLFUNC(void, FlushMappedBufferRangeEXT, (GLenum target, GLintptr offset, GLsizeiptr length))
 GLFUNC(void, MultiDrawArraysEXT, (GLenum mode, const GLint *first, const GLsizei *count, GLsizei primcount))
 GLFUNC(void, MultiDrawElementsEXT, (GLenum mode, const GLsizei *count, GLenum type, const void *const*indices, GLsizei primcount))

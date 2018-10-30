@@ -39,6 +39,7 @@ extern "C" {
 
 #ifndef GL_APIENTRYP
 #define GL_APIENTRYP GL_APIENTRY*
+#define GL_APIENTRY
 #endif
 
 
