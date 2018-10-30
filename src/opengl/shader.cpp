@@ -185,64 +185,35 @@ program program::from_file(const char * file, std::set<std::string> params)
     return program{vert.get(), frag.get()};
 }
 
-
-array_buf::array_buf(const void * data, std::size_t size, GLenum hint)
+GLuint uniform::create(program& prog, const char * name)
 {
-    gl::GenBuffers(1, &buf);
+    auto i = gl::GetUniformLocation(prog.get(), name);
     GL_CHECK_ERROR();
-    if(size)
-    {
-        set(data, size, hint);
-    }
+    assume(i >= 0);
+    return static_cast<GLuint>(i);
 }
 
-array_buf::~array_buf()
+GLuint attribute::create(program& prog, const char * name)
 {
-    if(gl::initialized)
-    {
-        gl::DeleteBuffers(1, &buf);
-        GL_CHECK_ERROR();
-    }
+    auto i = gl::GetAttribLocation(prog.get(), name);
+    if(i < 0)
+        throw std::runtime_error{std::string("cant find attribute ") + name};
+    GL_CHECK_ERROR();
+    return GLuint(i);
 }
 
-
-void array_buf::update(const void * data, std::size_t size, size_t offset)
+void attribute::setup(GLint size, GLenum type, bool normalized, GLsizei stride, std::ptrdiff_t offset)
 {
-    bind();
-    gl::BufferSubData(GL_ARRAY_BUFFER, offset, size, data);
-    //gl::BufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
+    gl::EnableVertexAttribArray(idx);
+    gl::VertexAttribPointer(idx, size, type, (GLboolean)normalized, stride, (void *)offset);
     GL_CHECK_ERROR();
 }
 
-void array_buf::unbind()
+void attribute::disable()
 {
-    gl::BindBuffer(GL_ARRAY_BUFFER, 0);
+    gl::DisableVertexAttribArray(idx);
     GL_CHECK_ERROR();
 }
-
-void array_buf::set(const void * data, std::size_t size, GLenum hint)
-{
-    assume(data);
-    assume(size);
-    bind();
-    gl::BufferData(GL_ARRAY_BUFFER, size, data, hint);
-    GL_CHECK_ERROR();
-}
-
-GLuint array_buffer::create(program& prog, const void * data, std::size_t size)
-{
-    GLuint buf;
-    gl::GenBuffers(1, &buf);
-    GL_CHECK_ERROR();
-    gl::BindBuffer(GL_ARRAY_BUFFER, buf);
-    gl::BufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
-    GL_CHECK_ERROR();
-
-    return buf;
-}
-
-
-
 
 /*<
 sub define_attributes {

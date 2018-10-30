@@ -43,28 +43,15 @@ static void disable(program& p) {
 #pragma pack(pop)
 /*>*/
 private:
-    std::array<attributes, 4> vertices;
-    static_assert(sizeof(vertices) == sizeof(attributes) * 4);
-
-    array_buf vertices_buf;
+    vertex_buffer<attributes, std::array<attributes, 4> > vertices;
 
 public:
 
-    renderer_2d(const char * shader_filename) : shader{program::from_file(shader_filename)},
-                    vertices_buf{&vertices[0], sizeof(vertices), GL_DYNAMIC_DRAW}
+    renderer_2d(const char * shader_filename) : shader{program::from_file(shader_filename)}
     {
         // bind texture to 0 (always)
         shader.bind();
         GET_UNIFORM(shader, u_texture) = qvm::ivec1{0};
-    }
-
-
-private:
-    void copy_from_custom_buf(const texture& tex, GLenum mode, unsigned first, unsigned count)
-    {
-        shader.bind();
-        tex.bind(0);
-        shader.draw<attributes>(mode, first, count);
     }
 public:
     // lower left corners and size
@@ -86,8 +73,9 @@ public:
         GEN_V(2,1,1) // ur
         GEN_V(3,1,0) // lr
 #undef GEN_V
-        vertices_buf.update(vertices.data(), sizeof(vertices)); // binded
-        copy_from_custom_buf(tex, GL_TRIANGLE_STRIP, 0, vertices.size());
+        vertices.upload(GL_STREAM_DRAW);
+        tex.bind(0);
+        vertices.draw(shader, GL_TRIANGLE_STRIP);
     }
 
     // calculate x preserving aspect ratio of texture
@@ -132,8 +120,9 @@ public:
         GEN_V(2,+,+) // ur
         GEN_V(3,+,-) // lr
 #undef GEN_V
-        vertices_buf.update(vertices.data(), sizeof(vertices)); // binded
-        copy_from_custom_buf(tex, GL_TRIANGLE_STRIP, 0, vertices.size());
+        vertices.upload(GL_STREAM_DRAW);
+        tex.bind(0);
+        vertices.draw(shader, GL_TRIANGLE_STRIP);
 
     }
 };
@@ -166,9 +155,7 @@ static void disable(program& p) {
 #pragma pack(pop)
 /*>*/
 public:
-    std::vector<attributes> vertices;
-private:
-    array_buf vertices_buf;
+    vector_vertex_buffer<attributes> vertices;
 public:
     rectanges_renderer(const char * shader_filename) : shader{program::from_file(shader_filename)} {}
 
@@ -186,9 +173,8 @@ public:
     {
         if(vertices.empty())
             return;
-        shader.bind();
-        vertices_buf.set(vertices.data(), vertices.size() * sizeof(attributes), GL_DYNAMIC_DRAW);
-        shader.draw<attributes>(GL_TRIANGLES, 0, vertices.size());
+        vertices.upload(GL_STREAM_DRAW);
+        vertices.draw(shader, GL_TRIANGLES);
     }
     void clear()
     {
@@ -229,23 +215,21 @@ static void disable(program& p) {
 #pragma pack(pop)
 /*>*/
 
-
-    array_buf buf;
+    vertex_buffer<attributes, std::array<attributes, 4> > vertices =
+            std::array<attributes, 4>{{{qvm::vec2{-1,1}}, {qvm::vec2{-1,-1}}, {qvm::vec2{1,1}}, {qvm::vec2{1,-1}}}};
 public:
     program shader;
 public:
 
     toy_renderer(const char * filename) : shader{program::from_file(filename)}
+
     {
-        using qvm::vec2;
-        const attributes attr[4] = {{vec2{-1,1}}, {vec2{-1,-1}}, {vec2{1,1}}, {vec2{1,-1}}};
-        buf.set(attr, sizeof(attr), GL_STATIC_DRAW);
+        vertices.upload(GL_STATIC_DRAW);
     }
 
     void draw()
     {
-        buf.bind();
-        shader.draw<attributes>(GL_TRIANGLE_STRIP, 0, 4);
+        vertices.draw(shader, GL_TRIANGLE_STRIP);
     }
 };
 

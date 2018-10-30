@@ -35,7 +35,8 @@ namespace detail {
         my $s = '';
         for my $t (sort keys %types) {
          for my $d (@dim) {
-          $s .= "template<> constexpr auto& gl${k}<$t, $d> = gl::${k}${d}${types{$t}}v;
+          my $dd = $d; $dd =~ s/x//;
+          $s .= "template<> constexpr auto& gl${k}<$t, $dd> = gl::${k}${d}${types{$t}}v;
           ";
          }
         }
@@ -61,6 +62,23 @@ namespace detail {
           template<> constexpr auto& glVertexAttrib<GLfloat, 3> = gl::VertexAttrib3fv;
           template<> constexpr auto& glVertexAttrib<GLfloat, 4> = gl::VertexAttrib4fv;
           /*>*/
+
+#if GLES_VERSION >= 3
+          /*<
+        generate_wrappers('Uniform', {'GLuint' => 'ui'}, [1..4]) .
+        generate_wrappers('UniformMatrix', {'GLfloat' => 'f'}, [qw[2x3 3x2 2x4 4x2 3x4 4x3]]);
+        %*/template<> constexpr auto& glUniform<GLuint, 1> = gl::Uniform1uiv;
+          template<> constexpr auto& glUniform<GLuint, 2> = gl::Uniform2uiv;
+          template<> constexpr auto& glUniform<GLuint, 3> = gl::Uniform3uiv;
+          template<> constexpr auto& glUniform<GLuint, 4> = gl::Uniform4uiv;
+          template<> constexpr auto& glUniformMatrix<GLfloat, 23> = gl::UniformMatrix2x3fv;
+          template<> constexpr auto& glUniformMatrix<GLfloat, 32> = gl::UniformMatrix3x2fv;
+          template<> constexpr auto& glUniformMatrix<GLfloat, 24> = gl::UniformMatrix2x4fv;
+          template<> constexpr auto& glUniformMatrix<GLfloat, 42> = gl::UniformMatrix4x2fv;
+          template<> constexpr auto& glUniformMatrix<GLfloat, 34> = gl::UniformMatrix3x4fv;
+          template<> constexpr auto& glUniformMatrix<GLfloat, 43> = gl::UniformMatrix4x3fv;
+          /*>*/
+#endif
     }
 }
 
@@ -113,18 +131,6 @@ public:
 #endif
     }
 
-
-    template <class Attributes>
-    void draw(GLenum mode, unsigned first, unsigned count) //  array buffer should be binded before calling draw
-    {
-
-        check_binded(); // check that the program is used
-        Attributes::setup(*this);
-        gl::DrawArrays(mode, first, count);
-        GL_CHECK_ERROR();
-        Attributes::disable(*this);
-    }
-
     ~program();
 
     bool has(hash_t hash) const { return !!gl_indexes.count(hash); }
@@ -172,6 +178,7 @@ public:
 
 };
 
+
 // GLObj :  static GLuint program(program& prog, ...), constructor(GLuint)
 
 class uniform
@@ -180,13 +187,7 @@ class uniform
     friend class program;
 private:
     explicit uniform(GLuint idx) : idx(idx) {}
-    static GLuint create(program& prog, const char * name)
-    {
-        auto i = gl::GetUniformLocation(prog.get(), name);
-        GL_CHECK_ERROR();
-        assume(i >= 0);
-        return static_cast<GLuint>(i);
-    }
+    static GLuint create(program& prog, const char * name);
 public:
 
     template <typename T, int D>
@@ -198,10 +199,17 @@ public:
 
     template <typename T, int D>
     inline void assign(const qvm::mat<T, D, D> * begin, const qvm::mat<T, D, D> * end) {
-        detail::glUniformMatrix<T, D>(idx, end - begin, &begin->a[0][0]); GL_CHECK_ERROR();
+        detail::glUniformMatrix<T, D>(idx, end - begin, true, &begin->a[0][0]); GL_CHECK_ERROR();
     }
     template <typename T, int D>
     inline void operator = (const qvm::mat<T, D, D>& rhs) { assign(&rhs, &rhs + 1); }
+
+#if GLES_VERSION >= 3
+    template <typename T, int D1, int D2>
+    inline std::enable_if_t<D1 != D2> assign(const qvm::mat<T, D1, D2> * begin, const qvm::mat<T, D1, D2> * end) {
+        detail::glUniformMatrix<T, D1 * 10 + D2>(idx, end - begin, true, &begin->a[0][0]); GL_CHECK_ERROR();
+    }
+#endif
 };
 
 class attribute
@@ -210,101 +218,117 @@ class attribute
     friend class program;
 private:
     explicit attribute(GLuint idx) : idx(idx) {}
-    static GLuint create(program& prog, const char * name)
-    {
-        auto i = gl::GetAttribLocation(prog.get(), name);
-        if(i < 0)
-            throw std::runtime_error{std::string("cant find attribute ") + name};
-        GL_CHECK_ERROR();
-        return GLuint(i);
-    }
+    static GLuint create(program& prog, const char * name);
 public:
-    void setup(GLint size, GLenum type, bool normalized, GLsizei stride, std::ptrdiff_t offset)
-    {
-        gl::EnableVertexAttribArray(idx);
-        gl::VertexAttribPointer(idx, size, type, (GLboolean)normalized, stride, (void *)offset);
-        GL_CHECK_ERROR();
-    }
+    void setup(GLint size, GLenum type, bool normalized, GLsizei stride, std::ptrdiff_t offset);
 
-    void disable()
-    {
-        gl::DisableVertexAttribArray(idx);
-        GL_CHECK_ERROR();
-    }
+    void disable();
 
     template <typename T, int D>
     inline void operator = (const qvm::vec<T, D>& rhs) { detail::glVertexAttrib<T, D>(idx, &rhs.a[0]); GL_CHECK_ERROR(); }
 };
 
-
-// deprecated
-class array_buffer
+template <typename T, class Base>
+class vertex_buffer : public Base
 {
-    GLuint idx;
-    friend class program;
-    friend class array_buf;
 private:
-    explicit array_buffer(GLuint idx) : idx(idx) {}
-    static GLuint create(program& prog, const void * data, std::size_t size);
-    template<class Container>
-    static GLuint create(program& prog, const Container& container)
-    {
-        return create(prog, &container[0], container.size() * sizeof(container[0]));
-    }
-
-
+    GLuint vbo;
+    GLuint vao = 0;
 public:
-    void bind()
+    template <typename ... Args>
+    vertex_buffer(Args&&... args) : Base(std::forward<Args...>(args)...)
     {
-        gl::BindBuffer(GL_ARRAY_BUFFER, idx);
+        gl::GenBuffers(1, &vbo);
         GL_CHECK_ERROR();
     }
 
+    void upload(GLenum usage = GL_STATIC_DRAW) const
+    {
+        gl::BindBuffer(GL_ARRAY_BUFFER, vbo);
+        gl::BufferData(GL_ARRAY_BUFFER, sizeof(T) * this->size(), this->data(), usage);
+        GL_CHECK_ERROR();
+    }
+
+    void update(typename Base::iterator begin, typename Base::iterator end) const
+    {
+        gl::BindBuffer(GL_ARRAY_BUFFER, vbo);
+        gl::BufferSubData(GL_ARRAY_BUFFER, sizeof(T) * (begin - this->begin()), sizeof(T) * (end - begin), this->data());
+        GL_CHECK_ERROR();
+    }
+
+    /* You should only call draw with the same program, or make sure attribute locations in these programs match */
+    void draw(program& p, GLenum mode = GL_TRIANGLES, unsigned skip = 0, int count = -1)
+    {
+        assume(skip <= (unsigned)this->size());
+        assume(count == -1 || unsigned(count) <= (this->size() - skip));
+        unsigned cnt = static_cast<unsigned>((count != -1) ? count : (this->size() - skip));
+
+        p.bind();
+
+#if GLES_VERSION >= 3
+        constexpr bool use_vao = true;
+        constexpr auto& glGenVertexArrays = gl::GenVertexArrays;
+        constexpr auto& glBindVertexArray = gl::BindVertexArray;
+#elif defined(GLES_EXTENSIONS)
+        constexpr auto& glGenVertexArrays = gl::GenVertexArraysOES;
+        constexpr auto& glBindVertexArray = gl::BindVertexArrayOES;
+        const bool use_vao = glGenVertexArrays && glBindVertexArray;
+#else
+        using voidfn = void (*)(...);
+        voidfn glGenVertexArrays = nullptr, glBindVertexArray = nullptr;
+        constexpr bool use_vao = false;
+#endif
+#ifdef __GNUC__
+        if(__builtin_expect(vao == 0, false))
+#else
+        if(vao == 0)
+#endif
+        {
+            if(use_vao)
+            {
+                glGenVertexArrays(1, &vao);
+                glBindVertexArray(vao);
+            }
+            gl::BindBuffer(GL_ARRAY_BUFFER, vbo);
+            T::setup(p);
+        }
+        else
+        {
+            glBindVertexArray(vao);
+        }
+        gl::DrawArrays(mode, skip, cnt);
+        if(use_vao)
+            glBindVertexArray(0);
+        else
+            T::disable(p);
+
+    }
+
+    ~vertex_buffer()
+    {
+        if(gl::initialized)
+        {
+            gl::DeleteBuffers(1, &vbo);
+            if(vao)
+            {
+#if GLES_VERSION >= 3
+                gl::DeleteVertexArrays(1, &vao);
+#elif defined(GLES_EXTENSIONS)
+                gl::DeleteVertexArraysOES(1, &vao);
+#endif
+            }
+        }
+    }
 };
 
-class array_buf
-{
-    GLuint buf = 0;
-
-NONCOPYABLE_BUT_SWAPPABLE(array_buf, (buf))
-
-public:
-    array_buf(const void * data = nullptr, std::size_t size = 0, GLenum hint = GL_STATIC_DRAW);
-
-    template<class Container>
-    array_buf(const Container& container) : array_buf(container.data(), container.size() * sizeof(container[0]))
-    {
-    }
-
-    /*template<class Container>
-    array_buf& operator=(const Container& container)
-    {
-        gl::BufferData(GL_ARRAY_BUFFER, container.size() * sizeof(container[0]), container.data(), GL_STATIC_DRAW);
-        GL_CHECK_ERROR();
-        return *this;
-    }*/
-
-
-    ~array_buf();
-
-    void bind()
-    {
-        gl::BindBuffer(GL_ARRAY_BUFFER, buf);
-        GL_CHECK_ERROR();
-    }
-
-    static void unbind();
-
-    void update(const void * data, std::size_t size, std::size_t offset = 0);
-    void set(const void * data, std::size_t size, GLenum hint = GL_STATIC_DRAW);
-
-};
+#include <vector>
+template <typename T>
+using vector_vertex_buffer = vertex_buffer<T, std::vector<T>>;
 
 
 
 #define GET_UNIFORM(program,name) (program.check_binded(),program.get<uniform>(fnv1a::hash(const_string(#name)), #name))
 #define GET_ATTRIBUTE(program,name) program.get<attribute>(fnv1a::hash(const_string(#name)), #name)
-//.setup(vlen, type_to_gl<stype>::value, false, sizeof(struc), offsetof(struc, name));
 
 
 #endif //ZENGINE_SHADER_HPP
