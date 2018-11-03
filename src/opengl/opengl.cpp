@@ -6,6 +6,7 @@
 #include <GLFW/glfw3.h>
 
 #include <string>
+#include <string_view>
 #include <stdexcept>
 
 #include "util/assert.hpp"
@@ -50,7 +51,7 @@ static void debug_log(GLenum source,GLenum type,GLuint id,GLenum severity,GLsize
     //std::cerr.write(message, length);
     //std::cerr << std::endl;
     assume(length >= 0);
-    logger(lvl, "OpenGL:", string_view{message,static_cast<std::size_t>(length)});
+    logger(lvl, "OpenGL:", std::string_view{message,static_cast<std::size_t>(length)});
 }
 
 #endif

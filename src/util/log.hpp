@@ -5,11 +5,9 @@
 #ifndef ZENGINE_LOG_HPP
 #define ZENGINE_LOG_HPP
 
+#ifndef LOG_DISABLE
+
 #include <ostream>
-
-#include <string_view>
-
-using std::string_view;
 
 #ifdef LOG_HEADER_ONLY
 #include <iostream>
@@ -96,7 +94,6 @@ inline void log_args(const logger& l, Arg1&& arg1, Args&& ... args) noexcept
 
 }
 
-
 } // namespace log_detail
 
 
@@ -119,7 +116,23 @@ inline void logger(log_level level, Args&&... args) noexcept
 
 inline constexpr auto& loggers() noexcept { return log_detail::loggers; }
 
-#define LOGGER(level,...) logger(log_level:: level, ##__VA_ARGS__)
 
+#ifdef LOG_FILENAME
+#ifdef __GNUC__
+#define LOG_FILE (__builtin_strrchr(__FILE__, '/') ? (__builtin_strrchr(__FILE__, '/')+1) : (__builtin_strrchr(__FILE__, '\\') ? (__builtin_strrchr(__FILE__, '\\')+1) : __FILE__))
+#else
+#include <cstring>
+#define LOG_FILE (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') : __FILE__)
+#endif
+#define LOGGER(level,...) logger(log_level:: level, LOG_FILE, ##__VA_ARGS__)
+#else
+#define LOGGER(level,...) logger(log_level:: level, ##__VA_ARGS__)
+#endif
+
+#else // LOG_DISABLE
+
+#define LOGGER(level,...) static_cast<void>(0)
+
+#endif
 
 #endif //ZENGINE_LOG_HPP
