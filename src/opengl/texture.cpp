@@ -146,22 +146,50 @@ texture::texture(string_view filename) : texture(from_file(std::string(filename)
 {
 }
 
-framebuf::framebuf(unsigned width, unsigned height) : tex(width, height, false)
+framebuf::framebuf(unsigned width, unsigned height, bool depth) : tex(width, height, GL_RGBA)
 {
-    gl::GenFramebuffers(1, &buf);
+#if GLES_VERSION >= 3
+    // https://learnopengl.com/code_viewer.php?code=in-practice/breakout/post_processor
+    {
+        gl::GenRenderbuffers(1, &rbo);
+        gl::GenFramebuffers(1, &msfbo);
+        gl::BindFramebuffer(GL_FRAMEBUFFER, msfbo);
+        gl::BindRenderbuffer(GL_RENDERBUFFER, rbo);
+        GL_CHECK_ERROR();
+
+
+        gl::RenderbufferStorageMultisample(GL_RENDERBUFFER, 8, GL_RGBA8, width, height);
+        GL_CHECK_ERROR();
+        gl::FramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rbo);
+        GL_CHECK_ERROR();
+        assert(gl::CheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+    }
+#endif
+
+    gl::GenFramebuffers(1, &fbo);
+    gl::BindFramebuffer(GL_FRAMEBUFFER, fbo);
     GL_CHECK_ERROR();
-    bind();
+    tex.bind();
+    gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     gl::FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex.get(), 0);
     GL_CHECK_ERROR();
 
-    gl::GenRenderbuffers(1, &rbo);
-    gl::BindRenderbuffer(GL_RENDERBUFFER, rbo);
-    // TODO: add stencil buffer
-    gl::RenderbufferStorage(GL_RENDERBUFFER, /*GL_DEPTH24_STENCIL8*/GL_DEPTH_COMPONENT16, width, height);
-    gl::BindRenderbuffer(GL_RENDERBUFFER, 0);
-    gl::FramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo);
-    GL_CHECK_ERROR();
+    if(depth)
+    {
+#if GLES_VERSION >= 3
+        gl::BindFramebuffer(GL_FRAMEBUFFER, msfbo);
+#endif
+        gl::GenRenderbuffers(1, &depth_rbo);
+        gl::BindRenderbuffer(GL_RENDERBUFFER, depth_rbo);
+        // TODO: add stencil buffer
+        gl::RenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, width, height);
+        gl::FramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth_rbo);
+        GL_CHECK_ERROR();
+    }
 
     assert(gl::CheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
     unbind();
@@ -169,15 +197,23 @@ framebuf::framebuf(unsigned width, unsigned height) : tex(width, height, false)
 
 framebuf::~framebuf()
 {
-    gl::DeleteFramebuffers(1, &buf);
-    //gl::DeleteTextures(1, &tex);
-    gl::DeleteRenderbuffers(1, &rbo);
-    GL_CHECK_ERROR();
+    if(gl::initialized)
+    {
+        gl::DeleteFramebuffers(1, &fbo);
+#if GLES_VERSION >= 3
+        gl::DeleteFramebuffers(1, &msfbo);
+        gl::DeleteRenderbuffers(1, &rbo);
+#endif
+        if(depth_rbo)
+            gl::DeleteRenderbuffers(1, &depth_rbo);
+
+        GL_CHECK_ERROR();
+    }
 }
 
 void framebuf::bind()
 {
-    gl::BindFramebuffer(GL_FRAMEBUFFER, buf);
+    gl::BindFramebuffer(GL_FRAMEBUFFER, fbo);
     GL_CHECK_ERROR();
 }
 
@@ -185,4 +221,30 @@ void framebuf::unbind()
 {
     gl::BindFramebuffer(GL_FRAMEBUFFER, 0);
     GL_CHECK_ERROR();
+}
+
+void framebuf::render_begin(bool clear)
+{
+#if GLES_VERSION >= 3
+    gl::BindFramebuffer(GL_FRAMEBUFFER, msfbo);
+#else
+    gl::BindFramebuffer(GL_FRAMEBUFFER, fbo);
+#endif
+    gl::Viewport(0, 0, qvm::X(get_size()), qvm::Y(get_size()));
+    if(clear)
+        gl::Clear(GL_COLOR_BUFFER_BIT | (depth_rbo ? GL_DEPTH_BUFFER_BIT : 0));
+    GL_CHECK_ERROR();
+}
+
+void framebuf::render_end()
+{
+#if GLES_VERSION >= 3
+    using namespace qvm;
+    gl::BindFramebuffer(GL_READ_FRAMEBUFFER, msfbo);
+    gl::BindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
+    gl::BlitFramebuffer(0, 0, X(get_size()), Y(get_size()), 0, 0, X(get_size()), Y(get_size()), GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    GL_CHECK_ERROR();
+#endif
+    unbind();
+
 }

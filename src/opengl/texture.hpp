@@ -54,22 +54,31 @@ public:
 
 class framebuf
 { // todo: test
-    unsigned buf = 0;
-    unsigned rbo = 0;
+    GLuint fbo = 0;
+#if GLES_VERSION >= 3
+    GLuint msfbo = 0;
+    GLuint rbo = 0;
+#endif
+    GLuint depth_rbo = 0;
 public:
     texture tex;
 
     NONCOPYABLE(framebuf)
-//NONCOPYABLE_BUT_SWAPPABLE(framebuf, (buf)(rbo)(tex))
 
 public:
-    framebuf(unsigned width, unsigned height);
+    framebuf(unsigned width, unsigned height, bool depth = false);
+    framebuf(qvm::ivec2 size, bool depth = false) : framebuf(qvm::X(size), qvm::Y(size), depth) {}
 
     ~framebuf();
 
     void bind();
 
+    void render_begin(bool clear = true);
+    void render_end();
+
     static void unbind();
+
+    qvm::ivec2 get_size() const { return tex.get_size(); }
 
 };
 
