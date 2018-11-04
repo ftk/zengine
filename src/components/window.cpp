@@ -179,6 +179,8 @@ void window_c::render_text_box(qvm::vec2 ll, qvm::vec2 size, string_view text, u
     vec2 pixsize = convert_to_pixel_coords_size(size);
     X(pixsize) = ceil(X(pixsize));
     Y(pixsize) = ceil(Y(pixsize));
+    if(X(pixsize) <= 0 || Y(pixsize) <= 0)
+        return; // invalid size
     size = convert_from_pixel_coords_size(X(pixsize), Y(pixsize));
     texture& tex = g_app->resources->textures.get(text, [lines, pixsize](string_view text){
         return make_text_box(g_app->resources->default_font, text, pixsize, lines);
