@@ -75,9 +75,6 @@ texture::texture(const uint8_t * surface, unsigned surface_len, unsigned width, 
     gl::TexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, surface);
     GL_CHECK_ERROR();
 
-    gl::BindTexture(GL_TEXTURE_2D, 0);
-    GL_CHECK_ERROR();
-
     LOGGER(debug, "loaded texture", idx, width, height, format);
 
 }
