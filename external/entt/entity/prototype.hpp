@@ -49,11 +49,6 @@ class prototype final {
         basic_fn_type *assign;
     };
 
-    template<typename Component>
-    inline const Component & component() const ENTT_NOEXCEPT {
-        return reg->template get<component_wrapper<Component>>(entity).component;
-    }
-
     void release() {
         if(reg->valid(entity)) {
             reg->destroy(entity);
@@ -189,7 +184,7 @@ public:
     template<typename... Component>
     decltype(auto) get() const ENTT_NOEXCEPT {
         if constexpr(sizeof...(Component) == 1) {
-            return component<Component...>();
+            return (std::as_const(*reg).template get<component_wrapper<Component...>>(entity).component);
         } else {
             return std::tuple<const Component &...>{get<Component>()...};
         }
@@ -213,6 +208,35 @@ public:
             return (const_cast<Component &>(std::as_const(*this).template get<Component>()), ...);
         } else {
             return std::tuple<Component &...>{get<Component>()...};
+        }
+    }
+
+    /**
+     * @brief Returns pointers to the given components.
+     * @tparam Component Types of components to get.
+     * @return Pointers to the components owned by the prototype.
+     */
+    template<typename... Component>
+    auto get_if() const ENTT_NOEXCEPT {
+        if constexpr(sizeof...(Component) == 1) {
+            const auto *wrapper = reg->template get_if<component_wrapper<Component...>>(entity);
+            return wrapper ? &wrapper->component : nullptr;
+        } else {
+            return std::tuple<const Component *...>{get_if<Component>()...};
+        }
+    }
+
+    /**
+     * @brief Returns pointers to the given components.
+     * @tparam Component Types of components to get.
+     * @return Pointers to the components owned by the prototype.
+     */
+    template<typename... Component>
+    inline auto get_if() ENTT_NOEXCEPT {
+        if constexpr(sizeof...(Component) == 1) {
+            return (const_cast<Component *>(std::as_const(*this).template get_if<Component>()), ...);
+        } else {
+            return std::tuple<Component *...>{get_if<Component>()...};
         }
     }
 
@@ -449,6 +473,22 @@ public:
      */
     inline entity_type operator()() const ENTT_NOEXCEPT {
         return create(*reg);
+    }
+
+    /**
+     * @brief Returns a reference to the underlying registry.
+     * @return A reference to the underlying registry.
+     */
+    inline const registry_type & backend() const ENTT_NOEXCEPT {
+        return *reg;
+    }
+
+    /**
+     * @brief Returns a reference to the underlying registry.
+     * @return A reference to the underlying registry.
+     */
+    inline registry_type & backend() ENTT_NOEXCEPT {
+        return const_cast<registry_type &>(std::as_const(*this).backend());
     }
 
 private:

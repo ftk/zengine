@@ -103,7 +103,7 @@ class registry {
 
     template<typename Component>
     inline component_pool<Component> & pool() ENTT_NOEXCEPT {
-        return const_cast<component_pool<Component> &>(const_cast<const registry *>(this)->pool<Component>());
+        return const_cast<component_pool<Component> &>(std::as_const(*this).template pool<Component>());
     }
 
     template<typename Comp, std::size_t Index, typename... Component, std::size_t... Indexes>
@@ -156,7 +156,7 @@ public:
     using sink_type = typename signal_type::sink_type;
 
     /*! @brief Default constructor. */
-    registry() = default;
+    registry() ENTT_NOEXCEPT = default;
 
     /*! @brief Copying a registry isn't allowed. */
     registry(const registry &) = delete;
@@ -435,13 +435,50 @@ public:
             entities[entt] = entity;
             --available;
         } else {
-            entity = entity_type(entities.size());
-            entities.push_back(entity);
+            entity = entities.emplace_back(entity_type(entities.size()));
             // traits_type::entity_mask is reserved to allow for null identifiers
             assert(entity < traits_type::entity_mask);
         }
 
         return entity;
+    }
+
+    /**
+     * @brief Assigns each element in a range an entity.
+     *
+     * There are two kinds of entity identifiers:
+     *
+     * * Newly created ones in case no entities have been previously destroyed.
+     * * Recycled ones with updated versions.
+     *
+     * Users should not care about the type of the returned entity identifier.
+     * In case entity identifers are stored around, the `valid` member
+     * function can be used to know if they are still valid or the entity has
+     * been destroyed and potentially recycled.
+     *
+     * The generated entities have no components assigned.
+     *
+     * @tparam It Type of forward iterator.
+     * @param first An iterator to the first element of the range to generate.
+     * @param last An iterator past the last element of the range to generate.
+     */
+    template<typename It>
+    void create(It first, It last) {
+        const auto length = size_type(last - first);
+        const auto sz = std::min(available, length);
+
+        available -= sz;
+
+        std::generate_n(first, sz, [this]() {
+            const auto entt = next;
+            const auto version = entities[entt] & (traits_type::version_mask << traits_type::entity_shift);
+            next = entities[entt] & traits_type::entity_mask;
+            return (entities[entt] = entt | version);
+        });
+
+        std::generate_n((first + sz), (length - sz), [this]() {
+            return entities.emplace_back(entity_type(entities.size()));
+        });
     }
 
     /**
@@ -625,6 +662,50 @@ public:
     }
 
     /**
+     * @brief Returns pointers to the given components for an entity.
+     *
+     * @warning
+     * Attempting to use an invalid entity results in undefined behavior.<br/>
+     * An assertion will abort the execution at runtime in debug mode in case of
+     * invalid entity.
+     *
+     * @tparam Component Types of components to get.
+     * @param entity A valid entity identifier.
+     * @return Pointers to the components owned by the entity.
+     */
+    template<typename... Component>
+    auto get_if([[maybe_unused]] const entity_type entity) const ENTT_NOEXCEPT {
+        assert(valid(entity));
+
+        if constexpr(sizeof...(Component) == 1) {
+            return managed<Component...>() ? pool<Component...>().get_if(entity) : nullptr;
+        } else {
+            return std::tuple<const Component *...>{get_if<Component>(entity)...};
+        }
+    }
+
+    /**
+     * @brief Returns pointers to the given components for an entity.
+     *
+     * @warning
+     * Attempting to use an invalid entity results in undefined behavior.<br/>
+     * An assertion will abort the execution at runtime in debug mode in case of
+     * invalid entity.
+     *
+     * @tparam Component Types of components to get.
+     * @param entity A valid entity identifier.
+     * @return Pointers to the components owned by the entity.
+     */
+    template<typename... Component>
+    inline auto get_if([[maybe_unused]] const entity_type entity) ENTT_NOEXCEPT {
+        if constexpr(sizeof...(Component) == 1) {
+            return (const_cast<Component *>(std::as_const(*this).template get_if<Component>(entity)), ...);
+        } else {
+            return std::tuple<Component *...>{get_if<Component>(entity)...};
+        }
+    }
+
+    /**
      * @brief Replaces the given component for an entity.
      *
      * A new instance of the given component is created and initialized with the
@@ -759,7 +840,7 @@ public:
      * comparison function should be equivalent to the following:
      *
      * @code{.cpp}
-     * bool(const Component &, const Component &)
+     * bool(const Component &, const Component &);
      * @endcode
      *
      * Moreover, the comparison function object shall induce a
@@ -1235,11 +1316,11 @@ public:
     snapshot_loader<Entity> loader() ENTT_NOEXCEPT {
         using assure_fn_type = void(registry &, const entity_type, const bool);
 
-        assure_fn_type *assure = [](registry &reg, const entity_type entity, const bool destroyed) {
+        assure_fn_type *assure = [](registry &registry, const entity_type entity, const bool destroyed) {
             using promotion_type = std::conditional_t<sizeof(size_type) >= sizeof(entity_type), size_type, entity_type>;
             // explicit promotion to avoid warnings with std::uint16_t
             const auto entt = promotion_type{entity} & traits_type::entity_mask;
-            auto &entities = reg.entities;
+            auto &entities = registry.entities;
 
             if(!(entt < entities.size())) {
                 auto curr = entities.size();
@@ -1250,7 +1331,7 @@ public:
             entities[entt] = entity;
 
             if(destroyed) {
-                reg.destroy(entity);
+                registry.destroy(entity);
                 const auto version = entity & (traits_type::version_mask << traits_type::entity_shift);
                 entities[entt] = ((entities[entt] & traits_type::entity_mask) | version);
             }
