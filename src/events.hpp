@@ -98,7 +98,7 @@ BOOST_PP_SEQ_FOR_EACH(EVENT_VISITOR_HELPER, f1, EVENTS_SEQ) \
 }}(e,f);
 
 // IF_EVENT(input.event, my_event, ev) { int x = ev->param; ... }
-#define IF_EVENT(variant, type, name) if(event:: type * name = boost::get<event:: type>(&variant))
+#define IF_EVENT(variant, type, name) if(const event:: type * name = boost::get<const event:: type>(&variant))
 // IF_EVENT_(input.event, player_join) { ... }
 #define IF_EVENT_(variant, type) if(boost::get<event:: type>(&variant))
 
