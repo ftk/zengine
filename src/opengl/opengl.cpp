@@ -10,21 +10,11 @@
 #include <stdexcept>
 
 #include "util/assert.hpp"
-
-
+#include "util/log.hpp"
 
 #if GL_DEBUG >= 2
 
-//#include <iostream>
-#include "util/log.hpp"
-
-//#include "gl2ext.h"
-#define GL_DEBUG_SEVERITY_NOTIFICATION_KHR 0x826B
-#define GL_DEBUG_SEVERITY_HIGH_KHR        0x9146
-#define GL_DEBUG_SEVERITY_MEDIUM_KHR      0x9147
-#define GL_DEBUG_SEVERITY_LOW_KHR         0x9148
-
-typedef void (*DEBUGPROC)(GLenum source,GLenum type,GLuint id,GLenum severity,GLsizei length,const GLchar *message,const void *userParam);
+#include "gl2ext.h"
 
 static void debug_log(GLenum source,GLenum type,GLuint id,GLenum severity,GLsizei length,const GLchar *message,const void *userParam)
 {
@@ -83,11 +73,13 @@ gl::gl()
 
 #if GL_DEBUG >= 2
 
-    auto glDebugMessageCallback = reinterpret_cast<void (*) (DEBUGPROC callback, void* userParam)>(glfwGetProcAddress("glDebugMessageCallback"));
+    auto glDebugMessageCallback = reinterpret_cast<void (*) (GLDEBUGPROCKHR callback, void* userParam)>(glfwGetProcAddress("glDebugMessageCallback"));
     if(glDebugMessageCallback)
-    {
         glDebugMessageCallback(&debug_log, nullptr);
-    }
+#ifdef GLES_EXTENSIONS
+    else if(DebugMessageCallbackKHR)
+        DebugMessageCallbackKHR(&debug_log, nullptr);
+#endif
     else
     {
         debug_log(0,0,0,0,sizeof("log is disabled")-1, "log is disabled", nullptr);
