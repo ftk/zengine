@@ -90,7 +90,7 @@ class gamestate_simulator2 : public gamestate_simulator<GamestateSync>
     typedef gamestate_simulator<GamestateSync> Base;
 protected:
     tick_t simulated_new = 0; // invariant: should always be simulated_old + lag
-    bool newstate_invalidated = true;
+    bool newstate_invalidated = false;
     GamestateSync newstate;
 
     std::mutex inputs_mtx;
@@ -120,7 +120,7 @@ public:
         if(newstate_invalidated)
         {
             // copy oldstate to newstate
-            LOGGER(debug3, "invalidating newstate", curtick, simulated_new, "->", this->simulated_old);
+            LOGGER(debug2, "invalidating newstate", curtick, simulated_new, "->", this->simulated_old);
             invalidate_new_state();
             //newstate = this->oldstate;
             newstate_invalidated = false;
