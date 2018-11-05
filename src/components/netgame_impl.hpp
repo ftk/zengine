@@ -27,6 +27,8 @@ private:
     using header_t = uint8_t;
 
     boost::container::flat_set<net_node_id> allpeers;
+
+    big_msg bigev;
 public:
 
     netgame_c()
@@ -76,8 +78,16 @@ public:
 protected:
     void send_evstr(net_node_id id, string_view inputstr)
     {
-        header_t header = 'E';
-        network.send_data(id, inputstr.data(), inputstr.size(), &header, sizeof(header));
+        if(inputstr.size() < network_c::mtu - sizeof(net_msg_header_t))
+        {
+            header_t header = 'E';
+            network.send_data(id, inputstr.data(), inputstr.size(), &header, sizeof(header));
+        }
+        else
+        {
+            header_t header = 'B';
+            big_msg::async_send(network, id, inputstr.data(), inputstr.size(), &header, sizeof(header));
+        }
     }
 
 protected:
@@ -129,6 +139,18 @@ protected:
                 }
 
                 break;
+            case 'B': // state
+            {
+                bigev.on_new_msg(data, len);
+                if(bigev.ready())
+                {
+                    tick_input_t inp;
+                    deserialize({bigev.data(), bigev.size()}, inp);
+                    on_event(std::move(inp));
+                    bigev.clear();
+                }
+                break;
+            }
 
             default:
                 NETLOG(error, "bad header:", header);
