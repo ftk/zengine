@@ -20,6 +20,7 @@ environment:
     MINGW_ARCHIVE: i686-7.3.0-release-posix-dwarf-rt_v5-rev0.7z
 
 install:
+- git submodule update --init
 - if not exist "%MINGW_ARCHIVE%" appveyor DownloadFile "%MINGW_URL%" -FileName "%MINGW_ARCHIVE%"
 - 7z x -y "%MINGW_ARCHIVE%" > nul
 - set Path=%CD%\%MINGW_DIR%\bin;%Path%
