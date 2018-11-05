@@ -24,15 +24,24 @@ add_definitions(-DNO_SCRIPTING)
 #add_definitions(-DCHAISCRIPT_NO_THREADS -DCHAISCRIPT_NO_THREADS_WARNING -DCHAISCRIPT_NO_DYNLOAD)
 #include_directories(ChaiScript/include)
 
-# glfw
-include_directories(external/glfw/include)
 #
 if (EMSCRIPTEN)
     set(CMAKE_EXECUTABLE_SUFFIX ".html")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s USE_GLFW=3 -s DISABLE_EXCEPTION_CATCHING=0 --preload-file ../resources")
 else()
-    set(EXTERNAL_FILES ${EXTERNAL_FILES} external/rglfw.c)
+    # glfw
+    set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+    set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
+    set(BUILD_SHARED_LIBS OFF CACHE BOOL " " FORCE)
+    add_subdirectory(external/glfw)
+    include_directories(external/glfw/include)
 endif()
+add_definitions(-DGLFW_INCLUDE_NONE)
+
+
+add_definitions(-DGLES_EXTENSIONS)
 
 if (MATH_LIBRARY)
     link_libraries("${MATH_LIBRARY}")
@@ -84,7 +93,7 @@ set(ALL_FILES ${UTIL_FILES} ${OPENGL_FILES} ${COMPONENTS_FILES} ${ENGINE_FILES} 
 
 #include_directories(${SDL2PP_INCLUDE_DIRS})
 add_executable(zengine ${ALL_FILES})
-target_link_libraries(zengine ${SDL2PP_LIBRARIES} ${Boost_LIBRARIES})
+target_link_libraries(zengine glfw ${GLFW_LIBRARIES})
 
 
 find_package(Perl)
