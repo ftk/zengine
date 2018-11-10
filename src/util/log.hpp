@@ -117,17 +117,30 @@ inline void logger(log_level level, Args&&... args) noexcept
 inline constexpr auto& loggers() noexcept { return log_detail::loggers; }
 
 
-#ifdef LOG_FILENAME
+#ifdef LOG_FILENAME // -DLOG_FILENAME to print file name where LOGGER is invoked
 #ifdef __GNUC__
-#define LOG_FILE (__builtin_strrchr(__FILE__, '/') ? (__builtin_strrchr(__FILE__, '/')+1) : (__builtin_strrchr(__FILE__, '\\') ? (__builtin_strrchr(__FILE__, '\\')+1) : __FILE__))
+#define LOG__FILE (__builtin_strrchr(__FILE__, '/') ? (__builtin_strrchr(__FILE__, '/')+1) : (__builtin_strrchr(__FILE__, '\\') ? (__builtin_strrchr(__FILE__, '\\')+1) : __FILE__)),
 #else
 #include <cstring>
-#define LOG_FILE (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') : __FILE__)
+#define LOG__FILE (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') : __FILE__),
 #endif
-#define LOGGER(level,...) logger(log_level:: level, LOG_FILE, ##__VA_ARGS__)
 #else
-#define LOGGER(level,...) logger(log_level:: level, ##__VA_ARGS__)
+#define LOG__FILE /* */
 #endif
+
+#ifndef LOG_SKIP // -DLOG_SKIP=debug to skip logging of debug level and more
+#ifdef NDEBUG
+#define LOG_SKIP debug
+#endif
+#endif
+
+#ifdef LOG_SKIP
+#define LOG__COND(level) if constexpr(log_level:: level < log_level:: LOG_SKIP)
+#else
+#define LOG__COND(level) /* */
+#endif
+
+#define LOGGER(level,...) do { LOG__COND(level) logger(log_level:: level, LOG__FILE __VA_ARGS__); } while(false)
 
 #else // LOG_DISABLE
 

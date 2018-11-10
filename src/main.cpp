@@ -54,11 +54,13 @@ int main(int argc, char * argv[])
     if(argn != argc)
         chdir(argv[argn++]);
 
+#ifndef LOG_DISABLE
     if(auto filename = g_app->config->get_optional<std::string>("log.file"))
     {
         static std::ofstream logfile(*filename);
         loggers().push_back({logfile, log_level::all, log_detail::TIME});
     }
+#endif
 
     g_app->init_components();
     try
