@@ -29,7 +29,7 @@ struct tick_input_t
 #define ORD(member,expr) if(this-> member < rhs. member) return true; else if(this-> member == rhs. member) expr else return false;
         ORD(tick, {
             ORD(player, {
-                ORD(event.which(), {
+                ORD(event.index(), {
                         LOGGER(error, "2 same events from the same player in the same tick!");
                         return false;
                 })

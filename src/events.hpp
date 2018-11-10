@@ -9,8 +9,8 @@
 
 #include "util/serialization.hpp"
 
-#include <boost/variant/variant.hpp>
-#include <cereal/types/boost_variant.hpp>
+#include <variant>
+#include <cereal/types/variant.hpp>
 
 #include "util/hash.hpp"
 
@@ -76,7 +76,7 @@ constexpr unsigned events_num = 11;
 
 } // namespace event
 
-using event_t = boost::variant<
+using event_t = std::variant<
     /*< join ', ', map { "event::$_->{name}" } dispatch('events');
      %*/event::host_adv, event::join, event::joined, event::make_new_snake, event::new_food, event::node_connect, event::node_disconnect, event::peers, event::player_join, event::player_leave, event::statesync/*>*/
 >;
@@ -98,8 +98,8 @@ BOOST_PP_SEQ_FOR_EACH(EVENT_VISITOR_HELPER, f1, EVENTS_SEQ) \
 }}(e,f);
 
 // IF_EVENT(input.event, my_event, ev) { int x = ev->param; ... }
-#define IF_EVENT(variant, type, name) if(const event:: type * name = boost::get<const event:: type>(&variant))
+#define IF_EVENT(variant, type, name) if(const event:: type * const name = std::get_if<event:: type>(&variant))
 // IF_EVENT_(input.event, player_join) { ... }
-#define IF_EVENT_(variant, type) if(boost::get<event:: type>(&variant))
+#define IF_EVENT_(variant, type) if(std::get_if<event:: type>(&variant))
 
 #endif //ZENGINE_EVENTS_HPP

@@ -108,7 +108,7 @@ public:
     {
         // todo move to adapter
         netgame->on_event.connect([this](tick_input_t input) {
-            boost::apply_visitor([this, &input](const auto& event) -> void { this->on_netevent(input, event);}, input.event);
+            std::visit([this, &input](const auto& event) -> void { this->on_netevent(input, event);}, input.event);
         });
     }
 

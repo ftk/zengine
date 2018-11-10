@@ -44,6 +44,6 @@ static void dump(std::ostream& ss, const event::statesync & e) {ss << "statesync
 std::string dump_event(const event_t& event)
 {
     std::ostringstream ss;
-    boost::apply_visitor([&ss](auto e) { dump(ss, e); }, event);
+    std::visit([&ss](auto e) { dump(ss, e); }, event);
     return ss.str();
 }
