@@ -24,8 +24,19 @@ struct tick_input_t
     tick_t tick;
     event_t event;
 
-
-    bool operator <(const tick_input_t& rhs) const { return tick < rhs.tick; }
+    bool operator <(const tick_input_t& rhs) const
+    {
+#define ORD(member,expr) if(this-> member < rhs. member) return true; else if(this-> member == rhs. member) expr else return false;
+        ORD(tick, {
+            ORD(player, {
+                ORD(event.which(), {
+                        LOGGER(error, "2 same events from the same player in the same tick!");
+                        return false;
+                })
+            })
+        })
+#undef ORD
+    }
 
     bool operator <(const tick_t tick) const { return this->tick < tick; }
 
@@ -44,7 +55,7 @@ struct inputs_t
     {
         check_capacity();
         // sorted
-        assert(buf.empty() || inp.tick >= buf.back().tick);
+        assert(buf.empty() || !(inp < buf.back()));
         buf.push_back(std::move(inp));
     }
 
