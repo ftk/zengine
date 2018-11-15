@@ -13,6 +13,8 @@
 
 #include <GLFW/glfw3.h>
 
+#include <cereal/archives/binary.hpp>
+
 #ifndef TICKS_PER_SECOND
 #define TICKS_PER_SECOND 60
 #endif
@@ -251,7 +253,7 @@ public:
                         LOGGER(info, "sending state to", connecting_id);
                         // send time & state ...
                         //=- register_event(name=>'statesync', params=>[['std::string', 'state']]);
-                        send(connecting_id, event::statesync{cserialize(sim)});
+                        send(connecting_id, event::statesync{cserialize<cereal::BinaryOutputArchive>(sim)});
                         connecting_state = NONE;
                     }
                 }
@@ -306,7 +308,7 @@ private:
 
         // connect8
         LOGGER(info, "setting state", timer.get_tick(), input.tick);
-        deserialize(ev.state, sim);
+        deserialize<cereal::BinaryInputArchive>(ev.state, sim);
         timer.init(input.tick, rtt); // + rtt/2
         LOGGER(info, "new oldtick", sim.get_oldtick(), timer.get_tick());
 

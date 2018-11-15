@@ -72,30 +72,12 @@ struct statesync {static constexpr unsigned index = 10; std::string state; SERIA
 constexpr unsigned events_num = 11;
 #define EVENTS_SEQ (host_adv)(join)(joined)(make_new_snake)(new_food)(node_connect)(node_disconnect)(peers)(player_join)(player_leave)(statesync)/*>*/
 
-//static_assert(std::is_pod<null>::value == true);
-
 } // namespace event
 
 using event_t = std::variant<
     /*< join ', ', map { "event::$_->{name}" } dispatch('events');
      %*/event::host_adv, event::join, event::joined, event::make_new_snake, event::new_food, event::node_connect, event::node_disconnect, event::peers, event::player_join, event::player_leave, event::statesync/*>*/
 >;
-//static_assert(std::is_pod<event_t>::value == true);
-
-#define EVENT_VISITOR_HELPER(r,f1,ev_t) case event::ev_t::index: return f1 (boost::get<event::ev_t>(ev));
-
-#define EVENT_VISITOR(e,f1,f2,seq) \
-[](const event_t& ev) { \
-switch(ev.which()) { \
-BOOST_PP_SEQ_FOR_EACH(EVENT_VISITOR_HELPER, f1, seq) \
-default: return f2 (ev); \
-}}(e);
-
-#define EVENT_VISITOR_ALL(e,f) \
-[](const event_t& ev, auto f1) { \
-switch(ev.which()) { \
-BOOST_PP_SEQ_FOR_EACH(EVENT_VISITOR_HELPER, f1, EVENTS_SEQ) \
-}}(e,f);
 
 // IF_EVENT(input.event, my_event, ev) { int x = ev->param; ... }
 #define IF_EVENT(variant, type, name) if(const event:: type * const name = std::get_if<event:: type>(&variant))

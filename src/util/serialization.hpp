@@ -5,33 +5,29 @@
 #ifndef ZENGINE_SERIALIZATION_HPP
 #define ZENGINE_SERIALIZATION_HPP
 
-/*
-#include <boost/preprocessor/seq/for_each.hpp>
-
-// SERIALIZABLE((field1) (field2))
-// template<class Archive> void serialize(Archive& ar) { ar&field1&field2; }
-
-#define SERIALIZABLE(seq) \
-template<class Archive> void serialize(Archive& ar) { (void)(ar \
-BOOST_PP_SEQ_FOR_EACH(SERIALIZABLE_HELPER, ar, seq) ); }
-
-#ifdef DEBUG_SERIALIZATION
-#define SERIALIZABLE_HELPER(r, ar, elem) & CEREAL_NVP(elem)
-#else
-#define SERIALIZABLE_HELPER(r, ar, elem) & elem
-#endif
-*/
-
 #include <boost/vmd/is_empty.hpp>
-#include <boost/vmd/tuple/size.hpp>
 #include <boost/preprocessor/control/iif.hpp>
 
 // SERIALIZABLE(field1, field2, field3)
 #define SERIALIZABLE(...) \
-template<class Archive_> void serialize(Archive_& ar_) { BOOST_PP_IIF(BOOST_VMD_IS_EMPTY(__VA_ARGS__),,(void)ar_(__VA_ARGS__);) }
+template<class Archive_> void serialize(Archive_& ar_) { BOOST_PP_IIF(BOOST_VMD_IS_EMPTY(__VA_ARGS__),,SERIALIZABLE_IMPL(__VA_ARGS__)) }
 
-//#include <boost/preprocessor/tuple/to_seq.hpp>
-#define SERIALIZABLE3(...) SERIALIZABLE(BOOST_PP_IIF(BOOST_VMD_IS_EMPTY(__VA_ARGS__),,BOOST_PP_TUPLE_TO_SEQ((__VA_ARGS__))))
+
+#ifndef SERIALIZE_NVP
+#define SERIALIZABLE_IMPL(...) (void)ar_(__VA_ARGS__);
+
+#else // SERIALIAZE_NVP
+
+#include <boost/preprocessor/tuple/to_seq.hpp>
+#include <boost/preprocessor/seq/for_each.hpp>
+#define SERIALIZABLE_IMPL(...) SERIALIZABLE_IMPL_SEQ(BOOST_PP_TUPLE_TO_SEQ((__VA_ARGS__)))
+
+// SERIALIZABLE_IMPL_SEQ((field1) (field2))
+// (void)(ar & CEREAL_NVP(field1) & CEREAL_NVP(field2));
+#define SERIALIZABLE_IMPL_SEQ(seq) (void)(ar_ BOOST_PP_SEQ_FOR_EACH(SERIALIZABLE_HELPER, ar_, seq) );
+
+#define SERIALIZABLE_HELPER(r, ar, elem) & CEREAL_NVP(elem)
+#endif // SERIALIAZE_NVP
 
 #include <boost/preprocessor/tuple/rem.hpp>
 // TODO: make empty pp tuples work
@@ -43,41 +39,29 @@ template<class Archive_> \
 void save(Archive_& ar_) const \
 { \
     registry .snapshot().entities(ar_).template component<BOOST_PP_REM components>(ar_); \
-    BOOST_PP_IIF(BOOST_VMD_IS_EMPTY other,,ar_ other;) \
+    BOOST_PP_IIF(BOOST_VMD_IS_EMPTY other,,SERIALIZABLE_IMPL other;) \
 } \
 template<class Archive_> \
 void load(Archive_& ar_) \
 { \
     registry .loader().entities(ar_).template component<BOOST_PP_REM components>(ar_); \
-    BOOST_PP_IIF(BOOST_VMD_IS_EMPTY other,,ar_ other;) \
+    BOOST_PP_IIF(BOOST_VMD_IS_EMPTY other,,SERIALIZABLE_IMPL other;) \
 } \
 /* */
 
+#define CEREAL_SIZE_TYPE uint32_t
 
-//#define SERIALIZABLE(...) template<class Archive> void serialize(Archive& ar) { ar(__VA_ARGS__); }
-
-#ifdef DEBUG_SERIALIZATION
-#include <cereal/archives/xml.hpp>
-#define ARCHIVE Xml
-#else
-#include <cereal/archives/portable_binary.hpp>
-#define ARCHIVE PortableBinary
-#endif
-
-#include <boost/preprocessor/cat.hpp>
 
 #include <sstream>
-
 #include <string_view>
 
 using std::string_view;
 
-template <typename... Args>
+template <typename Archive, typename... Args>
 inline std::string cserialize(Args&&... args)
 {
     std::ostringstream ss;
-    using namespace cereal;
-    BOOST_PP_CAT(ARCHIVE, OutputArchive) ar(ss);
+    Archive ar(ss);
     ar(std::forward<Args>(args)...);
     return ss.str();
 }
@@ -99,14 +83,13 @@ public:
     }
 };
 
-template <typename... Args>
+template <class Archive, typename... Args>
 void deserialize(string_view data, Args&... args)
 {
     stream_view sv(data);
     std::istream s(&sv);
-    using namespace cereal;
 
-    BOOST_PP_CAT(ARCHIVE, InputArchive) ar(s);
+    Archive ar(s);
     ar(args...);
 }
 
