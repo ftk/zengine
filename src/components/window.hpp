@@ -43,6 +43,8 @@ public:
 
     sig::signal<void (double x, double y)> mouse_scroll; // in glfw coordinates
 
+    sig::signal<void (int, int)> resize; // in pixels
+
 public:
 
     window_c();
@@ -94,6 +96,8 @@ public:
     void * get_hwnd();
 
     GLFWwindow * wnd() { return window.h; }
+
+    void toggle_cursor(bool toggle);
 
     // todo: move this from window class
     /** Render text (wraps text). Caches text texture

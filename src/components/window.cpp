@@ -17,6 +17,7 @@ window_c::window_handle::window_handle(int width, int height, const char * title
     glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, GLES_VERSION);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+    glfwWindowHint(GLFW_SAMPLES, g_app->config->get("window.egl", 0) ? GLFW_EGL_CONTEXT_API : GLFW_NATIVE_CONTEXT_API);
 
 
 #if GL_DEBUG >= 2
@@ -25,7 +26,7 @@ window_c::window_handle::window_handle(int width, int height, const char * title
 
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-    int msaa = g_app->config->get("window.msaa", 16);
+    int msaa = g_app->config->get("window.msaa", GLFW_DONT_CARE);
     glfwWindowHint(GLFW_SAMPLES, msaa);
 
     LOGGER(info, "creating window", width, height, title);
@@ -63,27 +64,6 @@ static std::unordered_map<GLFWwindow *, window_c *> windows;
 #define GET_WINDOW(w) (assume(windows.count(w)),windows[w])
 #endif
 
-static void key_cb(GLFWwindow * w, int key, int scancode, int action, int mods)
-{
-    GET_WINDOW(w)->key({key, scancode, action, mods});
-}
-
-static void mouse_click_cb(GLFWwindow * w, int button, int action, int mods)
-{
-    double x, y;
-    glfwGetCursorPos(w, &x, &y);
-    GET_WINDOW(w)->mouse_click({button, action, mods, GET_WINDOW(w)->convert_from_pixel_coords(x,y)});
-}
-
-static void mouse_move_cb(GLFWwindow * w, double x, double y)
-{
-    GET_WINDOW(w)->mouse_move(GET_WINDOW(w)->convert_from_pixel_coords(x,y));
-}
-
-static void mouse_scroll_cb(GLFWwindow * w, double x, double y)
-{
-    GET_WINDOW(w)->mouse_scroll(x, y);
-}
 
 window_c::window_c() : window(
                               g_app->config->get("window.width", 1280),
@@ -100,17 +80,32 @@ window_c::window_c() : window(
     windows.reserve(1);
     windows[window.h] = this;
 #endif
-    glfwSetKeyCallback(window.h, &key_cb);
-    glfwSetMouseButtonCallback(window.h, &mouse_click_cb);
-    glfwSetCursorPosCallback(window.h, &mouse_move_cb);
-    glfwSetScrollCallback(window.h, &mouse_scroll_cb);
-
-    glfwSetFramebufferSizeCallback(window.h, [](GLFWwindow* window, int width, int height) {
-        gl::Viewport(0, 0, width, height);
+    glfwSetKeyCallback(window.h, [](GLFWwindow * w, int key, int scancode, int action, int mods) {
+        GET_WINDOW(w)->key({key, scancode, action, mods});
     });
 
+    glfwSetMouseButtonCallback(window.h, [](GLFWwindow * w, int button, int action, int mods) {
+        double x, y;
+        glfwGetCursorPos(w, &x, &y);
+        GET_WINDOW(w)->mouse_click({button, action, mods, GET_WINDOW(w)->convert_from_pixel_coords(x,y)});
+    });
+
+    glfwSetCursorPosCallback(window.h, [](GLFWwindow * w, double x, double y) {
+        GET_WINDOW(w)->mouse_move(GET_WINDOW(w)->convert_from_pixel_coords(x,y));
+    });
+
+    glfwSetScrollCallback(window.h, [](GLFWwindow * w, double x, double y) {
+        GET_WINDOW(w)->mouse_scroll(x, y);
+    });
+
+    glfwSetFramebufferSizeCallback(window.h, [](GLFWwindow* w, int width, int height) {
+        GET_WINDOW(w)->resize(width, height);
+    });
+
+    resize.connect([](int w, int h) { gl::Viewport(0, 0, w, h); }); // TODO: move
+
     auto size = get_size();
-    gl::Viewport(0, 0, qvm::X(size), qvm::Y(size));
+    resize(qvm::X(size), qvm::Y(size));
 
 }
 
@@ -169,6 +164,10 @@ void * window_c::get_hwnd()
 #endif
 }
 
+void window_c::toggle_cursor(bool toggle)
+{
+    glfwSetInputMode(window.h, GLFW_CURSOR, toggle ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
+}
 
 
 #include "opengl/textrender.hpp"
