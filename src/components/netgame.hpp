@@ -12,8 +12,9 @@
 #include "util/signals.hpp"
 
 
-struct netgame_i
+class netgame_i
 {
+public:
     netgame_i() = default;
     virtual ~netgame_i() = default;
 

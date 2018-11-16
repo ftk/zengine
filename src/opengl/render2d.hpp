@@ -107,8 +107,8 @@ public:
     )
     {
         using namespace qvm;
-        mat2 tr {cos(rot), -sin(rot), sin(rot), cos(rot)};
-        mat2 str {cos(src_rot), -sin(src_rot), sin(src_rot), cos(src_rot)};
+        mat2 tr {{{cos(rot), -sin(rot)}, {sin(rot), cos(rot)}}};
+        mat2 str {{{cos(src_rot), -sin(src_rot)}, {sin(src_rot), cos(src_rot)}}};
 
 #define GEN_V(i,xs,ys) \
         vertices[i].a_position = center + tr * vec2{xs X(size),ys Y(size)} / 2.f; \

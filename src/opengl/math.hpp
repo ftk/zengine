@@ -60,97 +60,56 @@ T clamp(T val, T min, T max)
     return (val < min) ? min : ((val > max) ? max : val);
 }
 
-
-
-/*<
- my $s = '';
- for my $d (1..4) {
- my $out;
- $out .= " << ' ' << A<$_>(rhs)" for (0..$d-1);
-
- $s .= qq%
- // output vec$d
- template <typename T>
- std::enable_if_t<is_vec<T>::value && vec_traits<T>::dim == $d, std::ostream&>
- inline operator << (std::ostream& lhs, const T& rhs) {
-    return(lhs << '(' $out << ' ' << ')');
- }
-%;
-}
-for my $d (1..4) {
- my $out;
- $out .= " << row<$_>(rhs) << '\\n'" for (0..$d-1);
-
- $s .= qq%
- // output mat$d
- template <typename T>
- std::enable_if_t<is_mat<T>::value && mat_traits<T>::rows == $d, std::ostream&>
- inline operator << (std::ostream& lhs, const T& rhs) {
-    return(lhs $out << '\\n');
- }
-%;
-}
-
-return $s;
-%*/
- // output vec1
- template <typename T>
- std::enable_if_t<is_vec<T>::value && vec_traits<T>::dim == 1, std::ostream&>
- inline operator << (std::ostream& lhs, const T& rhs) {
-    return(lhs << '('  << ' ' << A<0>(rhs) << ' ' << ')');
- }
-
- // output vec2
- template <typename T>
- std::enable_if_t<is_vec<T>::value && vec_traits<T>::dim == 2, std::ostream&>
- inline operator << (std::ostream& lhs, const T& rhs) {
-    return(lhs << '('  << ' ' << A<0>(rhs) << ' ' << A<1>(rhs) << ' ' << ')');
- }
-
- // output vec3
- template <typename T>
- std::enable_if_t<is_vec<T>::value && vec_traits<T>::dim == 3, std::ostream&>
- inline operator << (std::ostream& lhs, const T& rhs) {
-    return(lhs << '('  << ' ' << A<0>(rhs) << ' ' << A<1>(rhs) << ' ' << A<2>(rhs) << ' ' << ')');
- }
-
- // output vec4
- template <typename T>
- std::enable_if_t<is_vec<T>::value && vec_traits<T>::dim == 4, std::ostream&>
- inline operator << (std::ostream& lhs, const T& rhs) {
-    return(lhs << '('  << ' ' << A<0>(rhs) << ' ' << A<1>(rhs) << ' ' << A<2>(rhs) << ' ' << A<3>(rhs) << ' ' << ')');
- }
-
- // output mat1
- template <typename T>
- std::enable_if_t<is_mat<T>::value && mat_traits<T>::rows == 1, std::ostream&>
- inline operator << (std::ostream& lhs, const T& rhs) {
-    return(lhs  << row<0>(rhs) << '\n' << '\n');
- }
-
- // output mat2
- template <typename T>
- std::enable_if_t<is_mat<T>::value && mat_traits<T>::rows == 2, std::ostream&>
- inline operator << (std::ostream& lhs, const T& rhs) {
-    return(lhs  << row<0>(rhs) << '\n' << row<1>(rhs) << '\n' << '\n');
- }
-
- // output mat3
- template <typename T>
- std::enable_if_t<is_mat<T>::value && mat_traits<T>::rows == 3, std::ostream&>
- inline operator << (std::ostream& lhs, const T& rhs) {
-    return(lhs  << row<0>(rhs) << '\n' << row<1>(rhs) << '\n' << row<2>(rhs) << '\n' << '\n');
- }
-
- // output mat4
- template <typename T>
- std::enable_if_t<is_mat<T>::value && mat_traits<T>::rows == 4, std::ostream&>
- inline operator << (std::ostream& lhs, const T& rhs) {
-    return(lhs  << row<0>(rhs) << '\n' << row<1>(rhs) << '\n' << row<2>(rhs) << '\n' << row<3>(rhs) << '\n' << '\n');
- }
-/*>*/
-
 } // namespace qvm
+
+// define input/output for vec*
+namespace boost { namespace qvm {
+    template <typename CharT, typename Scalar, int Dim>
+    std::basic_ostream<CharT>& operator<<(std::basic_ostream<CharT>& out, boost::qvm::vec<Scalar, Dim> const& v)
+    {
+        out << '(';
+        for(int i = 0; i < Dim; i++)
+        {
+            if(i)
+                out << ',';
+            out << v.a[i];
+        }
+        out << ')';
+        return out;
+    }
+
+    template <typename CharT, typename Scalar, int Dim>
+    std::basic_istream<CharT>& operator>>(std::basic_istream<CharT>& in, boost::qvm::vec<Scalar, Dim>& v)
+    {
+        CharT c = in.peek();
+        bool brackets = false;
+
+        // expect "3,4,5"
+
+        if(!(c >= '0' && c <= '9') && c != '-')
+        {
+            // expect "(1,2,3)"
+            in >> c;
+            brackets = true;
+        }
+
+
+        for(int i = 0; i < Dim; i++)
+        {
+            if(i)
+            {
+                // separator (, ;)
+                in >> c;
+                if(c == '-' || (c >= '0' && c <= '9'))
+                    throw std::runtime_error{"vec istream: Expected separator"};
+            }
+            in >> v.a[i];
+        }
+        if(brackets) // closing bracket
+            in >> c;
+        return in;
+    }
+}}
 
 namespace cereal {
 // todo: optimize?
