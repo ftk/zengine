@@ -17,7 +17,7 @@ window_c::window_handle::window_handle(int width, int height, const char * title
     glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, GLES_VERSION);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-    glfwWindowHint(GLFW_SAMPLES, g_app->config->get("window.egl", 0) ? GLFW_EGL_CONTEXT_API : GLFW_NATIVE_CONTEXT_API);
+    glfwWindowHint(GLFW_CONTEXT_CREATION_API, g_app->config->get("window.egl", 0) ? GLFW_EGL_CONTEXT_API : GLFW_NATIVE_CONTEXT_API);
 
 
 #if GL_DEBUG >= 2
@@ -59,9 +59,7 @@ window_c::window_handle::~window_handle()
 static window_c * window;
 #define GET_WINDOW(w) (window)
 #else
-#include <unordered_map>
-static std::unordered_map<GLFWwindow *, window_c *> windows;
-#define GET_WINDOW(w) (assume(windows.count(w)),windows[w])
+#define GET_WINDOW(w) reinterpret_cast<window_c *>(glfwGetWindowUserPointer(w))
 #endif
 
 
@@ -77,8 +75,7 @@ window_c::window_c() : window(
     assume(window == nullptr);
     window = this;
 #else
-    windows.reserve(1);
-    windows[window.h] = this;
+    glfwSetWindowUserPointer(window.h, this);
 #endif
     glfwSetKeyCallback(window.h, [](GLFWwindow * w, int key, int scancode, int action, int mods) {
         GET_WINDOW(w)->key({key, scancode, action, mods});
@@ -91,7 +88,11 @@ window_c::window_c() : window(
     });
 
     glfwSetCursorPosCallback(window.h, [](GLFWwindow * w, double x, double y) {
-        GET_WINDOW(w)->mouse_move(GET_WINDOW(w)->convert_from_pixel_coords(x,y));
+        auto& wnd = *GET_WINDOW(w);
+        qvm::vec2 newpos = wnd.convert_from_pixel_coords(x,y);
+        wnd.mouse_move(newpos);
+        wnd.mouse_move_delta(newpos - wnd.cursor_pos);
+        wnd.cursor_pos = newpos;
     });
 
     glfwSetScrollCallback(window.h, [](GLFWwindow * w, double x, double y) {
@@ -116,8 +117,6 @@ window_c::~window_c()
 #ifdef SINGLE_WINDOW
     assume(window == this);
     window = nullptr;
-#else
-    windows.erase(windows.find(window.h));
 #endif
 }
 
