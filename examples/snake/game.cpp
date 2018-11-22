@@ -8,11 +8,6 @@
 void snakegame::draw(net_node_id player)
 {
     // draw bg
-    /*g_app->window->render.copy(
-            g_app->resources->textures.get("resources/bg.jpg"),
-            {-1, -1},
-            {2, 2}
-    );*/
     auto& bg = static_resource<toy_renderer>::get(ID("resources/shd/coolbg.glsl"));
     bg.shader.bind();
     static_resource<texture>::get(ID("resources/cooltoybgtex.jpg")).bind(0);
@@ -26,7 +21,7 @@ void snakegame::draw(net_node_id player)
 
     using namespace qvm;
 
-    auto draw_snake = [=](entity_t snake, texture& tex) -> float {
+    auto draw_snake = [this](entity_t snake, texture& tex) -> float {
         // draw snake ... from head to tail
         float total_length = 0.f;
         float t = 0.0;
@@ -51,7 +46,6 @@ void snakegame::draw(net_node_id player)
                 //LOGGER(debug2, "drawing snake circle at", X(pos), Y(pos));
 
             }
-            //t *= len;
             total_length += len;
         }
         return total_length;
@@ -120,8 +114,6 @@ public:
             IF_EVENT_(inp.event, host_adv) hosts.push_back(inp.player);
         });
     }
-    //decltype(game.state) prevstate = game.state;
-
 public:
     void join(net_node_id remote)
     {

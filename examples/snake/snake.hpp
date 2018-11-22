@@ -3,7 +3,7 @@
 
 //#include "cute_headers/cute_c2.h"
 
-#include "entt/entt.hpp"
+#include "entt/entity/registry.hpp"
 
 #include "components/window.hpp"
 
@@ -303,6 +303,7 @@ public:
         ecs.assign<segment_c>(e, pos, 0.001 * normalized(seek_food(pos) - pos));
         ecs.assign<snake_part_c>(e);
         ecs.assign<snake_char_c>(e, e);
+        LOGGER(info, "added snake", e, "@", pos);
         return e;
     }
 
@@ -346,8 +347,8 @@ public:
         while(tries--)
         {
 
-            vec2 pp { std::uniform_real_distribution<float>{-1, 1}(rng),
-                      std::uniform_real_distribution<float>{-1, 1}(rng)};
+            vec2 pp { std::uniform_real_distribution<float>{-0.9, 0.9}(rng),
+                      std::uniform_real_distribution<float>{-0.9, 0.9}(rng)};
             float mindist = 999;
             for(auto ent : ecs.view<snake_part_c>())
             {
