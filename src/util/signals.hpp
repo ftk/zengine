@@ -25,7 +25,7 @@ namespace sig {
     class basic_signal<R(Args...)> : public std::vector<std::function<R(Args...)>>
     {
     public:
-        void operator ()(Args... args)
+        void operator ()(Args... args) const
         {
             for(auto& f : *this)
                 f(args...);
@@ -42,19 +42,21 @@ namespace sig {
     {
         std::function<void ()> disconnector;
 
-        void disconnect() const noexcept
+        void disconnect() noexcept
         {
             disconnector();
+            disconnector = nullptr;
         }
     };
 
-    class scoped_connection : private connection
+    class scoped_connection : public connection
     {
     public:
         scoped_connection(connection c) : connection::connection(std::move(c)) {}
         ~scoped_connection()
         {
-            this->disconnect();
+            if(disconnector)
+                this->disconnect();
         }
     };
 
@@ -100,13 +102,14 @@ namespace sig {
         void disconnect(int id) noexcept
         {
             assume(slots_info.size() == this->size());
-            int i;
-            for(i = 0; i < (int)slots_info.size(); i++)
+            unsigned int i;
+            for(i = 0; i < (unsigned int)slots_info.size(); i++)
             {
                 if(slots_info[i].id == id)
                     break;
             }
-            assume(i >= 0 && i < (int)slots_info.size());
+            if(i == (unsigned int)slots_info.size())
+                return;
             slots_info.erase(slots_info.begin() + i);
             this->erase(this->begin() + i);
         }
