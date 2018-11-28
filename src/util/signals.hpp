@@ -16,6 +16,7 @@ namespace sig = boost::signals2;
 #include <vector>
 
 #include "util/assert.hpp"
+#include "util/movable.hpp"
 
 namespace sig {
     template <typename R, typename... Args>
@@ -38,32 +39,59 @@ namespace sig {
         }
     };
 
-    struct connection
+    template <typename R, typename... Args>
+    class signal;
+
+    class connection
     {
+    protected:
         std::function<void ()> disconnector;
+    public:
+        explicit connection(std::function<void ()> disconnector) : disconnector{std::move(disconnector)} {}
+        connection() = default;
+    public:
 
         void disconnect() noexcept
         {
-            disconnector();
+            if(connected())
+                disconnector();
             disconnector = nullptr;
+        }
+
+        bool connected() const noexcept
+        {
+            return static_cast<bool>(disconnector);
         }
     };
 
     class scoped_connection : public connection
     {
+        NONCOPYABLE(scoped_connection)
     public:
-        scoped_connection(connection c) : connection::connection(std::move(c)) {}
-        ~scoped_connection()
+        scoped_connection(connection c) : connection(std::move(c)) {}
+        scoped_connection() = default;
+        scoped_connection(scoped_connection&& other) = default;
+        scoped_connection& operator=(scoped_connection&& other) noexcept
         {
-            if(disconnector)
-                this->disconnect();
+            if(&other == this) return *this;
+            disconnect();
+            connection::operator=(std::move(other));
+            return *this;
+        }
+        scoped_connection& operator=(const connection &rhs) noexcept
+        {
+            disconnect();
+            connection::operator=(rhs);
+            return *this;
+        }
+        ~scoped_connection() noexcept
+        {
+            disconnect();
         }
     };
 
     enum connect_position { at_front, at_back };
 
-    template <typename R, typename... Args>
-    class signal;
 
     template <typename R, typename... Args>
     class signal<R(Args...)> : protected basic_signal<R(Args...)>
@@ -76,7 +104,10 @@ namespace sig {
         };
         std::vector<slot_info> slots_info;
         int id_counter = 0;
+        NONCOPYABLE(signal)
     public:
+        signal() = default;
+
         using base::operator();
         using base::size;
 
@@ -96,6 +127,12 @@ namespace sig {
             }
             id_counter++;
             return connection{[this,i](){disconnect(i);}};
+        }
+
+        void clear()
+        {
+            base::clear();
+            slots_info.clear();
         }
 
     private:
