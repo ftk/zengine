@@ -109,6 +109,27 @@ namespace boost { namespace qvm {
             in >> c;
         return in;
     }
+
+    template <typename CharT, typename Scalar, int Rows, int Cols>
+    std::basic_ostream<CharT>& operator<<(std::basic_ostream<CharT>& out, boost::qvm::mat<Scalar, Rows, Cols> const& m)
+    {
+        out << '(';
+        for(int i = 0; i < Rows; i++)
+        {
+            if(i)
+                out << ',';
+            out << '(';
+            for(int j = 0; j < Cols; j++)
+            {
+                if(j)
+                    out << ',';
+                out << m.a[i][j];
+            }
+            out << ')';
+        }
+        out << ')';
+        return out;
+    }
 }}
 
 namespace cereal {
