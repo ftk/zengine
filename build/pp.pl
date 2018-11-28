@@ -3,6 +3,8 @@ use warnings;
 
 use v5.18;
 
+use re '/aa';
+
 no warnings 'redefine';
 
 my %filehandlers;
@@ -10,21 +12,6 @@ my %filehandlers;
 
 
 my $dos = -1;
-
-#sub evaler {
-#    my $code = shift;
-#    my $oldresult = shift; # previos result
-#
-#    my $result = eval $code // $oldresult // '';
-#    if ($@) {
-#        warn $@;
-#    }
-#
-#    return $result;
-#}
-#
-#
-#my $block_handler = \&evaler;
 
 for our $pass (1,2) {
 
@@ -107,10 +94,14 @@ for our $pass (1,2) {
 
             local $SIG{__WARN__} = sub {
                 if ($pass == 2) {
-                    my @lines = substr($content, 0, $-[1]) =~ m/\n/g;
-                    my $location = $filename . ':' . (1 + scalar(@lines)) . ": ";
+                    my @lines = substr($content, 0, $-[1]) =~ m/\n/g; # count newlines
+                    my $line = 1 + scalar(@lines); # get line number
+                    if ($_[0] =~ m/ line (\d+)/) { # adjust line number if error msg references it
+                        $line += $1 - 1;
+                    }
+                    my $location = $filename . ':' . $line . ": ";
                     
-                    print STDERR $location . $_[0];
+                    warn ($location, @_);
                 }
             };
 
