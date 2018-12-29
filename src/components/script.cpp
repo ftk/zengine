@@ -26,7 +26,7 @@ R script_callback<R(Args...)>::operator ()(Args... args)
         //LOGGER(debug, "called cb: ", args...);
         try
         {
-            f(std::forward<Args>(args)...);
+            return f(args...);
         }
         catch(exception::eval_error& e)
         {
@@ -35,6 +35,7 @@ R script_callback<R(Args...)>::operator ()(Args... args)
             //assert(false);
         }
     }
+    if constexpr(!std::is_same_v<R, void>) return R{};
 }
 
 template <typename R, typename... Args>
@@ -55,7 +56,7 @@ void script_callback<R(Args...)>::init(const char * name, ChaiScript_Basic& engi
 }
 
 /*< sub uniq { my %seen; grep { !$seen{$_}++ } @_; }
-   join "\n", uniq map { qq%template struct script_callback<$_->{type}>;% } dispatch('callbacks');;
+   join "\n", uniq map { qq%template struct script_callback<$_->{type}>;% } dispatch('callbacks');
    %*//*>*/
 
 
@@ -91,7 +92,7 @@ public:
     void register_callbacks(script_c& p)
     {
 #define CB_INIT(name) p. name .init(#name, chai);
-        /*< join "\n\t\t", map { qq%CB_INIT($_->{name})% } dispatch('callbacks');
+        /*< join "\n\t\t", map { qq%p.$_->{name}.init("$_->{target}", chai);% } dispatch('callbacks');
         %*//*>*/
 #undef CB_INIT
     }
@@ -106,7 +107,7 @@ public:
         catch(exception::eval_error& e)
         {
             std::cerr << e.pretty_print();
-            assert(false);
+            //assert(false);
         }
 
 
