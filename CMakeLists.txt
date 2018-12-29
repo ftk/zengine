@@ -15,19 +15,22 @@ include_directories(. src external)
 
 # boost
 find_package(Boost 1.62  REQUIRED)
-set(EXTERNAL_FILES ${EXTERNAL_FILES} external/boost.cpp)
+set(EXTERNAL_FILES ${EXTERNAL_FILES} ${PROJECT_SOURCE_DIR}/external/boost.cpp)
 include_directories(${Boost_INCLUDE_DIR})
 #link_libraries(${Boost_LIBRARIES})
 
 # chaiscript
-add_definitions(-DNO_SCRIPTING)
-#add_definitions(-DCHAISCRIPT_NO_THREADS -DCHAISCRIPT_NO_THREADS_WARNING -DCHAISCRIPT_NO_DYNLOAD)
+#add_definitions(-DNO_SCRIPTING)
+add_definitions(-DCHAISCRIPT_NO_THREADS -DCHAISCRIPT_NO_THREADS_WARNING -DCHAISCRIPT_NO_DYNLOAD)
 #include_directories(ChaiScript/include)
 
 #
 if (EMSCRIPTEN)
     set(CMAKE_EXECUTABLE_SUFFIX ".html")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s USE_GLFW=3 -s DISABLE_EXCEPTION_CATCHING=0 --preload-file ../resources")
+    set(EMS_FLAGS "-s USE_GLFW=3 -s SAFE_HEAP=1 -s ALIASING_FUNCTION_POINTERS=0 -s TOTAL_MEMORY=67108864 -s STACK_OVERFLOW_CHECK=2 -s ASSERTIONS=2 -s DISABLE_EXCEPTION_CATCHING=0 -s DEMANGLE_SUPPORT=1")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${EMS_FLAGS} --preload-file config.xml --preload-file ../resources")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${EMS_FLAGS}")
+    add_definitions(-DBOOST_ASIO_DISABLE_THREADS)
 else()
     # glfw
     set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
@@ -66,15 +69,8 @@ add_definitions(-DNETLOG_ENABLE)
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DNDEBUG")
 
 
-
-#set(GAME_PATH game)
-set(GAME_PATH examples/snake)
-include_directories(${GAME_PATH})
-add_subdirectory(${GAME_PATH})
-
-
 macro(srcDir var dir)
-    file(GLOB ${var} RELATIVE ${PROJECT_SOURCE_DIR}
+    file(GLOB ${var} #RELATIVE ${PROJECT_SOURCE_DIR}
             ${dir}/*.hpp ${dir}/*.cpp ${dir}/*.c)
     #foreach(f ${FILES})
     #    list(APPEND ${var} "src/${f}")
@@ -88,36 +84,40 @@ srcDir(UTIL_FILES src/util)
 srcDir(ENGINE_FILES src)
 #srcDir(EXTERNAL_FILES external)
 
-set(ALL_FILES ${UTIL_FILES} ${OPENGL_FILES} ${COMPONENTS_FILES} ${ENGINE_FILES} ${GAME_FILES} ${EXTERNAL_FILES})
-#message(${ALL_FILES})
-
-#include_directories(${SDL2PP_INCLUDE_DIRS})
-add_executable(zengine ${ALL_FILES})
-target_link_libraries(zengine glfw ${GLFW_LIBRARIES})
+set(ZENGINE_FILES ${UTIL_FILES} ${OPENGL_FILES} ${COMPONENTS_FILES} ${ENGINE_FILES} ${GAME_FILES} ${EXTERNAL_FILES})
+set(ZENGINE_LIBRARIES glfw ${GLFW_LIBRARIES})
 
 
 find_package(Perl)
 
-if(PERL_FOUND)
-    add_custom_command(OUTPUT build/.timestamp
-            COMMAND ${PERL_EXECUTABLE} build/pp.pl build/inc.pl ${ALL_FILES}
-            COMMAND ${CMAKE_COMMAND} -E touch build/.timestamp
-            DEPENDS build/pp.pl build/inc.pl ${ALL_FILES}
-            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-            COMMENT "Preprocess files"
-            )
-    add_custom_target(RunGenerator DEPENDS build/.timestamp)
-    add_dependencies(zengine RunGenerator)
-endif()
+function(relative var prefix)
+    set(listVar "")
+    foreach(f ${ARGN})
+        file(RELATIVE_PATH rel ${prefix} "${f}")
+        list(APPEND listVar "${rel}")
+    endforeach(f)
+    set(${var} "${listVar}" PARENT_SCOPE)
+endfunction()
 
-add_executable(nettest  network_test.cpp src/components/network.cpp external/boost.cpp)
+function(ppp_generator target)
+    if(PERL_FOUND)
+        relative(rel_files ${PROJECT_SOURCE_DIR} ${ARGN})
+        add_custom_target(RunGenerator_${target}
+                COMMAND ${PERL_EXECUTABLE} ${PROJECT_SOURCE_DIR}/build/pp.pl ${rel_files}
+                DEPENDS ${PROJECT_SOURCE_DIR}/build/pp.pl ${files}
+                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+                COMMENT "Preprocess files"
+                )
+        add_dependencies(${target} RunGenerator_${target})
+    endif()
+endfunction()
+
+#add_executable(nettest  network_test.cpp src/components/network.cpp external/boost.cpp)
 
 #target_compile_definitions(nettest PUBLIC -DBOOST_ASIO_ENABLE_HANDLER_TRACKING)
-target_compile_definitions(nettest PUBLIC -DLOG_HEADER_ONLY)
+#target_compile_definitions(nettest PUBLIC -DLOG_HEADER_ONLY)
 #target_link_libraries(nettest ${Boost_LIBRARIES})
 
 
-set_source_files_properties(src/util/audio.cpp PROPERTIES COMPILE_FLAGS "-fpermissive -w")
-
-
-#set_property(TARGET zengine PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
+#add_subdirectory(examples/voxel)
+add_subdirectory(examples/snake)

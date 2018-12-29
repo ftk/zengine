@@ -174,53 +174,56 @@ public:
 };
 
 
-void init_game2()
+
+int main(int argc, const char * argv[])
 {
-    auto c = new controller;
-    c->host();
+    z_main app(argc, argv);
+    g_app->init_components();
 
-    g_app->window->draw.connect([c]() { c->draw();});
-    g_app->window->key.connect([c](auto k){
-        if(k.action != GLFW_PRESS/* && k.action != GLFW_RELEASE*/)
-            return;
-        if(k.key == GLFW_KEY_ESCAPE)
-            g_app->window->close();
-
-        if(k.key == GLFW_KEY_F12)
-        {
-            c->join_random();
-        }
-        if(k.key == GLFW_KEY_F1)
-        {
-            //=- register_event(name=>'make_new_snake');
-            c->send_event(event::make_new_snake{});
-        }
-
-        LOGGER(info, "pressed",k.key);
-    });
-
-    g_app->window->mouse_click.connect([c](auto click){
-        //=- register_event(name=>'new_food', params=>[['float','x'], ['float','y']]);
-        if(click.action == GLFW_PRESS && click.button == GLFW_MOUSE_BUTTON_LEFT)
-            c->send_event(event::new_food{qvm::X(click.pos), qvm::Y(click.pos)});
-    });
-
-}
-
-void init_game()
-{
     gl::Enable(GL_BLEND);
 
     gl::BlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     gl::ClearColor(0,0,0,0);
-    g_app->window->draw.connect([](){
-        static bool initialized = false;
+
+    controller c;
+
+    sig::connection conn = g_app->window->draw.connect([&conn, &c](){
         if(glfwGetTime() < 3.f) // logo
             g_app->window->render.copy_center(g_app->resources->textures.get("resources/splash.jpg"));
-        else if(!initialized)
+        else
         {
-            initialized = true;
-            init_game2();
+            conn.disconnect();
+
+            c.host();
+
+            g_app->window->draw.connect([&c]() { c.draw();});
+            g_app->window->key.connect([&c](auto k){
+                if(k.action != GLFW_PRESS/* && k.action != GLFW_RELEASE*/)
+                    return;
+                if(k.key == GLFW_KEY_ESCAPE)
+                    g_app->window->close();
+
+                if(k.key == GLFW_KEY_F12)
+                {
+                    c.join_random();
+                }
+                if(k.key == GLFW_KEY_F1)
+                {
+                    //=- register_event(name=>'make_new_snake');
+                    c.send_event(event::make_new_snake{});
+                }
+
+                LOGGER(info, "pressed",k.key);
+            });
+
+            g_app->window->mouse_click.connect([&c](auto click){
+                //=- register_event(name=>'new_food', params=>[['float','x'], ['float','y']]);
+                if(click.action == GLFW_PRESS && click.button == GLFW_MOUSE_BUTTON_LEFT)
+                    c.send_event(event::new_food{qvm::X(click.pos), qvm::Y(click.pos)});
+            });
+
         }
     });
+    app.run();
 }
+

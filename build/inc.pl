@@ -98,13 +98,15 @@ sub dispatch {
 # fff(_XXX("gggh\")ff")
 
 sub register_component {
-    collect('component_headers',  $filename);
-    collect('components', {@_});
+    my $c = {@_};
+    $c->{header} = $c->{header} // $filename;
+    collect('components', $c);
 }
 
 sub register_module {
-    collect('module_headers',  $filename);
-    collect('modules', {@_});
+    my $c = {@_};
+    $c->{header} = $c->{header} // $filename;
+    collect('modules', $c);
 }
 
 
@@ -114,7 +116,10 @@ sub get_components {
 
 
 sub register_callback {
-    collect('callbacks', {type=>shift, name=>shift});
+    my $type = shift;
+    my $name = shift;
+    my $target = shift // $name;
+    collect('callbacks', {type=>$type, name=>$name, target=>$target});
 }
 
 
@@ -247,31 +252,16 @@ sub cpp_fun {
 }
 =cut
 
-# $filehandlers{'glfuncs'} = sub {
-#     my ($fn, $content) = @_;
-#     while ($$content =~ m{gl::(\w+)}ga) {
-#         collect('glfuncs', $1);
-#     }
-# }
+sub make_include {
+    if ($pass == 2) {
 
-
-sub serialize {
-    'template <class Archive> void serialize(Archive & ar, const unsigned int) { ar & ' . ( join ' & ', 
-#map { "BOOST_SERIALIZATION_NVP($_)" } 
-@_ ) . '; }';
-}
-
-sub serialize_free_nvp {
-'
-namespace boost { namespace serialization {
-template <class Archive> void serialize(Archive & ar, ' . shift . ' & t, const unsigned int) {
-ar & ' . ( join ' & ', map { qq[make_nvp("$_", t.$_)] } @_ ) . ';
-}}}
-';
-}
-
-sub serialize_free {
-    'template <class Archive> void serialize(Archive & ar, ' . shift . ' & t, const unsigned int) { ar & ' . ( join ' & ', @_ ) . '; }';
+        my $filename = shift;
+        my $str = shift;
+        open my $fh, '>', $filename or die $!;
+        print $fh $str;
+        close $fh;
+        qq{\n#include "$filename"};
+    }
 }
 
 #>*/

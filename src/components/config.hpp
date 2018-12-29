@@ -19,6 +19,7 @@ public:
 	bool load_from_file(string_view filename) noexcept;
     bool save_to_file(string_view filename) noexcept;
     config_c();
+    config_c(string_view default_file, int argc, const char * const * argv);
     ~config_c();
 
     template <typename Type>

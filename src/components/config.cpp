@@ -17,9 +17,51 @@
 #include "util/log.hpp"
 #include "util/assert.hpp"
 
+#ifdef WIN32 // for chdir
+#include <direct.h>
+#else
+#include <unistd.h>
+#endif
+
 
 config_c::config_c()
 {
+}
+
+config_c::config_c(string_view default_file, int argc, const char * const * argv) : tree{}
+{
+    load_from_file(default_file);
+
+    int argn;
+    for(argn = 1; argn < argc; argn++)
+    {
+        auto arg = string_view{argv[argn]};
+        std::size_t eq_pos = arg.find('=');
+        if(eq_pos == string_view::npos)
+            break;
+
+        auto key = arg.substr(0, eq_pos);
+        auto value = arg.substr(eq_pos + 1);
+
+        if(key == "file")
+        {
+            if(!value.empty())
+            {
+                g_app->config->load_from_file(value);
+            }
+        } else
+            g_app->config->set(std::string{key}, std::string{value});
+    }
+
+    if(auto dir = get_optional<std::string>("app.dir"))
+        chdir(dir->c_str());
+#if !defined(LOG_DISABLE) && !defined(LOG_HEADER_ONLY)
+    if(auto filename = get_optional<std::string>("app.log.file"))
+    {
+        static std::ofstream logfile(*filename);
+        loggers().push_back({logfile, log_level::all, log_detail::TIME});
+    }
+#endif
 }
 
 config_c::~config_c()
@@ -46,8 +88,10 @@ bool config_c::load_from_file(string_view filename) noexcept
             read_ini(std::string{filename}, tree);
         return true;
     }
-    catch(file_parser_error)
-    {}
+    catch(const file_parser_error& e)
+    {
+        LOGGER(error, "config:", e.what());
+    }
     return false;
 }
 bool config_c::save_to_file(string_view filename) noexcept
@@ -63,8 +107,10 @@ bool config_c::save_to_file(string_view filename) noexcept
             write_ini(std::string{filename}, tree);
         return true;
     }
-    catch(file_parser_error)
-    {}
+    catch(const file_parser_error& e)
+    {
+        LOGGER(error, "config:", e.what());
+    }
     return false;
 }
 
@@ -77,12 +123,15 @@ bool config_c::set_param(const std::string& varname, const std::string& value)
 
 std::string config_c::get_param(const std::string& varname)
 {
+    using namespace boost::property_tree;
     try
     {
         return tree.get<std::string>(varname);
     }
-    catch(boost::property_tree::ptree_error)
-    {}
+    catch(const file_parser_error& e)
+    {
+        LOGGER(error, "config:", e.what());
+    }
     return std::string{};
 }
 
