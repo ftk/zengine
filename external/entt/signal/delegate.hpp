@@ -2,7 +2,8 @@
 #define ENTT_SIGNAL_DELEGATE_HPP
 
 
-#include <utility>
+#include <cassert>
+#include <algorithm>
 #include <functional>
 #include <type_traits>
 #include "../config/config.h"
@@ -66,32 +67,22 @@ class delegate;
 
 
 /**
- * @brief Utility class to send around functions and member functions.
+ * @brief Utility class to use to send around functions and member functions.
  *
  * Unmanaged delegate for function pointers and member functions. Users of this
  * class are in charge of disconnecting instances before deleting them.
  *
  * A delegate can be used as general purpose invoker with no memory overhead for
  * free functions and member functions provided along with an instance on which
- * to invoke them.
+ * to invoke them. It comes also with limited support for curried functions.
  *
  * @tparam Ret Return type of a function type.
  * @tparam Args Types of arguments of a function type.
  */
 template<typename Ret, typename... Args>
 class delegate<Ret(Args...)> final {
-    using proto_fn_type = Ret(void *, Args...);
-    using stub_type = std::pair<void *, proto_fn_type *>;
-
-    template<auto Function>
-    static Ret proto(void *, Args... args) {
-        return std::invoke(Function, args...);
-    }
-
-    template<typename Class, auto Member>
-    static Ret proto(void *instance, Args... args) {
-        return std::invoke(Member, static_cast<Class *>(instance), args...);
-    }
+    using storage_type = std::aligned_storage_t<sizeof(void *), alignof(void *)>;
+    using proto_fn_type = Ret(storage_type &, Args...);
 
 public:
     /*! @brief Function type of the delegate. */
@@ -99,75 +90,105 @@ public:
 
     /*! @brief Default constructor. */
     delegate() ENTT_NOEXCEPT
-        : stub{}
-    {}
+        : storage{}, fn{nullptr}
+    {
+        new (&storage) void *{nullptr};
+    }
 
     /**
-     * @brief Constructs a delegate and binds a free function to it.
+     * @brief Constructs a delegate and connects a free function to it.
      * @tparam Function A valid free function pointer.
      */
     template<auto Function>
     delegate(connect_arg_t<Function>) ENTT_NOEXCEPT
-        : stub{}
+        : delegate{}
     {
         connect<Function>();
     }
 
     /**
-     * @brief Constructs a delegate and binds a member function to it.
+     * @brief Constructs a delegate and connects a member function to it.
      * @tparam Member Member function to connect to the delegate.
      * @tparam Class Type of class to which the member function belongs.
      * @param instance A valid instance of type pointer to `Class`.
      */
-    template<auto Member, typename Class>
+    template<auto Member, typename Class, typename = std::enable_if_t<std::is_member_function_pointer_v<decltype(Member)>>>
     delegate(connect_arg_t<Member>, Class *instance) ENTT_NOEXCEPT
-        : stub{}
+        : delegate{}
     {
         connect<Member>(instance);
     }
 
     /**
-     * @brief Binds a free function to a delegate.
+     * @brief Connects a free function to a delegate.
      * @tparam Function A valid free function pointer.
      */
     template<auto Function>
     void connect() ENTT_NOEXCEPT {
         static_assert(std::is_invocable_r_v<Ret, decltype(Function), Args...>);
-        stub = std::make_pair(nullptr, &proto<Function>);
+        new (&storage) void *{nullptr};
+
+        fn = [](storage_type &, Args... args) -> Ret {
+            return std::invoke(Function, args...);
+        };
     }
 
     /**
-     * @brief Connects a member function for a given instance to a delegate.
+     * @brief Connects a member function for a given instance or a curried free
+     * function to a delegate.
      *
-     * The delegate isn't responsible for the connected object. Users must
-     * guarantee that the lifetime of the instance overcomes the one of the
-     * delegate.
+     * When used to connect a member function, the delegate isn't responsible
+     * for the connected object. Users must guarantee that the lifetime of the
+     * instance overcomes the one of the delegate.<br/>
+     * When used to connect a curried free function, the linked value must be
+     * both trivially copyable and trivially destructible, other than such that
+     * its size is lower than or equal to the one of a `void *`. It means that
+     * all the primitive types are accepted as well as pointers. Moreover, the
+     * signature of the free function must be such that the value is the first
+     * argument before the ones used to define the delegate itself.
      *
-     * @tparam Member Member function to connect to the delegate.
-     * @tparam Class Type of class to which the member function belongs.
-     * @param instance A valid instance of type pointer to `Class`.
+     * @tparam Candidate Member function or curried free function to connect to
+     * the delegate.
+     * @tparam Type Type of class to which the member function belongs or type
+     * of value used for currying.
+     * @param value_or_instance A valid pointer to an instance of class type or
+     * the value to use for currying.
      */
-    template<auto Member, typename Class>
-    void connect(Class *instance) ENTT_NOEXCEPT {
-        static_assert(std::is_invocable_r_v<Ret, decltype(Member), Class, Args...>);
-        stub = std::make_pair(instance, &proto<Class, Member>);
+    template<auto Candidate, typename Type>
+    void connect(Type value_or_instance) ENTT_NOEXCEPT {
+        static_assert(sizeof(Type) <= sizeof(void *));
+        static_assert(std::is_trivially_copyable_v<Type>);
+        static_assert(std::is_trivially_destructible_v<Type>);
+        static_assert(std::is_invocable_r_v<Ret, decltype(Candidate), Type &, Args...>);
+        new (&storage) Type{value_or_instance};
+
+        fn = [](storage_type &storage, Args... args) -> Ret {
+            Type &value_or_instance = *reinterpret_cast<Type *>(&storage);
+            return std::invoke(Candidate, value_or_instance, args...);
+        };
     }
 
     /**
      * @brief Resets a delegate.
      *
-     * After a reset, a delegate can be safely invoked with no effect.
+     * After a reset, a delegate cannot be invoked anymore.
      */
     void reset() ENTT_NOEXCEPT {
-        stub.second = nullptr;
+        new (&storage) void *{nullptr};
+        fn = nullptr;
     }
 
     /**
-     * @brief Returns the instance bound to a delegate, if any.
-     * @return An opaque pointer to the instance bound to the delegate, if any.
+     * @brief Returns the instance linked to a delegate, if any.
+     *
+     * @warning
+     * Attempting to use an instance returned by a delegate that doesn't contain
+     * a pointer to a member function results in undefined behavior.
+     *
+     * @return An opaque pointer to the instance linked to the delegate, if any.
      */
     const void * instance() const ENTT_NOEXCEPT {
-        return stub.first;
+        return *reinterpret_cast<const void **>(&storage);
     }
 
     /**
@@ -185,7 +206,8 @@ public:
      * @return The value returned by the underlying function.
      */
     Ret operator()(Args... args) const {
-        return stub.second(stub.first, args...);
+        assert(fn);
+        return fn(storage, args...);
     }
 
     /**
@@ -193,32 +215,29 @@ public:
      * @return False if the delegate is empty, true otherwise.
      */
     explicit operator bool() const ENTT_NOEXCEPT {
-        // no need to test also stub.first
-        return stub.second;
+        // no need to test also data
+        return fn;
     }
 
     /**
      * @brief Checks if the contents of the two delegates are different.
-     *
-     * Two delegates are identical if they contain the same listener.
-     *
      * @param other Delegate with which to compare.
      * @return True if the two delegates are identical, false otherwise.
      */
     bool operator==(const delegate<Ret(Args...)> &other) const ENTT_NOEXCEPT {
-        return stub.first == other.stub.first && stub.second == other.stub.second;
+        auto *lhs = reinterpret_cast<const unsigned char *>(&storage);
+        auto *rhs = reinterpret_cast<const unsigned char *>(&other.storage);
+        return fn == other.fn && std::equal(lhs, lhs + sizeof(storage_type), rhs);
     }
 
 private:
-    stub_type stub{};
+    mutable storage_type storage;
+    proto_fn_type *fn;
 };
 
 
 /**
  * @brief Checks if the contents of the two delegates are different.
- *
- * Two delegates are identical if they contain the same listener.
- *
  * @tparam Ret Return type of a function type.
  * @tparam Args Types of arguments of a function type.
  * @param lhs A valid delegate object.

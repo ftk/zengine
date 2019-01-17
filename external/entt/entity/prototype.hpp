@@ -45,7 +45,7 @@ class prototype final {
     struct component_wrapper { Component component; };
 
     struct component_handler {
-        basic_fn_type *accommodate;
+        basic_fn_type *assign_or_replace;
         basic_fn_type *assign;
     };
 
@@ -132,9 +132,9 @@ public:
      */
     template<typename Component, typename... Args>
     Component & set(Args &&... args) {
-        basic_fn_type *accommodate = [](const prototype &prototype, registry<Entity> &other, const Entity dst) {
+        basic_fn_type *assign_or_replace = [](const prototype &prototype, registry<Entity> &other, const Entity dst) {
             const auto &wrapper = prototype.reg->template get<component_wrapper<Component>>(prototype.entity);
-            other.template accommodate<Component>(dst, wrapper.component);
+            other.template assign_or_replace<Component>(dst, wrapper.component);
         };
 
         basic_fn_type *assign = [](const prototype &prototype, registry<Entity> &other, const Entity dst) {
@@ -144,8 +144,8 @@ public:
             }
         };
 
-        handlers[reg->template type<Component>()] = component_handler{accommodate, assign};
-        auto &wrapper = reg->template accommodate<component_wrapper<Component>>(entity, Component{std::forward<Args>(args)...});
+        handlers[reg->template type<Component>()] = component_handler{assign_or_replace, assign};
+        auto &wrapper = reg->template assign_or_replace<component_wrapper<Component>>(entity, Component{std::forward<Args>(args)...});
         return wrapper.component;
     }
 
@@ -186,22 +186,11 @@ public:
         if constexpr(sizeof...(Component) == 1) {
             return (std::as_const(*reg).template get<component_wrapper<Component...>>(entity).component);
         } else {
-            return std::tuple<const Component &...>{get<Component>()...};
+            return std::tuple<std::add_const_t<Component> &...>{get<Component>()...};
         }
     }
 
-    /**
-     * @brief Returns references to the given components.
-     *
-     * @warning
-     * Attempting to get a component from a prototype that doesn't own it
-     * results in undefined behavior.<br/>
-     * An assertion will abort the execution at runtime in debug mode if the
-     * prototype doesn't own an instance of the given component.
-     *
-     * @tparam Component Types of components to get.
-     * @return References to the components owned by the prototype.
-     */
+    /*! @copydoc get */
     template<typename... Component>
     inline decltype(auto) get() ENTT_NOEXCEPT {
         if constexpr(sizeof...(Component) == 1) {
@@ -217,26 +206,22 @@ public:
      * @return Pointers to the components owned by the prototype.
      */
     template<typename... Component>
-    auto get_if() const ENTT_NOEXCEPT {
+    auto try_get() const ENTT_NOEXCEPT {
         if constexpr(sizeof...(Component) == 1) {
-            const auto *wrapper = reg->template get_if<component_wrapper<Component...>>(entity);
+            const auto *wrapper = reg->template try_get<component_wrapper<Component...>>(entity);
             return wrapper ? &wrapper->component : nullptr;
         } else {
-            return std::tuple<const Component *...>{get_if<Component>()...};
+            return std::tuple<std::add_const_t<Component> *...>{try_get<Component>()...};
         }
     }
 
-    /**
-     * @brief Returns pointers to the given components.
-     * @tparam Component Types of components to get.
-     * @return Pointers to the components owned by the prototype.
-     */
+    /*! @copydoc try_get */
     template<typename... Component>
-    inline auto get_if() ENTT_NOEXCEPT {
+    inline auto try_get() ENTT_NOEXCEPT {
         if constexpr(sizeof...(Component) == 1) {
-            return (const_cast<Component *>(std::as_const(*this).template get_if<Component>()), ...);
+            return (const_cast<Component *>(std::as_const(*this).template try_get<Component>()), ...);
         } else {
-            return std::tuple<Component *...>{get_if<Component>()...};
+            return std::tuple<Component *...>{try_get<Component>()...};
         }
     }
 
@@ -355,9 +340,9 @@ public:
      * @param other A valid reference to a registry.
      * @param dst A valid entity identifier.
      */
-    void accommodate(registry_type &other, const entity_type dst) const {
+    void assign_or_replace(registry_type &other, const entity_type dst) const {
         for(auto &handler: handlers) {
-            handler.second.accommodate(*this, other, dst);
+            handler.second.assign_or_replace(*this, other, dst);
         }
     }
 
@@ -379,8 +364,8 @@ public:
      *
      * @param dst A valid entity identifier.
      */
-    inline void accommodate(const entity_type dst) const {
-        accommodate(*reg, dst);
+    inline void assign_or_replace(const entity_type dst) const {
+        assign_or_replace(*reg, dst);
     }
 
     /**
@@ -483,10 +468,7 @@ public:
         return *reg;
     }
 
-    /**
-     * @brief Returns a reference to the underlying registry.
-     * @return A reference to the underlying registry.
-     */
+    /*! @copydoc backend */
     inline registry_type & backend() ENTT_NOEXCEPT {
         return const_cast<registry_type &>(std::as_const(*this).backend());
     }

@@ -32,7 +32,7 @@ struct actor {
      * @brief Constructs an actor by using the given registry.
      * @param reg An entity-component system properly initialized.
      */
-    actor(registry<Entity> &reg)
+    actor(registry_type &reg)
         : reg{&reg}, entt{reg.create()}
     {}
 
@@ -98,7 +98,7 @@ struct actor {
      */
     template<typename Component, typename... Args>
     Component & assign(Args &&... args) {
-        return reg->template accommodate<Component>(entt, std::forward<Args>(args)...);
+        return reg->template assign_or_replace<Component>(entt, std::forward<Args>(args)...);
     }
 
     /**
@@ -130,11 +130,7 @@ struct actor {
         return std::as_const(*reg).template get<Component...>(entt);
     }
 
-    /**
-     * @brief Returns references to the given components for an actor.
-     * @tparam Component Types of components to get.
-     * @return References to the components owned by the actor.
-     */
+    /*! @copydoc get */
     template<typename... Component>
     decltype(auto) get() ENTT_NOEXCEPT {
         return reg->template get<Component...>(entt);
@@ -146,18 +142,14 @@ struct actor {
      * @return Pointers to the components owned by the actor.
      */
     template<typename... Component>
-    auto get_if() const ENTT_NOEXCEPT {
-        return std::as_const(*reg).template get_if<Component...>(entt);
+    auto try_get() const ENTT_NOEXCEPT {
+        return std::as_const(*reg).template try_get<Component...>(entt);
     }
 
-    /**
-     * @brief Returns pointers to the given components for an actor.
-     * @tparam Component Types of components to get.
-     * @return Pointers to the components owned by the actor.
-     */
+    /*! @copydoc try_get */
     template<typename... Component>
-    auto get_if() ENTT_NOEXCEPT {
-        return reg->template get_if<Component...>(entt);
+    auto try_get() ENTT_NOEXCEPT {
+        return reg->template try_get<Component...>(entt);
     }
 
     /**
@@ -168,10 +160,7 @@ struct actor {
         return *reg;
     }
 
-    /**
-     * @brief Returns a reference to the underlying registry.
-     * @return A reference to the underlying registry.
-     */
+    /*! @copydoc backend */
     inline registry_type & backend() ENTT_NOEXCEPT {
         return const_cast<registry_type &>(std::as_const(*this).backend());
     }

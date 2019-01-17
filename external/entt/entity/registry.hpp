@@ -2,6 +2,7 @@
 #define ENTT_ENTITY_REGISTRY_HPP
 
 
+#include <array>
 #include <tuple>
 #include <vector>
 #include <memory>
@@ -16,6 +17,7 @@
 #include "../config/config.h"
 #include "../core/algorithm.hpp"
 #include "../core/family.hpp"
+#include "../core/type_traits.hpp"
 #include "../signal/sigh.hpp"
 #include "entity.hpp"
 #include "entt_traits.hpp"
@@ -41,7 +43,8 @@ template<typename Entity = std::uint32_t>
 class registry {
     using component_family = family<struct internal_registry_component_family>;
     using handler_family = family<struct internal_registry_handler_family>;
-    using signal_type = sigh<void(registry &, const Entity)>;
+    using component_signal_type = sigh<void(registry &, const Entity)>;
+    using pool_signal_type = sigh<void(registry &, const typename component_family::family_type)>;
     using traits_type = entt_traits<Entity>;
 
     template<typename Component>
@@ -49,6 +52,15 @@ class registry {
         component_pool(registry *reg) ENTT_NOEXCEPT
             : reg{reg}
         {}
+
+        component_pool(const component_pool &other)
+            : sparse_set<Entity, Component>{other}, ctor{}, dtor{}, reg{other.reg}
+        {}
+
+        component_pool & operator=(const component_pool &other) {
+            sparse_set<Entity, Component>::operator=(other);
+            reg = other.reg;
+        }
 
         template<typename... Args>
         Component & construct(const Entity entity, Args &&... args) {
@@ -62,31 +74,83 @@ class registry {
             sparse_set<Entity, Component>::destroy(entity);
         }
 
-        typename signal_type::sink_type construction() ENTT_NOEXCEPT {
+        std::unique_ptr<sparse_set<Entity>> clone() const override {
+            if constexpr(std::is_copy_constructible_v<Component>) {
+                return std::make_unique<component_pool>(*this);
+            } else {
+                return nullptr;
+            }
+        }
+
+        typename component_signal_type::sink_type construction() ENTT_NOEXCEPT {
             return ctor.sink();
         }
 
-        typename signal_type::sink_type destruction() ENTT_NOEXCEPT {
+        typename component_signal_type::sink_type destruction() ENTT_NOEXCEPT {
             return dtor.sink();
         }
 
     private:
-        signal_type ctor;
-        signal_type dtor;
+        component_signal_type ctor;
+        component_signal_type dtor;
         registry *reg;
     };
 
-    template<auto *Type, typename... Component>
-    static void creating(registry &reg, const Entity entity) {
-        if(reg.has<Component...>(entity)) {
-            reg.handlers[*Type]->construct(entity);
-        }
-    }
+    template<typename, typename>
+    struct handler_pool;
 
-    template<typename... Component>
-    static void destroying(registry &reg, const Entity entity) {
-        auto &handler = *reg.handlers[handler_family::type<Component...>];
-        return handler.has(entity) ? handler.destroy(entity) : void();
+    template<typename... Component, typename... Exclude>
+    struct handler_pool<type_list<Component...>, type_list<Exclude...>>: sparse_set<Entity, std::array<typename sparse_set<Entity>::size_type, sizeof...(Component)>> {
+        void candidate(registry &reg, const Entity entity) {
+            if((reg.pool<Component>().has(entity) && ...) && !(reg.pool<Exclude>().has(entity) || ...)) {
+                handler_pool::construct(entity, reg.pools[component_family::type<Component>]->get(entity)...);
+            }
+        }
+
+        template<typename Comp, std::size_t Index>
+        void check(registry &reg, const Entity entity) {
+            const sparse_set<Entity> &cpool = reg.pool<Comp>();
+            const auto last = *cpool.begin();
+
+            if(handler_pool::has(last)) {
+                handler_pool::get(last)[Index] = cpool.get(entity);
+            }
+
+            if(handler_pool::has(entity)) {
+                handler_pool::destroy(entity);
+            }
+        }
+
+        void discard(registry &, const Entity entity) {
+            if(handler_pool::has(entity)) {
+                handler_pool::destroy(entity);
+            }
+        }
+
+        void rebuild(registry &reg, const typename component_family::family_type ctype) {
+            auto index = sizeof...(Component);
+            decltype(index) cnt{};
+
+            ((index = (component_family::type<Component> == ctype) ? cnt++ : (static_cast<void>(++cnt), index)), ...);
+
+            if(index != sizeof...(Component)) {
+                auto begin = sparse_set<Entity>::begin();
+                const auto &cpool = *reg.pools[ctype];
+
+                for(auto &&indexes: *this) {
+                    indexes[index] = cpool.get(*(begin++));
+                }
+            }
+        }
+    };
+
+    template<typename... Component, typename... Exclude, std::size_t... Indexes>
+    void connect(handler_pool<type_list<Component...>, type_list<Exclude...>> *handler, std::index_sequence<Indexes...>) {
+        using handler_type = handler_pool<type_list<Component...>, type_list<Exclude...>>;
+        (pool<Component>().construction().template connect<&handler_type::candidate>(handler), ...);
+        (pool<Exclude>().construction().template connect<&handler_type::discard>(handler), ...);
+        (pool<Component>().destruction().template connect<&handler_type::template check<Component, Indexes>>(handler), ...);
+        (pool<Exclude>().destruction().template connect<&handler_type::candidate>(handler), ...);
     }
 
     template<typename Component>
@@ -96,38 +160,14 @@ class registry {
     }
 
     template<typename Component>
-    inline const component_pool<Component> & pool() const ENTT_NOEXCEPT {
+    inline const auto & pool() const ENTT_NOEXCEPT {
         assert(managed<Component>());
-        return static_cast<const component_pool<Component> &>(*pools[component_family::type<Component>]);
+        return static_cast<component_pool<std::decay_t<Component>> &>(*pools[component_family::type<Component>]);
     }
 
     template<typename Component>
-    inline component_pool<Component> & pool() ENTT_NOEXCEPT {
-        return const_cast<component_pool<Component> &>(std::as_const(*this).template pool<Component>());
-    }
-
-    template<typename Comp, std::size_t Index, typename... Component, std::size_t... Indexes>
-    void connect(std::index_sequence<Indexes...>) {
-        pool<Comp>().construction().template connect<&registry::creating<&handler_family::type<Component...>, std::tuple_element_t<(Indexes < Index ? Indexes : (Indexes+1)), std::tuple<Component...>>...>>();
-        pool<Comp>().destruction().template connect<&registry::destroying<Component...>>();
-    }
-
-    template<typename... Component, std::size_t... Indexes>
-    void connect(std::index_sequence<Indexes...>) {
-        (assure<Component>(), ...);
-        (connect<Component, Indexes, Component...>(std::make_index_sequence<sizeof...(Component)-1>{}), ...);
-    }
-
-    template<typename Comp, std::size_t Index, typename... Component, std::size_t... Indexes>
-    void disconnect(std::index_sequence<Indexes...>) {
-        pool<Comp>().construction().template disconnect<&registry::creating<&handler_family::type<Component...>, std::tuple_element_t<(Indexes < Index ? Indexes : (Indexes+1)), std::tuple<Component...>>...>>();
-        pool<Comp>().destruction().template disconnect<&registry::destroying<Component...>>();
-    }
-
-    template<typename... Component, std::size_t... Indexes>
-    void disconnect(std::index_sequence<Indexes...>) {
-        // if a set exists, pools have already been created for it
-        (disconnect<Component, Indexes, Component...>(std::make_index_sequence<sizeof...(Component)-1>{}), ...);
+    inline auto & pool() ENTT_NOEXCEPT {
+        return const_cast<component_pool<std::decay_t<Component>> &>(std::as_const(*this).template pool<Component>());
     }
 
     template<typename Component>
@@ -139,7 +179,7 @@ class registry {
         }
 
         if(!pools[ctype]) {
-            pools[ctype] = std::make_unique<component_pool<Component>>(this);
+            pools[ctype] = std::make_unique<component_pool<std::decay_t<Component>>>(const_cast<registry *>(this));
         }
     }
 
@@ -153,20 +193,7 @@ public:
     /*! @brief Unsigned integer type. */
     using component_type = typename component_family::family_type;
     /*! @brief Type of sink for the given component. */
-    using sink_type = typename signal_type::sink_type;
-
-    /*! @brief Default constructor. */
-    registry() ENTT_NOEXCEPT = default;
-
-    /*! @brief Copying a registry isn't allowed. */
-    registry(const registry &) = delete;
-    /*! @brief Default move constructor. */
-    registry(registry &&) = default;
-
-    /*! @brief Copying a registry isn't allowed. @return This registry. */
-    registry & operator=(const registry &) = delete;
-    /*! @brief Default move assignment operator. @return This registry. */
-    registry & operator=(registry &&) = default;
+    using sink_type = typename component_signal_type::sink_type;
 
     /**
      * @brief Returns the numeric identifier of a type of component at runtime.
@@ -184,6 +211,19 @@ public:
     static component_type type() ENTT_NOEXCEPT {
         return component_family::type<Component>;
     }
+
+    /*! @brief Default constructor. */
+    registry() ENTT_NOEXCEPT = default;
+
+    /*! @brief Copying a registry isn't allowed. */
+    registry(const registry &) = delete;
+    /*! @brief Default move constructor. */
+    registry(registry &&) = default;
+
+    /*! @brief Copying a registry isn't allowed. @return This registry. */
+    registry & operator=(const registry &) = delete;
+    /*! @brief Default move assignment operator. @return This registry. */
+    registry & operator=(registry &&) = default;
 
     /**
      * @brief Returns the number of existing components of the given type.
@@ -287,28 +327,19 @@ public:
      * There are no guarantees on the order of the components. Use a view if you
      * want to iterate entities and components in the expected order.
      *
+     * @warning
+     * Empty components aren't explicitly instantiated. Therefore, this function
+     * always returns `nullptr` for them.
+     *
      * @tparam Component Type of component in which one is interested.
      * @return A pointer to the array of components of the given type.
      */
     template<typename Component>
-    const Component * raw() const ENTT_NOEXCEPT {
+    std::add_const_t<Component> * raw() const ENTT_NOEXCEPT {
         return managed<Component>() ? pool<Component>().raw() : nullptr;
     }
 
-    /**
-     * @brief Direct access to the list of components of a given pool.
-     *
-     * The returned pointer is such that range
-     * `[raw<Component>(), raw<Component>() + size<Component>()]` is always a
-     * valid range, even if the container is empty.
-     *
-     * @note
-     * There are no guarantees on the order of the components. Use a view if you
-     * want to iterate entities and components in the expected order.
-     *
-     * @tparam Component Type of component in which one is interested.
-     * @return A pointer to the array of components of the given type.
-     */
+    /*! @copydoc raw */
     template<typename Component>
     inline Component * raw() ENTT_NOEXCEPT {
         return const_cast<Component *>(std::as_const(*this).template raw<Component>());
@@ -464,6 +495,7 @@ public:
      */
     template<typename It>
     void create(It first, It last) {
+        static_assert(std::is_convertible_v<entity_type, typename std::iterator_traits<It>::value_type>);
         const auto length = size_type(last - first);
         const auto sz = std::min(available, length);
 
@@ -634,24 +666,11 @@ public:
         if constexpr(sizeof...(Component) == 1) {
             return pool<Component...>().get(entity);
         } else {
-            return std::tuple<const Component &...>{get<Component>(entity)...};
+            return std::tuple<std::add_const_t<Component> &...>{get<Component>(entity)...};
         }
     }
 
-    /**
-     * @brief Returns references to the given components for an entity.
-     *
-     * @warning
-     * Attempting to use an invalid entity or to get a component from an entity
-     * that doesn't own it results in undefined behavior.<br/>
-     * An assertion will abort the execution at runtime in debug mode in case of
-     * invalid entity or if the entity doesn't own an instance of the given
-     * component.
-     *
-     * @tparam Component Types of components to get.
-     * @param entity A valid entity identifier.
-     * @return References to the components owned by the entity.
-     */
+    /*! @copydoc get */
     template<typename... Component>
     inline decltype(auto) get([[maybe_unused]] const entity_type entity) ENTT_NOEXCEPT {
         if constexpr(sizeof...(Component) == 1) {
@@ -662,26 +681,35 @@ public:
     }
 
     /**
-     * @brief Returns pointers to the given components for an entity.
+     * @brief Returns a reference to the given component for an entity.
+     *
+     * In case the entity doesn't own the component, the value provided will be
+     * used to construct it.<br/>
+     * Equivalent to the following snippet (pseudocode):
+     *
+     * @code{.cpp}
+     * auto &component = registry.has<Component>(entity) ? registry.get<Component>(entity) : registry.assign<Component>(entity, value);
+     * @endcode
+     *
+     * Prefer this function anyway because it has slightly better performance.
      *
      * @warning
      * Attempting to use an invalid entity results in undefined behavior.<br/>
      * An assertion will abort the execution at runtime in debug mode in case of
      * invalid entity.
      *
-     * @tparam Component Types of components to get.
+     * @tparam Component Type of component to get.
      * @param entity A valid entity identifier.
-     * @return Pointers to the components owned by the entity.
+     * @param component Instance to use to construct the component.
+     * @return Reference to the component owned by the entity.
      */
-    template<typename... Component>
-    auto get_if([[maybe_unused]] const entity_type entity) const ENTT_NOEXCEPT {
+    template<typename Component>
+    Component & get(const entity_type entity, Component &&component) ENTT_NOEXCEPT {
         assert(valid(entity));
-
-        if constexpr(sizeof...(Component) == 1) {
-            return managed<Component...>() ? pool<Component...>().get_if(entity) : nullptr;
-        } else {
-            return std::tuple<const Component *...>{get_if<Component>(entity)...};
-        }
+        assure<Component>();
+        auto &cpool = pool<Component>();
+        auto *comp = cpool.try_get(entity);
+        return comp ? *comp : cpool.construct(entity, std::forward<Component>(component));
     }
 
     /**
@@ -697,11 +725,23 @@ public:
      * @return Pointers to the components owned by the entity.
      */
     template<typename... Component>
-    inline auto get_if([[maybe_unused]] const entity_type entity) ENTT_NOEXCEPT {
+    auto try_get([[maybe_unused]] const entity_type entity) const ENTT_NOEXCEPT {
+        assert(valid(entity));
+
         if constexpr(sizeof...(Component) == 1) {
-            return (const_cast<Component *>(std::as_const(*this).template get_if<Component>(entity)), ...);
+            return managed<Component...>() ? pool<Component...>().try_get(entity) : nullptr;
         } else {
-            return std::tuple<Component *...>{get_if<Component>(entity)...};
+            return std::tuple<std::add_const_t<Component> *...>{try_get<Component>(entity)...};
+        }
+    }
+
+    /*! @copydoc try_get */
+    template<typename... Component>
+    inline auto try_get([[maybe_unused]] const entity_type entity) ENTT_NOEXCEPT {
+        if constexpr(sizeof...(Component) == 1) {
+            return (const_cast<Component *>(std::as_const(*this).template try_get<Component>(entity)), ...);
+        } else {
+            return std::tuple<Component *...>{try_get<Component>(entity)...};
         }
     }
 
@@ -727,7 +767,7 @@ public:
      */
     template<typename Component, typename... Args>
     Component & replace(const entity_type entity, Args &&... args) {
-        return (get<Component>(entity) = Component{std::forward<Args>(args)...});
+        return (pool<Component>().get(entity) = std::decay_t<Component>{std::forward<Args>(args)...});
     }
 
     /**
@@ -757,12 +797,12 @@ public:
      * @return A reference to the newly created component.
      */
     template<typename Component, typename... Args>
-    Component & accommodate(const entity_type entity, Args &&... args) {
+    Component & assign_or_replace(const entity_type entity, Args &&... args) {
         assure<Component>();
         auto &cpool = pool<Component>();
 
         return cpool.has(entity)
-                ? cpool.get(entity) = Component{std::forward<Args>(args)...}
+                ? cpool.get(entity) = std::decay_t<Component>{std::forward<Args>(args)...}
                 : cpool.construct(entity, std::forward<Args>(args)...);
     }
 
@@ -869,6 +909,7 @@ public:
     void sort(Compare compare, Sort sort = Sort{}, Args &&... args) {
         assure<Component>();
         pool<Component>().sort(std::move(compare), std::move(sort), std::forward<Args>(args)...);
+        invalidate.publish(*this, component_family::type<Component>);
     }
 
     /**
@@ -906,6 +947,7 @@ public:
         assure<To>();
         assure<From>();
         pool<To>().respect(pool<From>());
+        invalidate.publish(*this, component_family::type<To>);
     }
 
     /**
@@ -988,6 +1030,8 @@ public:
      */
     template<typename Func>
     void each(Func func) const {
+        static_assert(std::is_invocable_v<Func, entity_type>);
+
         if(available) {
             for(auto pos = entities.size(); pos; --pos) {
                 const auto curr = entity_type(pos - 1);
@@ -1043,6 +1087,8 @@ public:
      */
     template<typename Func>
     void orphans(Func func) const {
+        static_assert(std::is_invocable_v<Func, entity_type>);
+
         each([func = std::move(func), this](const auto entity) {
             if(orphan(entity)) {
                 func(entity);
@@ -1078,7 +1124,6 @@ public:
      * @sa view
      * @sa view<Entity, Component>
      * @sa persistent_view
-     * @sa raw_view
      * @sa runtime_view
      *
      * @tparam Component Type of components used to construct the view.
@@ -1090,75 +1135,11 @@ public:
         return { &pool<Component>()... };
     }
 
-    /**
-     * @brief Prepares the internal data structures used by persistent views.
-     *
-     * Persistent views are an incredibly fast tool used to iterate a packed
-     * array of entities all of which have specific components.<br/>
-     * The initialization of a persistent view is also a pretty cheap operation,
-     * but for the first time they are created. That's mainly because of the
-     * internal data structures of the registry that are dedicated to this kind
-     * of views and that don't exist yet the very first time they are
-     * requested.<br/>
-     * To avoid costly operations, internal data structures for persistent views
-     * can be prepared with this function. Just use the same set of components
-     * that would have been used otherwise to construct the view.
-     *
-     * @tparam Component Types of components used to prepare the view.
-     */
+    /*! @copydoc view */
     template<typename... Component>
-    void prepare_persistent_view() {
-        static_assert(sizeof...(Component) > 1);
-        const auto htype = handler_family::type<Component...>;
-
-        if(!(htype < handlers.size())) {
-            handlers.resize(htype + 1);
-        }
-
-        if(!handlers[htype]) {
-            connect<Component...>(std::make_index_sequence<sizeof...(Component)>{});
-            handlers[htype] = std::make_unique<sparse_set<entity_type>>();
-            auto &handler = *handlers[htype];
-
-            for(auto entity: view<Component...>()) {
-                handler.construct(entity);
-            }
-        }
-    }
-
-    /**
-     * @brief Discards all the data structures used for a given persitent view.
-     *
-     * Persistent views occupy memory, no matter if they are in use or not.<br/>
-     * This function can be used to discard all the internal data structures
-     * dedicated to a specific persistent view, with the goal of reducing the
-     * memory pressure.
-     *
-     * @warning
-     * Attempting to use a persistent view created before calling this function
-     * results in undefined behavior. No assertion available in this case,
-     * neither in debug mode nor in release mode.
-     *
-     * @tparam Component Types of components of the persistent view.
-     */
-    template<typename... Component>
-    void discard_persistent_view() {
-        if(has_persistent_view<Component...>()) {
-            disconnect<Component...>(std::make_index_sequence<sizeof...(Component)>{});
-            handlers[handler_family::type<Component...>].reset();
-        }
-    }
-
-    /**
-     * @brief Checks if a persistent view has already been prepared.
-     * @tparam Component Types of components of the persistent view.
-     * @return True if the view has already been prepared, false otherwise.
-     */
-    template<typename... Component>
-    bool has_persistent_view() const ENTT_NOEXCEPT {
-        static_assert(sizeof...(Component) > 1);
-        const auto htype = handler_family::type<Component...>;
-        return (htype < handlers.size() && handlers[htype]);
+    inline entt::view<Entity, Component...> view() const {
+        static_assert(std::conjunction_v<std::is_const<Component>...>);
+        return const_cast<registry *>(this)->view<Component...>();
     }
 
     /**
@@ -1168,72 +1149,75 @@ public:
      * internal data structures.<br/>
      * Feel free to discard a view after the use. Creating and destroying a view
      * is an incredibly cheap operation because they do not require any type of
-     * initialization.<br/>
+     * initialization, but for the first time they are used. That's mainly
+     * because of the internal data structures of the registry that are
+     * dedicated to this kind of views and that don't exist yet the very first
+     * time they are requested.<br/>
      * As a rule of thumb, storing a view should never be an option.
      *
      * Persistent views are the right choice to iterate entities when the number
      * of components grows up and the most of the entities have all the given
-     * components.<br/>
-     * However they have also drawbacks:
+     * components. They are also the only type of views that supports filters
+     * without incurring in a loss of performance during iterations.<br/>
+     * However, persistent views have also drawbacks:
      *
      * * Each kind of persistent view requires a dedicated data structure that
      *   is allocated within the registry and it increases memory pressure.
      * * Internal data structures used to construct persistent views must be
      *   kept updated and it affects slightly construction and destruction of
-     *   entities and components.
+     *   entities and components, as well as sort functionalities.
      *
      * That being said, persistent views are an incredibly powerful tool if used
      * with care and offer a boost of performance undoubtedly.
      *
-     * @note
-     * Consider to use the `prepare` member function to initialize the internal
-     * data structures used by persistent views when the registry is still
-     * empty. Initialization could be a costly operation otherwise and it will
-     * be performed the very first time each view is created.
-     *
      * @sa view
      * @sa view<Entity, Component>
      * @sa persistent_view
-     * @sa raw_view
      * @sa runtime_view
      *
      * @tparam Component Types of components used to construct the view.
+     * @tparam Exclude Types of components used to filter the view.
      * @return A newly created persistent view.
      */
-    template<typename... Component>
-    entt::persistent_view<Entity, Component...> persistent_view() {
-        prepare_persistent_view<Component...>();
-        (assure<Component>(), ...);
-        return { handlers[handler_family::type<Component...>].get(), &pool<Component>()... };
+    template<typename... Component, typename... Exclude>
+    entt::persistent_view<Entity, Component...> persistent_view(type_list<Exclude...> = {}) {
+        static_assert(sizeof...(Component));
+        using handler_type = handler_pool<type_list<Component...>, type_list<Exclude...>>;
+        const auto htype = handler_family::type<Component...>;
+
+        if(!(htype < handlers.size())) {
+            handlers.resize(htype + 1);
+        }
+
+        if(!handlers[htype]) {
+            (assure<Component>(), ...);
+            (assure<Exclude>(), ...);
+
+            auto handler = std::make_unique<handler_type>();
+
+            connect(handler.get(), std::make_index_sequence<sizeof...(Component)>{});
+            invalidate.sink().template connect<&handler_type::rebuild>(handler.get());
+
+            for(const auto entity: view<Component...>()) {
+                if(!(pool<Exclude>().has(entity) || ...)) {
+                    handler->construct(entity, pools[component_family::type<Component>]->get(entity)...);
+                }
+            }
+
+            handlers[htype] = std::move(handler);
+        }
+
+        return {
+            static_cast<handler_type *>(handlers[htype].get()),
+            &pool<Component>()...
+        };
     }
 
-    /**
-     * @brief Returns a raw view for the given component.
-     *
-     * This kind of views are created on the fly and share with the registry its
-     * internal data structures.<br/>
-     * Feel free to discard a view after the use. Creating and destroying a view
-     * is an incredibly cheap operation because they do not require any type of
-     * initialization.<br/>
-     * As a rule of thumb, storing a view should never be an option.
-     *
-     * Raw views are incredibly fast and must be considered the best tool to
-     * iterate components whenever knowing the entities to which they belong
-     * isn't required.
-     *
-     * @sa view
-     * @sa view<Entity, Component>
-     * @sa persistent_view
-     * @sa raw_view
-     * @sa runtime_view
-     *
-     * @tparam Component Type of component used to construct the view.
-     * @return A newly created raw view.
-     */
-    template<typename Component>
-    entt::raw_view<Entity, Component> raw_view() {
-        assure<Component>();
-        return { &pool<Component>() };
+    /*! @copydoc persistent_view */
+    template<typename... Component, typename... Exclude>
+    inline entt::persistent_view<Entity, Component...> persistent_view(type_list<Exclude...> = {}) const {
+        static_assert(std::conjunction_v<std::is_const<Component>...>);
+        return const_cast<registry *>(this)->persistent_view<Component...>(type_list<Exclude...>{});
     }
 
     /**
@@ -1254,7 +1238,6 @@ public:
      * @sa view
      * @sa view<Entity, Component>
      * @sa persistent_view
-     * @sa raw_view
      * @sa runtime_view
      *
      * @tparam It Type of forward iterator.
@@ -1263,7 +1246,7 @@ public:
      * @return A newly created runtime view.
      */
     template<typename It>
-    entt::runtime_view<Entity> runtime_view(It first, It last) {
+    entt::runtime_view<Entity> runtime_view(It first, It last) const {
         static_assert(std::is_convertible_v<typename std::iterator_traits<It>::value_type, component_type>);
         std::vector<const sparse_set<Entity> *> set(last - first);
 
@@ -1272,6 +1255,57 @@ public:
         });
 
         return { std::move(set) };
+    }
+
+    /**
+     * @brief Clones the given components and all the entity identifiers.
+     *
+     * The components must be copiable for obvious reasons. The entities
+     * maintain their versions once copied.<br/>
+     * If no components are provided, the registry will try to clone all the
+     * existing pools.
+     *
+     * @warning
+     * Attempting to clone components that aren't copyable can result in
+     * unexpected behaviors.<br/>
+     * A static assertion will abort the compilation when one or more components
+     * are provided at the call site. Otherwise, an assertion will abort the
+     * execution at runtime in debug mode in case one or more pools cannot be
+     * cloned.
+     *
+     * @note
+     * There isn't an efficient way to know if all the entities are assigned at
+     * least one component once copied. Therefore, there may be orphans. It is
+     * up to the caller to clean up the registry if necessary.
+     *
+     * @tparam Component Types of components to clone.
+     * @return A fresh copy of the registry.
+     */
+    template<typename... Component>
+    registry clone() const {
+        registry other;
+        other.pools.resize(pools.size());
+
+        if(sizeof...(Component)) {
+            static_assert(std::conjunction_v<std::is_copy_constructible<Component>...>);
+            ((other.pools[component_family::type<Component>] = managed<Component>() ? pool<Component>().clone() : nullptr), ...);
+        } else {
+            for(auto pos = pools.size(); pos; --pos) {
+                auto &cpool = pools[pos-1];
+
+                if(cpool) {
+                    other.pools[pos-1] = cpool->clone();
+                    assert(other.pools[pos-1]);
+                }
+            };
+        }
+
+        other.next = next;
+        other.available = available;
+        other.entities.resize(entities.size());
+        std::copy(entities.cbegin(), entities.cend(), other.entities.begin());
+
+        return other;
     }
 
     /**
@@ -1346,6 +1380,7 @@ private:
     std::vector<entity_type> entities;
     size_type available{};
     entity_type next{};
+    pool_signal_type invalidate;
 };
 
 
