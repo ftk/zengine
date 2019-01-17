@@ -5,7 +5,7 @@
 
 #include "util/static_resource.hpp"
 
-void snakegame::draw(net_node_id player)
+void snakegame::draw(net_node_id player) const
 {
     // draw bg
     auto& bg = static_resource<toy_renderer>::get(ID("resources/shd/coolbg.glsl"));
@@ -25,9 +25,9 @@ void snakegame::draw(net_node_id player)
         // draw snake ... from head to tail
         float total_length = 0.f;
         float t = 0.0;
-        for(entity_t ent = snake; ent != entt::null; ent = ecs.get<snake_part_c>(ent).next_part)
+        for(entity_t ent = snake; ent != entt::null; ent = ecs.get<const snake_part_c>(ent).next_part)
         {
-            const auto& segment = ecs.get<segment_c>(ent);
+            const auto& segment = ecs.get<const segment_c>(ent);
 
             vec2 pos = segment.pos + segment.dir;
             float len = segment.length();
@@ -52,10 +52,10 @@ void snakegame::draw(net_node_id player)
     };
 
     float total_result = 0;
-    for(auto snake : ecs.view<snake_char_c>())
+    for(auto snake : ecs.view<const snake_char_c>())
     {
         float len = draw_snake(snake, static_resource<texture>::get(ID("resources/sn2.png")));
-        const auto& segment = ecs.get<segment_c>(snake);
+        const auto& segment = ecs.get<const segment_c>(snake);
 
         total_result += len;
 //#ifndef NDEBUG
@@ -63,17 +63,16 @@ void snakegame::draw(net_node_id player)
         char txt[64];
         snprintf(txt, 64, "LEN: %.1f", 10 * len);
         g_app->window->render_text_box(segment.pos + segment.dir, {0.3, 0.025}, txt);
-        snprintf(txt, 64, "SPD: %d", int(10000 * ecs.get<snake_char_c>(snake).speed));
+        snprintf(txt, 64, "SPD: %d", int(10000 * ecs.get<const snake_char_c>(snake).speed));
         g_app->window->render_text_box(segment.pos + segment.dir + vec2{0, 0.025}, {0.3, 0.025}, txt);
 //#endif
     }
-    for(auto snake : ecs.view<dead_snake_c>())
+    for(auto snake : ecs.view<const dead_snake_c>())
     {
         draw_snake(snake, static_resource<texture>::get(ID("resources/sn1.png")));
     }
 
-    for(const auto& food : ecs.raw_view<food_c>())
-    {
+    ecs.view<const food_c>().each([](auto, const auto& food) {
         const vec2 size = {food_size, food_size};
         g_app->window->render.copy(
                 //g_app->resources->textures.get("resources/food.png"),
@@ -81,13 +80,13 @@ void snakegame::draw(net_node_id player)
                 food.pos - size/2,
                 size
         );
-    }
+    });
 
     // draw food cnt
     if(player_food.count(player))
     {
         char txt[64];
-        snprintf(txt, 64, "Food: %d", player_food[player]);
+        snprintf(txt, 64, "Food: %d", player_food.find(player)->second);
         g_app->window->render_text_box({-1, -1}, {0.3, 0.05}, txt);
     }
     // draw score

@@ -307,20 +307,19 @@ public:
         return e;
     }
 
-    vec2 seek_food(vec2 head)
+    vec2 seek_food(vec2 head) const
     {
         // find the closest food item for this snake
         float dist2 = 999.;
         vec2 closest{0,0};
-        for(const auto& food : ecs.raw_view<food_c>())
-        {
-            float d2 = mag_sqr(food.pos - head);
+        ecs.view<const food_c>().each([&closest,&dist2,head](auto, const auto& food) {
+            float d2 = qvm::mag_sqr(food.pos - head);
             if(d2 < dist2)
             {
                 closest = food.pos;
                 dist2 = d2;
             }
-        }
+        });
         return closest;
     }
 
@@ -350,9 +349,9 @@ public:
             vec2 pp { std::uniform_real_distribution<float>{-0.9, 0.9}(rng),
                       std::uniform_real_distribution<float>{-0.9, 0.9}(rng)};
             float mindist = 999;
-            for(auto ent : ecs.view<snake_part_c>())
+            for(auto ent : ecs.view<const snake_part_c>())
             {
-                const auto& seg = ecs.get<segment_c>(ent);
+                const auto& seg = ecs.get<const segment_c>(ent);
                 float d = distance_to_segment(seg, pp);
                 if(d < mindist)
                     mindist = d;
@@ -366,7 +365,7 @@ public:
         return p;
     }
 
-    void draw(net_node_id player);
+    void draw(net_node_id player) const;
 };
 
 
