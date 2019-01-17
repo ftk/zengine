@@ -5,15 +5,18 @@
 #include "application.hpp"
 
 #if 0 /*%
- join "\n", map { qq(#include "$_") } dispatch_s('component_headers') ;
+ join "\n", map { qq(#include "$_->{header}") } get_components ;
  #%*/
 #else
 #include "src/components/config.hpp"
 #include "src/components/glfw.hpp"
-#include "src/components/netgame_impl.hpp"
-#include "src/components/network.hpp"
-#include "src/components/resources.hpp"
 #include "src/components/window.hpp"
+#include "src/components/joystick.hpp"
+#include "src/components/input.hpp"
+#include "src/components/resources.hpp"
+#include "src/components/network.hpp"
+#include "src/components/netgame_impl.hpp"
+#include "src/components/script.hpp"
 #endif
 
 #include "opengl/opengl.hpp"
@@ -57,7 +60,7 @@ void application::init_components()
 {
     try
     {
-#define LOAD_COMPONENT(name,classname) try {if(!name) {name.load<classname>();}} \
+#define LOAD_COMPONENT(name,classname) try {name.load<classname>();} \
         catch(...){logger(log_level::fatal,"unable to load component", #name);throw;}
         /*<
          join '', map { "\n\t\tLOAD_COMPONENT($_->{name}, $_->{class})" } grep { !defined $_->{defer} } get_components ;
@@ -65,9 +68,12 @@ void application::init_components()
 		LOAD_COMPONENT(config, config_c)
 		LOAD_COMPONENT(glfw_init, glfw_c)
 		LOAD_COMPONENT(window, window_c)
+		LOAD_COMPONENT(joystick, joystick_c)
+		LOAD_COMPONENT(input, input_map_c)
 		LOAD_COMPONENT(resources, resources_c)
 		LOAD_COMPONENT(network, network_c)
-		LOAD_COMPONENT(netgame, netgame_c)/*>*/
+		LOAD_COMPONENT(netgame, netgame_c)
+		LOAD_COMPONENT(script, script_c)/*>*/
 #undef LOAD_COMPONENT
     }
     catch(std::exception& e)
