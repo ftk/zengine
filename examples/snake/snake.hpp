@@ -81,6 +81,15 @@ private:
 public:
     ENTT_SERIALIZABLE(ecs, (segment_c, snake_part_c, snake_char_c, dead_snake_c, food_c), (player_food,rng))
 
+    // optional
+    snakegame& operator=(const snakegame& rhs)
+    {
+        ecs = rhs.ecs.clone<segment_c, snake_part_c, snake_char_c, dead_snake_c, food_c>();
+        player_food = rhs.player_food;
+        rng = rhs.rng;
+        return *this;
+    }
+
 
     snakegame()
     {
