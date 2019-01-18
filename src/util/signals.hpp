@@ -14,7 +14,7 @@ namespace sig = boost::signals2;
 
 #include <functional>
 #include <vector>
-
+#include <limits>
 #include "util/assert.hpp"
 #include "util/movable.hpp"
 
@@ -97,10 +97,13 @@ namespace sig {
     class signal<R(Args...)> : protected basic_signal<R(Args...)>
     {
         using base = basic_signal<R(Args...)>;
+        using GroupKey = int;
     protected:
         struct slot_info
         {
             int id;
+            GroupKey group;
+            bool operator < (const slot_info& rhs) const { return group < rhs.group; }
         };
         std::vector<slot_info> slots_info;
         int id_counter = 0;
@@ -111,20 +114,29 @@ namespace sig {
         using base::operator();
         using base::size;
 
+        // do not call connect on the same signal from the slots
         template <typename F>
         connection connect(F&& f, connect_position pos = at_back)
         {
+            return connect(std::forward<F>(f), (pos == at_back) ? std::numeric_limits<GroupKey>::max() : std::numeric_limits<GroupKey>::min(), pos);
+        }
+
+        template <typename F>
+        connection connect(F&& f, GroupKey group, connect_position pos = at_back)
+        {
+            assume(slots_info.size() == this->size());
+
             int i = id_counter;
+            auto info = slot_info{i, group};
+            typename std::vector<slot_info>::iterator info_it;
             if(pos == at_back)
-            {
-                this->push_back(std::forward<F>(f));
-                slots_info.push_back({i});
-            }
+                info_it = std::upper_bound(slots_info.begin(), slots_info.end(), info);
             else
-            {
-                this->insert(this->begin(), std::forward<F>(f));
-                slots_info.insert(slots_info.begin(), {i});
-            }
+                info_it = std::lower_bound(slots_info.begin(), slots_info.end(), info);
+
+            this->insert(this->begin() + (info_it - slots_info.begin()), std::forward<F>(f));
+            slots_info.insert(info_it, std::move(info));
+
             id_counter++;
             return connection{[this,i](){disconnect(i);}};
         }
