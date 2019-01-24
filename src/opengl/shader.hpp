@@ -127,6 +127,7 @@ public:
     GLuint get() const { return prog; }
 
     explicit program(const std::initializer_list<GLuint>& shaders);
+    program(const char * file) { program p = from_file(file); swap(p); }
 
     // load both vertex and fragment shader from 1 file (contains preprocessor)
     static program from_file(const char * file);
@@ -213,12 +214,15 @@ public:
     template <typename T, int D>
     inline void operator = (const qvm::vec<T, D>& rhs) { assign(&rhs, &rhs + 1); }
 
-    template <typename T, int D>
-    inline void assign(const qvm::mat<T, D, D> * begin, const qvm::mat<T, D, D> * end) {
-        detail::glUniformMatrix<T, D>(idx, end - begin, true, &begin->a[0][0]); GL_CHECK_ERROR();
+    template <typename M>
+    inline std::enable_if_t<qvm::is_mat<M>::value && qvm::mat_traits<M>::rows == qvm::mat_traits<M>::cols>
+    operator = (const M &m) {
+        using namespace qvm;
+        constexpr auto D = qvm::mat_traits<M>::rows;
+        using T = typename qvm::mat_traits<M>::scalar_type;
+        mat<T, D, D> t = transposed(m);
+        detail::glUniformMatrix<T, D>(idx, 1, false, &t.a[0][0]); GL_CHECK_ERROR();
     }
-    template <typename T, int D>
-    inline void operator = (const qvm::mat<T, D, D>& rhs) { assign(&rhs, &rhs + 1); }
 
 #if GLES_VERSION >= 3
 // TODO: test
