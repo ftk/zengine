@@ -45,3 +45,18 @@
 //SDL_disabled_assert(cond)
 #endif
 
+#if defined(__GNUC__)
+#ifndef LIKELY
+#define LIKELY(...) __builtin_expect(static_cast<bool>(__VA_ARGS__), 1)
+#endif
+#ifndef UNLIKELY
+#define UNLIKELY(...) __builtin_expect(static_cast<bool>(__VA_ARGS__), 0)
+#endif
+#else
+#ifndef LIKELY
+#define LIKELY(...) (static_cast<bool>(__VA_ARGS__))
+#endif
+#ifndef UNLIKELY
+#define UNLIKELY(...) (static_cast<bool>(__VA_ARGS__))
+#endif
+#endif

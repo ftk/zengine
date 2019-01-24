@@ -7,12 +7,6 @@
 
 #define ID(x) []() constexpr { return x; }
 
-#ifdef __GNUC__
-#define IF_LIKELY(x) if(__builtin_expect(!!(x), 1))
-#else
-#define IF_LIKELY(x) if(x)
-#endif
-
 #include <optional>
 #include <type_traits>
 
@@ -30,7 +24,7 @@ public:
     static Rsc& get(Id id)
     {
         static_assert(std::is_invocable_v<Id>);
-        IF_LIKELY(resource<Id>)
+        if(LIKELY(resource<Id>))
             return *resource<Id>;
         return resource<Id>.emplace(resource_traits<Rsc>::from_id(id()));
     }
@@ -45,7 +39,7 @@ public:
     template <typename Id, typename F>
     static Rsc& get(Id id, F callback)
     {
-        IF_LIKELY(resource<Id>)
+        if(LIKELY(resource<Id>))
             return *resource<Id>;
         return resource<Id>.emplace(callback());
     }
@@ -69,6 +63,5 @@ template <class Rsc>
 template <typename>
 std::optional<Rsc> static_resource<Rsc>::resource;
 
-#undef IF_LIKELY
 
 #endif //ZENGINE_STATIC_RESOURCE_HPP

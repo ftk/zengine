@@ -252,8 +252,10 @@ template <typename T, class Storage>
 class vertex_buffer : public Storage
 {
 private:
-    GLuint vbo;
+    GLuint vbo = 0;
     GLuint vao = 0;
+
+    NONCOPYABLE(vertex_buffer)
 public:
     template <typename ... Args>
     vertex_buffer(Args&&... args) : Storage(std::forward<Args...>(args)...)
@@ -287,11 +289,7 @@ public:
 
         p.bind();
 
-#ifdef __GNUC__
-        if(__builtin_expect(vao == 0, false))
-#else
-        if(vao == 0)
-#endif
+        if(UNLIKELY(vao == 0))
         {
             if(use_vao)
             {
