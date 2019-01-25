@@ -49,6 +49,12 @@ void load(Archive_& ar_) \
 } \
 /* */
 
+#define ENTT_COPY_SERIALIZABLE(classname,registry,components,other) \
+ENTT_COPYABLE(classname,registry,components,other) \
+ENTT_SERIALIZABLE(registry,components,other) \
+DEFAULT_MOVABLE(classname)
+
+
 #define CEREAL_SIZE_TYPE uint32_t
 
 

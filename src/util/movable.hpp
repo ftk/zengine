@@ -33,4 +33,20 @@ GENERATE_SWAP(classname, fields) \
 classname(classname&& rhs) noexcept { this->swap(rhs); } \
 classname& operator = (classname&& rhs) noexcept { this->swap(rhs); return(*this); } \
 private: friend void swap(classname& lhs, classname& rhs) noexcept { lhs.swap(rhs); }
+
+
+#define DEFAULT_MOVABLE(classname) classname(classname&&) = default; classname& operator = (classname&& rhs) = default;
+
+#include <boost/preprocessor/tuple/rem.hpp>
+#include <boost/preprocessor/tuple/to_seq.hpp>
+
+#define COPY_ASSIGN_HELPER(r,other,elem) this-> elem = other . elem;
+//#define COPY_CONSTRUCT_HELPER(r,other,elem) , elem { other . elem }
+
+#define ENTT_COPYABLE(classname,registry,copy_components,fields) \
+classname(const classname& other) noexcept { \
+this-> registry = other. registry .clone<BOOST_PP_REM copy_components>(); \
+BOOST_PP_SEQ_FOR_EACH(COPY_ASSIGN_HELPER, other, BOOST_PP_TUPLE_TO_SEQ(fields)) \
+}
+
 #endif //ZENGINE_MOVABLE_HPP
