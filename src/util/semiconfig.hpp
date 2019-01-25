@@ -1,37 +1,7 @@
-//
-// Created by fotyev on 2018-12-02.
-//
 
-#ifndef ZENGINE_SEMICONFIG_HPP
-#define ZENGINE_SEMICONFIG_HPP
+// both static and dynamic configuration system
+// requires boost lexical_cast
 
-
-#include <unordered_map>
-#include <string>
-#include <optional>
-
-#include <boost/lexical_cast.hpp>
-
-#include "string.hpp"
-
-#define ID(x) []() constexpr { return x; }
-
-#ifndef CONFIG_ON_CAST_ERROR
-#ifdef CONFIG_ON_CAST_ERROR_THROW
-#define CONFIG_ON_CAST_ERROR(msg) throw std::runtime_error{msg};
-#else
-#include "log.hpp"
-#define CONFIG_ON_CAST_ERROR(msg) LOGGER(error, msg)
-#define CONFIG_NOEXCEPT noexcept
-#endif
-#endif
-
-#ifndef CONFIG_NOEXCEPT
-#define CONFIG_NOEXCEPT
-#endif
-
-
-// both static and dynamic configuration
 //  static usage:
 //  gets static.var1 or 1 if not exists:
 // int& var1 = static_config::at(ID("var1"), 1);
@@ -49,6 +19,60 @@
 // static_config::get("var4"); // returns "text"
 // bool ok = static_config::set("var5", "???"); // ok
 // static_config::dynamic_vars() // returns {{"var5","???"}} since at(ID("var5")) was not called
+
+/* saving/loading example:
+    {
+        std::ofstream cfg("config.ini");
+        static_config::for_each([&cfg](std::string name, std::string val) { cfg << name << '=' << val << std::endl;; });
+    }
+    {
+        std::ifstream cfg("config.ini");
+        std::string line;
+        while(std::getline(cfg, line))
+        {
+            if(line.empty() || line[0] == '#' || line[0] == ';')
+                continue;
+            while(line.back() == '\r') line.pop_back();
+            auto spl = string_split<2>(line, '=');
+            if(!spl[1].empty())
+                static_config::set(std::string{spl[0]}, std::string{spl[1]});
+        }
+    }
+*/
+
+#ifndef ZENGINE_SEMICONFIG_HPP
+#define ZENGINE_SEMICONFIG_HPP
+
+
+#include <unordered_map>
+#include <string>
+#include <optional>
+#include <type_traits>
+
+#include <boost/lexical_cast.hpp>
+
+#include "const_strid.hpp"
+#include "assert.hpp"
+
+
+#ifndef CONFIG_ON_CAST_ERROR
+#if defined(CONFIG_ON_CAST_ERROR_THROW)
+#define CONFIG_ON_CAST_ERROR(msg) throw std::runtime_error{msg};
+#elif defined(CONFIG_ON_CAST_ERROR_IGNORE)
+#define CONFIG_ON_CAST_ERROR(msg) /* ignore */
+#define CONFIG_NOEXCEPT noexcept
+#else
+#include "log.hpp"
+#define CONFIG_ON_CAST_ERROR(msg) LOGGER(error, msg)
+#define CONFIG_NOEXCEPT noexcept
+#endif
+#endif
+
+#ifndef CONFIG_NOEXCEPT
+#define CONFIG_NOEXCEPT
+#endif
+
+
 class static_config
 {
 public:
@@ -71,17 +95,33 @@ public:
     // static access
 
     template <typename Id, typename T>
-    static T& at(Id id, T def) CONFIG_NOEXCEPT
+    static
+    std::enable_if_t<!std::is_same_v<T, const char *>, T&>
+    at(Id id, T def) CONFIG_NOEXCEPT
     {
-        if(at_optional<T>(id))
-            return *static_storage<T, Id>;
-        return static_storage<T, Id>.emplace(std::move(def));
+        auto& storage = at_optional<T>(id);
+        if(LIKELY(storage))
+            return *storage;
+        return storage.emplace(std::move(def));
     }
 
-    template <typename T, typename Id>
-    static std::optional<T>& at_optional(Id id) CONFIG_NOEXCEPT
+    template <typename Id, typename T>
+    static
+    std::enable_if_t<std::is_same_v<T, const char *>, string&>
+    at(Id id, T def) CONFIG_NOEXCEPT
     {
-        if(static_storage<T, Id>)
+        auto& storage = at_optional<string>(id);
+        if(LIKELY(storage))
+            return *storage;
+        return storage.emplace(std::move(def));
+    }
+
+    template <typename T, typename IdStr>
+    static std::optional<T>& at_optional(IdStr id) CONFIG_NOEXCEPT
+    {
+        using Id = decltype(detail::idval2type(id));
+
+        if(LIKELY(static_storage<T, Id>))
             return static_storage<T, Id>;
         static_access[id()] = {
                 []() -> string { return static_storage<T, Id> ? boost::lexical_cast<string>(*static_storage<T, Id>) : ""; },
@@ -92,58 +132,20 @@ public:
             try
             {
                 static_storage<T, Id>.emplace(boost::lexical_cast<T>(future_write[id()]));
-                future_write.erase(id());
             }
             catch(const boost::bad_lexical_cast& e)
             {
                 cast_error(id(), e.what(), future_write[id()].c_str());
             }
+            future_write.erase(id());
         }
         return static_storage<T, Id>;
-    }
-
-    // only write static variables
-    static void write_ini_static(std::ostream& s) CONFIG_NOEXCEPT
-    {
-        for(const auto& p : static_access)
-        {
-            try
-            {
-                s << p.first << '=' << p.second.read() << '\n';
-            }
-            catch(const boost::bad_lexical_cast& e)
-            {
-                cast_error(p.first, e.what());
-            }
-        }
-    }
-    static void write_ini_dynamic(std::ostream& s) CONFIG_NOEXCEPT
-    {
-        for(const auto& p : future_write)
-        {
-            s << p.first << '=' << p.second << '\n';
-        }
-    }
-
-    static void read_ini(std::istream& s) CONFIG_NOEXCEPT
-    {
-        std::string line;
-        while(std::getline(s, line))
-        {
-            if(line.empty() || line[0] == '#' || line[0] == ';')
-                continue;
-            auto spl = string_split<2>(line, '=');
-            if(!spl[1].empty())
-                set(string{spl[0]}, string{spl[1]});
-        }
     }
 
     // read only dynamic access
     static string get(const string& id) CONFIG_NOEXCEPT
     {
-        if(auto opt = get_optional(id))
-            return *opt;
-        return "";
+        return get_optional(id).value_or("");
     }
 
     static std::optional<string> get_optional(const string& id) CONFIG_NOEXCEPT
@@ -187,8 +189,29 @@ public:
         return true;
     }
 
+    template <typename F>
+    static void for_each(F f) CONFIG_NOEXCEPT // f(string name,string value)
+    {
+        for(const auto& stat : static_access)
+        {
+            try
+            {
+                f(stat.first, stat.second.read());
+            }
+            catch(const boost::bad_lexical_cast& e)
+            {
+                cast_error(stat.first, e.what());
+            }
+        }
+        for(const auto& dyn : future_write)
+            f(dyn.first, dyn.second);
+    }
+
+    static std::size_t size() noexcept { return static_access.size() + future_write.size(); }
+
+
     // return a map of variables and their values for whom at(...) was not called yet
-    static const std::unordered_map<string, string>& dynamic_vars() noexcept { return future_write; }
+    static const auto& dynamic_vars() noexcept { return future_write; }
 
 private:
     static void cast_error(const string& id, const char * what, const char * write = nullptr) CONFIG_NOEXCEPT
@@ -199,5 +222,11 @@ private:
             CONFIG_ON_CAST_ERROR("config: error reading variable" + id +  ": " + what);
     }
 };
+
+#undef CONFIG_ON_CAST_ERROR
+#undef CONFIG_NOEXCEPT
+
+
+#define SCFG(cfgname,defvalue) static_config::at(ID(#cfgname), defvalue)
 
 #endif //ZENGINE_SEMICONFIG_HPP

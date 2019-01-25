@@ -10,7 +10,7 @@
 #include <string>
 #include "util/signals.hpp"
 
-//=- register_component(class=>'input_map_c', name=>'input', priority=>30, scriptexport=>['']);
+//=- register_component(class=>'input_map_c', name=>'input', priority=>30, scriptexport=>[]);
 class input_map_c
 {
 public:

@@ -8,7 +8,7 @@
 #include "components/netgame.hpp"
 #include "main.hpp"
 #include "components/network.hpp"
-#include "components/config.hpp"
+#include "util/semiconfig.hpp"
 
 #include <thread>
 
@@ -37,29 +37,29 @@ public:
     {
         assume(g_app->network);
 
-        if(auto ip = g_app->config->get_optional<std::string>("network.bind.ip"))
+        if(auto ip = static_config::at_optional<std::string>(ID("network.bind.ip")))
         {
             network.bind_ip = ip->c_str();
-            network.port = g_app->config->get("network.bind.port", 0);
+            network.port = SCFG(network.bind.port, 0);
         }
 
-        network.id = g_app->config->get<net_node_id>("network.id", 0);
+        network.id = SCFG(network.id, (net_node_id)0);
         while(!network.id)
             network.id = (net_node_id) rand();
         NETLOG(info, "my id", network.id);
 
-        network.ping_rate = g_app->config->get<net_node_id>("network.ping_rate", 5000);
+        network.ping_rate = SCFG(network.ping_rate, 5000u);
 
         network.add_new_node(0,
-                             g_app->config->get("network.master.ip", "127.0.0.1").c_str(),
-                             (uint16_t)g_app->config->get("network.master.port", 9999));
+                             SCFG(network.master.ip, "127.0.0.1").c_str(),
+                             SCFG(network.master.port, (uint16_t)9999));
 
         network.receive_callback = [this] (auto... args) { this->on_receive(args...); };
 
         network.connect_callback = [this] (net_node_id id) { this->on_connect(id); return true; };
         network.disconnect_callback = [this] (net_node_id id) { this->on_disconnect(id); };
 
-        if(g_app->config->get("network.enabled", true))
+        if(SCFG(network.enabled, true))
             netthread = std::thread{[this]() { network.run(); }};
     }
 
@@ -175,7 +175,7 @@ public:
 
     ~netgame_c()
     {
-        if(g_app->config->get("network.enabled", true))
+        if(SCFG(network.enabled, true))
         {
             network.receive_callback = nullptr;
             network.stop();

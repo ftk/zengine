@@ -4,6 +4,7 @@
 #include "main.hpp"
 
 #include "util/static_resource.hpp"
+#include "util/semiconfig.hpp"
 
 void snakegame::draw(net_node_id player) const
 {
@@ -109,7 +110,7 @@ public:
     {
         // how many ticks behind oldstate follows newstate
         // larger values allow worse network conditions, lower values improve performace
-        game.sim.lag = g_app->config->get("network.simlag", 20);
+        game.sim.lag = SCFG(network.simlag, 20u);
 
         g_app->netgame->on_event.connect([this](tick_input_t inp) {
             IF_EVENT_(inp.event, host_adv) hosts.push_back(inp.player);

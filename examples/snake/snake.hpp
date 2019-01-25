@@ -8,7 +8,6 @@
 #include "components/window.hpp"
 
 #include <cereal/cereal.hpp>
-//#include <cereal/archives/xml.hpp>
 #include <cereal/types/unordered_map.hpp>
 
 #include <boost/container/small_vector.hpp>
@@ -21,7 +20,6 @@
 #include "gamestate.hpp"
 #include "main.hpp"
 
-#include "components/config.hpp"
 #include "components/resources.hpp"
 
 #include "util/log.hpp"

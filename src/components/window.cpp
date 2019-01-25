@@ -4,11 +4,11 @@
 
 #include "window.hpp"
 
-#include "config.hpp"
 #include "main.hpp"
 
 #include <GLFW/glfw3.h>
 
+#include "util/semiconfig.hpp"
 #include "util/log.hpp"
 #include "opengl/opengl.hpp"
 
@@ -17,7 +17,7 @@ window_c::window_handle::window_handle(int width, int height, const char * title
     glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, GLES_VERSION);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-    glfwWindowHint(GLFW_CONTEXT_CREATION_API, g_app->config->get("window.egl", 0) ? GLFW_EGL_CONTEXT_API : GLFW_NATIVE_CONTEXT_API);
+    glfwWindowHint(GLFW_CONTEXT_CREATION_API, SCFG(window.egl, 0) ? GLFW_EGL_CONTEXT_API : GLFW_NATIVE_CONTEXT_API);
 
 
 #if GL_DEBUG >= 2
@@ -26,7 +26,7 @@ window_c::window_handle::window_handle(int width, int height, const char * title
 
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-    int msaa = g_app->config->get("window.msaa", GLFW_DONT_CARE);
+    int msaa = SCFG(window.msaa, GLFW_DONT_CARE);
     glfwWindowHint(GLFW_SAMPLES, msaa);
 
     LOGGER(info, "creating window", width, height, title);
@@ -34,16 +34,16 @@ window_c::window_handle::window_handle(int width, int height, const char * title
     if(!h)
         throw std::runtime_error{"Cant create window!"};
 
-    if(auto x = g_app->config->get_optional<int>("window.x"))
-        if(auto y = g_app->config->get_optional<int>("window.y"))
+    if(auto x = static_config::at_optional<int>(ID("window.x")))
+        if(auto y = static_config::at_optional<int>(ID("window.y")))
             glfwSetWindowPos(h, *x, *y);
 
     glfwMakeContextCurrent(h);
 
-    glfwSwapInterval(g_app->config->get<int>("window.vsync", 1));
+    glfwSwapInterval(SCFG(window.vsync, 1));
 
-    if(auto x = g_app->config->get_optional<int>("window.ratio.x"))
-        if(auto y = g_app->config->get_optional<int>("window.ratio.y"))
+    if(auto x = static_config::at_optional<int>(ID("window.ratio.x")))
+        if(auto y = static_config::at_optional<int>(ID("window.ratio.y")))
             glfwSetWindowAspectRatio(h, *x, *y);
 
 
@@ -64,9 +64,9 @@ static window_c * window;
 
 
 window_c::window_c() : window(
-                              g_app->config->get("window.width", 1280),
-                              g_app->config->get("window.height", 720),
-                              g_app->config->get("window.title", "window").c_str()
+                              SCFG(window.width, 1280),
+                              SCFG(window.height, 720),
+                              SCFG(window.title, "window").c_str()
                               ),
                        ctx()
 

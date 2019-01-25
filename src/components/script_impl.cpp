@@ -69,9 +69,8 @@ ModulePtr script_register_bindings(ModulePtr m)
 	chai.add(fun([](std::string s, menu_c::callback_t cb, qvm::vec2 pos, float pixelh) {return std::make_shared<menu_c>(std::move(s), std::move(cb), std::move(pos), std::move(pixelh));}), "Menu_c");
 	chai.add(fun([](std::shared_ptr<menu_c>& ptr) {ptr.reset();}), "reset");
 	chai.add(fun(&menu_c::lock), "lock");
-	chai.add(fun(&config_c::get_param, g_app->config.get()), "config_get_param");
-	chai.add(fun(&config_c::set_param, g_app->config.get()), "config_set_param");
-	chai.add(fun(&input_map_c::button_s, g_app->input.get()), "input_button_s");
+	chai.add(fun(&config_c::get, g_app->config.get()), "config_get");
+	chai.add(fun(&config_c::set, g_app->config.get()), "config_set");
 	chai.add(fun(&netgame_i::id, g_app->netgame.get()), "netgame_id");
 	chai.add(fun(&netgame_i::nodes_list, g_app->netgame.get()), "netgame_nodes_list");/*>*/
 

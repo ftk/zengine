@@ -9,7 +9,7 @@
 #include <cstring>
 
 #include "components/window.hpp"
-#include "components/config.hpp"
+#include "util/semiconfig.hpp"
 #include "components/joystick.hpp"
 
 #include "main.hpp"
@@ -200,13 +200,15 @@ input_map_c::button_sig& input_map_c::button(bind_t name, const char * default_k
 {
     if(default_key && !button_map.count(name)) // registering first time
     {
-        auto keystr = g_app->config->get(std::string{"input."} + name, default_key);
+        auto keystr = static_config::get(std::string{"input."} + name);
+        if(keystr.empty())
+            keystr = default_key;
 
         int i = 2;
         while(register_key(keystr.c_str(), name))
         {
             LOGGER(debug, name, "mapped to", keystr);
-            if(auto next = g_app->config->get_optional<std::string>(std::string{"input."} + name + std::to_string(i++)))
+            if(auto next = static_config::get_optional(std::string{"input."} + name + std::to_string(i++)))
                 keystr = *next;
             else
                 break;
