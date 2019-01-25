@@ -5,12 +5,12 @@
 #ifndef ZENGINE_STATIC_RESOURCE_HPP
 #define ZENGINE_STATIC_RESOURCE_HPP
 
-#define ID(x) []() constexpr { return x; }
 
 #include <optional>
 #include <type_traits>
 
 #include "util/resource_traits.hpp"
+#include "util/const_strid.hpp"
 #include "util/assert.hpp"
 
 template <class Rsc>
@@ -20,40 +20,40 @@ class static_resource
     static/* inline*/ std::optional<Rsc> resource;
 
 public:
-    template <typename Id>
-    static Rsc& get(Id id)
+    static Rsc& get(auto id)
     {
-        static_assert(std::is_invocable_v<Id>);
+        using Id = decltype(detail::idval2type(id));
         if(LIKELY(resource<Id>))
             return *resource<Id>;
         return resource<Id>.emplace(resource_traits<Rsc>::from_id(id()));
     }
 
-    template <typename Id>
-    static Rsc& at(Id id)
+    static Rsc& at(auto id)
     {
+        using Id = decltype(detail::idval2type(id));
+
         assume(resource<Id>);
         return *resource<Id>;
     }
 
-    template <typename Id, typename F>
-    static Rsc& get(Id id, F callback)
+    static Rsc& get(auto id, auto callback)
     {
+        using Id = decltype(detail::idval2type(id));
         if(LIKELY(resource<Id>))
             return *resource<Id>;
-        return resource<Id>.emplace(callback());
+        return resource<Id>.emplace(std::move(callback)());
     }
 
-    template <typename Id>
-    static std::optional<Rsc>& get_optional(Id id)
+    static std::optional<Rsc>& get_optional(auto id)
     {
+        using Id = decltype(detail::idval2type(id));
         return resource<Id>;
     }
 
 
-    template <typename Id>
-    static Rsc& reset(Id id)
+    static Rsc& reset(auto id)
     {
+        using Id = decltype(detail::idval2type(id));
         resource<Id>.reset();
     }
 
