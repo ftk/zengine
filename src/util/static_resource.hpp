@@ -20,7 +20,8 @@ class static_resource
     static/* inline*/ std::optional<Rsc> resource;
 
 public:
-    static Rsc& get(auto id)
+    template <typename IdVal>
+    static Rsc& get(IdVal id)
     {
         using Id = decltype(detail::idval2type(id));
         if(LIKELY(resource<Id>))
@@ -28,7 +29,8 @@ public:
         return resource<Id>.emplace(resource_traits<Rsc>::from_id(id()));
     }
 
-    static Rsc& at(auto id)
+    template <typename IdVal>
+    static Rsc& at(IdVal id)
     {
         using Id = decltype(detail::idval2type(id));
 
@@ -36,7 +38,8 @@ public:
         return *resource<Id>;
     }
 
-    static Rsc& get(auto id, auto callback)
+    template <typename IdVal, typename F>
+    static Rsc& get(IdVal id, F callback)
     {
         using Id = decltype(detail::idval2type(id));
         if(LIKELY(resource<Id>))
@@ -44,14 +47,16 @@ public:
         return resource<Id>.emplace(std::move(callback)());
     }
 
-    static std::optional<Rsc>& get_optional(auto id)
+    template <typename IdVal>
+    static std::optional<Rsc>& get_optional(IdVal id)
     {
         using Id = decltype(detail::idval2type(id));
         return resource<Id>;
     }
 
 
-    static Rsc& reset(auto id)
+    template <typename IdVal>
+    static Rsc& reset(IdVal id)
     {
         using Id = decltype(detail::idval2type(id));
         resource<Id>.reset();
