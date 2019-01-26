@@ -72,16 +72,14 @@ public:
         auto& file = static_config::at_optional<std::string>(ID("config.file"));
         if(file)
             load_from_file(*file);
-        LOGGER(info, SCFG(test1, "test1"));
-        LOGGER(info, SCFG(test1, "test2"));
-        //else
-            //file.emplace(default_file);
+        else
+            file = default_file;
     }
 
     ~config_c()
     {
         if(SCFG(config.file.overwrite, true))
-            save_to_file("ccc"/*SCFG(config.file, "ccc")*/);
+            save_to_file(SCFG(config.file, ""));
     }
 
     auto get(const std::string& varname)
