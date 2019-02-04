@@ -202,7 +202,10 @@ input_map_c::button_sig& input_map_c::button(bind_t name, const char * default_k
     {
         auto keystr = static_config::get(std::string{"input."} + name);
         if(keystr.empty())
+        {
             keystr = default_key;
+            static_config::set(std::string{"input."} + name, keystr);
+        }
 
         int i = 2;
         while(register_key(keystr.c_str(), name))
