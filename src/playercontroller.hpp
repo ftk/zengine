@@ -40,6 +40,11 @@ public:
     {
         return static_cast<tick_t>((glfwGetTime() - timerstart) * TPS);
     }
+
+    double get_intratick() const
+    {
+        return ((glfwGetTime() - timerstart) * TPS) - get_tick();
+    }
 };
 
 // GamestateSim reqs : update(tick), on_input(input), Serializable
@@ -56,7 +61,7 @@ class multiplayer_game
     net_node_id connecting_id = 0;
     enum {NONE,CONNECTING,WAITING_FOR_STATE} connecting_state = NONE;
 
-    uint32_t rtt = 0; // round trip time to host, in ms
+    double rtt = 0; // round trip time to host, in seconds
 
 public:
     tick_timer<TICKS_PER_SECOND> timer;
@@ -97,7 +102,7 @@ public:
      *    NONE - normal operation
      *    CONNECTING - [connecting_id] is connecting to the game and he will join at tick [starttick]
      *  SYNC - this game is stopped, but has started joining host [connecting_id]
-     *   starttick: time when client has sent join msg, in ms
+     *   rtt: time when client has sent join msg, in ms
      *   connecting_state:
      *    CONNECTING - host has not responded to peers request yet
      *    WAITING_FOR_STATE - host has responded with peers and all peers are connected
@@ -160,7 +165,7 @@ private:
             if(connecting_state == CONNECTING)
             {
                 connecting_state = WAITING_FOR_STATE;
-                rtt = glfwGetTime() / 1000 - starttick;
+                rtt = glfwGetTime() - rtt;
             } else LOGGER(warn, connecting_state, __func__);
             // check if connected
             const auto connected = netgame->nodes_list(); // assume list is sorted
@@ -191,7 +196,7 @@ private:
 
     void push_input(tick_input_t input)
     {
-        LOGGER(debug4, "event push", input.player, "tick", input.tick, dump_event(input.event));
+        //LOGGER(debug4, "event push", input.player, "tick", input.tick, dump_event(input.event));
         netgame->send_input(clients, input);
         sim.on_input(std::move(input));
     }
@@ -215,9 +220,7 @@ public:
         }
         catch(const old_input_exc& e)
         {
-            LOGGER(warn, "old input received from", e.input.player, dump_event(e.input.event));
-            if(e.input.player == netgame->id())
-                LOGGER(error, "old input from myself? wtf oldtick", e.input.tick, "curtick", e.curtick);
+            LOGGER(warn, "old input received from", e.input.player, e.input.tick, e.curtick);
             // TODO: resynchronize client
             if(state == HOST)
             {
@@ -289,7 +292,7 @@ public:
 
         state = SYNC;
         connecting_state = CONNECTING;
-        starttick = glfwGetTime() / 1000; // special meaning, join time in ms
+        rtt = glfwGetTime(); // special meaning, join time in s
         connecting_id = remote;
 
         // send join ev...
@@ -307,7 +310,7 @@ private:
         if(connecting_state != WAITING_FOR_STATE) LOGGER(warn, __func__);
 
         // connect8
-        LOGGER(info, "setting state", timer.get_tick(), input.tick);
+        LOGGER(info, "setting state", timer.get_tick(), input.tick, "rtt", rtt);
         deserialize<cereal::BinaryInputArchive>(ev.state, sim);
         timer.init(input.tick, rtt); // + rtt/2
         LOGGER(info, "new oldtick", sim.get_oldtick(), timer.get_tick());
@@ -377,7 +380,7 @@ private:
         if(state != STOPPED) // ?
         {
             if(input.tick == 0)
-                LOGGER(debug, "skipping event", dump_event(input.event));
+                LOGGER(debug, "skipping event");
             else
                 sim.on_input(input);
         }
