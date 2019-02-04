@@ -64,11 +64,14 @@ public:
 
     config_c(string_view default_file, int argc, const char * const * argv) noexcept
     {
+        // 1. load config from default file
         load_from_file(default_file);
+        // 2. load config values from cmdline
         for(int i = 1; i < argc; i++)
         {
             parse_and_set(argv[i]);
         }
+        // 3. load from config.file if it was set
         auto& file = static_config::at_optional<std::string>(ID("config.file"));
         if(file)
             load_from_file(*file);
@@ -79,7 +82,16 @@ public:
     ~config_c()
     {
         if(SCFG(config.file.overwrite, true))
-            save_to_file(SCFG(config.file, ""));
+        {
+            auto& file = static_config::at_optional<std::string>(ID("config.file"));
+            if(file)
+            {
+                // do not save config.file to prevent loading config file twice
+                std::string f = *file;
+                file.reset();
+                save_to_file(f);
+            }
+        }
     }
 
     auto get(const std::string& varname)
