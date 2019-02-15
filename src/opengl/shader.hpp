@@ -275,10 +275,14 @@ public:
         GL_CHECK_ERROR();
     }
 
-    void update(typename Storage::iterator begin, typename Storage::iterator end) const
+    void update(unsigned start, int count = -1) const
     {
+        assume(start < this->size());
+        unsigned cnt = static_cast<unsigned>((count != -1) ? count : (this->size() - start));
+        assume(start + cnt <= this->size());
+
         gl::BindBuffer(GL_ARRAY_BUFFER, vbo);
-        gl::BufferSubData(GL_ARRAY_BUFFER, sizeof(T) * (begin - this->begin()), sizeof(T) * (end - begin), this->data());
+        gl::BufferSubData(GL_ARRAY_BUFFER, sizeof(T) * start, sizeof(T) * count, this->data());
         GL_CHECK_ERROR();
     }
 
@@ -290,6 +294,8 @@ public:
         assume(skip <= (unsigned)this->size());
         assume(count == -1 || unsigned(count) <= (this->size() - skip));
         unsigned cnt = static_cast<unsigned>((count != -1) ? count : (this->size() - skip));
+        if(!cnt)
+            return;
 
         p.bind();
 
@@ -298,6 +304,7 @@ public:
             if(use_vao)
             {
                 glGenVertexArrays(1, &vao);
+                GL_CHECK_ERROR();
                 assume(vao);
                 glBindVertexArray(vao);
             }
@@ -322,11 +329,12 @@ public:
         if(gl::initialized)
         {
             gl::DeleteBuffers(1, &vbo);
+            GL_CHECK_ERROR();
             if(vao)
             {
                 detail::glDeleteVertexArrays(1, &vao);
+                GL_CHECK_ERROR();
             }
-            GL_CHECK_ERROR();
         }
     }
 };
