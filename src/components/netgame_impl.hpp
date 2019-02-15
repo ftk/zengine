@@ -125,7 +125,7 @@ protected:
                 {
                     tick_input_t inp;
                     deserialize<cereal::BinaryInputArchive>({data, len}, inp);
-                    NETLOG(debug3, "event from", id, "tick", inp.tick, dump_event(inp.event));
+                    //NETLOG(debug3, "event from", id, "tick", inp.tick, dump_event(inp.event));
                     //EVENT_VISITOR_ALL(inp.event, ([this, &inp](const auto& event) -> void { this->on_event(inp, event);}));
 
                     if(inp.player != id)
