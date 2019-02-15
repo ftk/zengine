@@ -38,13 +38,13 @@ template<class Archive_> void serialize(Archive_& ar_) { BOOST_PP_IIF(BOOST_VMD_
 template<class Archive_> \
 void save(Archive_& ar_) const \
 { \
-    registry .snapshot().entities(ar_).template component<BOOST_PP_REM components>(ar_); \
+    registry .snapshot().entities(ar_).destroyed(ar_).template component<BOOST_PP_REM components>(ar_); \
     BOOST_PP_IIF(BOOST_VMD_IS_EMPTY other,,SERIALIZABLE_IMPL other;) \
 } \
 template<class Archive_> \
 void load(Archive_& ar_) \
 { \
-    registry .loader().entities(ar_).template component<BOOST_PP_REM components>(ar_); \
+    registry .loader().entities(ar_).destroyed(ar_).template component<BOOST_PP_REM components>(ar_); \
     BOOST_PP_IIF(BOOST_VMD_IS_EMPTY other,,SERIALIZABLE_IMPL other;) \
 } \
 /* */
