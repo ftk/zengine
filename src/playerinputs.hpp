@@ -23,6 +23,7 @@ struct tick_input_t
     net_node_id player;
     tick_t tick;
     event_t event;
+    bool processed = false;
 
     bool operator <(const tick_input_t& rhs) const
     {
@@ -93,8 +94,6 @@ private:
         }
     }
 };
-
-std::string dump_event(const event_t& event);
 
 
 #endif //ZENGINE_PLAYERINPUTS_HPP

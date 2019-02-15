@@ -83,19 +83,19 @@ public:
 #include <sstream>
 #include <type_traits>
 
-// GamestateSync requirements: the same as Gamestate + serialize + operator=(optional)
-template <class GamestateSync>
-class gamestate_simulator2 : public gamestate_simulator<GamestateSync>
+
+// GamestateSync requirements: the same as Gamestate + serialize + either operator=(const GamestateOld&) or
+// GamestateOld can be serialized and deserialized into GamestateSync
+template <class GamestateSync, class GamestateOld = GamestateSync>
+class gamestate_simulator2 : public gamestate_simulator<GamestateOld>
 {
-    typedef gamestate_simulator<GamestateSync> Base;
+    typedef gamestate_simulator<GamestateOld> Base;
 protected:
     tick_t simulated_new = 0; // invariant: should always be simulated_old + lag
     bool newstate_invalidated = false;
     GamestateSync newstate;
 
     std::mutex inputs_mtx;
-
-
 public:
 
     template <typename... Args>
@@ -107,7 +107,12 @@ public:
     {
         std::lock_guard<std::mutex> lock(inputs_mtx);
         if(ev.tick < simulated_new)
+        {
+            if(!newstate_invalidated)
+                LOGGER(debug2, "invalidating newstate", simulated_new, "lag:", simulated_new - ev.tick);
+
             newstate_invalidated = true;
+        }
         Base::on_input(std::move(ev));
     }
 
@@ -120,9 +125,7 @@ public:
         if(newstate_invalidated)
         {
             // copy oldstate to newstate
-            LOGGER(debug2, "invalidating newstate", curtick, simulated_new, "->", this->simulated_old);
             invalidate_new_state();
-            //newstate = this->oldstate;
             newstate_invalidated = false;
         }
 
@@ -149,7 +152,7 @@ public:
         return newstate;
     }
 
-private:
+protected:
     void invalidate_new_state() { invalidate_new_state_impl(std::is_copy_assignable<GamestateSync>{}); }
     // GamestateSync has operator=
     void invalidate_new_state_impl(std::true_type)
@@ -190,5 +193,79 @@ public:
     }
 };
 
+// GamestateOut reqs: same as GamestateSync + data member named "output" : should be swappable and def. constructible.
+// controller should change gamestate_simulator2r<GS>.gamestate().output for GS to use output actions
+// decltype(GamestateOut::output){} should be no action
+template <class GamestateOut, class GamestateOld = GamestateOut>
+class gamestate_simulator2r : public gamestate_simulator2<GamestateOut, GamestateOld>
+{
+
+    decltype(GamestateOut::output) noop_output {};
+
+    void switch_output()
+    {
+        std::swap(noop_output, this->newstate.output);
+    }
+
+public:
+    void update(tick_t curtick)
+    {
+        gamestate_simulator<GamestateOld>::update(curtick);
+
+        std::lock_guard<std::mutex> lock(this->inputs_mtx);
+        bool refrain = false;
+        if(this->newstate_invalidated)
+        {
+            // copy oldstate to newstate
+            //LOGGER(debug2, "invalidating newstate", curtick, simulated_new, "->", this->simulated_old);
+            this->invalidate_new_state();
+            //newstate = this->oldstate;
+            this->newstate_invalidated = false;
+            refrain = true;
+            switch_output(); // should be called even number of times
+        }
+
+        // simulate newstate
+
+        auto next_input = this->inputs.lower_bound(this->simulated_new);
+        while(this->simulated_new < curtick)
+        {
+            while(next_input != this->inputs.buf.end())
+            {
+                assert(next_input->tick >= this->simulated_new);
+                if(next_input->tick != this->simulated_new)
+                    break;
+                if(next_input->processed != refrain)
+                    switch_output();
+                this->newstate.on_input(*next_input);
+                if(next_input->processed != refrain)
+                    switch_output();
+                next_input->processed = true;
+                ++next_input;
+            }
+            this->newstate.update(this->simulated_new);
+            this->simulated_new++;
+        }
+        if(refrain) switch_output();
+    }
+
+};
+
+
+template <class BaseGS>
+class recorder_gamestate : public BaseGS
+{
+public:
+    std::vector<tick_input_t> inputs;
+    tick_t tick;
+    SERIALIZABLE(cereal::base_class<BaseGS>(this), inputs, tick)
+
+    // register_event(name=>'gsupdate');
+    void update(tick_t tick) { this->tick = tick; /*inputs.push_back({0,tick,event::gsupdate{}});*/ BaseGS::update(tick); }
+
+    void on_input(tick_input_t ev) { inputs.push_back(ev); BaseGS::on_input(ev); }
+};
+
+namespace cereal { template <class Archive, class GS> struct specialize<Archive, recorder_gamestate<GS>, cereal::specialization::member_serialize> {}; }
 
 #endif //ZENGINE_GAMESTATE_HPP
