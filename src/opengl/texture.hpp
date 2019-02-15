@@ -91,8 +91,12 @@ struct resource_traits<texture>
     {
         return static_cast<unsigned>(qvm::X(rsc.get_size()) * qvm::Y(rsc.get_size()) * 4);
     }
-    static texture from_id(string_view id) { return texture{id}; }
+    /**
+     * @param id texture with optional texture params: "test.png#MAG_FILTER=NEAREST#MIN_FILTER=LINEAR"
+     */
+    static texture from_id(string_view id);
 };
+
 
 
 #endif //ZENGINE_TEXTURE_HPP

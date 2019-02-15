@@ -245,3 +245,50 @@ void framebuf::render_end()
     unbind();
 
 }
+
+#include "util/string.hpp"
+#include "util/hash.hpp"
+
+texture resource_traits<texture>::from_id(string_view id)
+{
+    auto v = string_split_v(id, '#');
+    assume(!v.empty());
+
+    auto tex = texture{v[0]};
+    // apply parameters
+    for(unsigned i = 1; i < v.size(); i++)
+    {
+        auto kv = string_split<2>(v[i], '=');
+        GLenum key = 0, value = 0;
+        switch(fnv1a::hash(kv[0]))
+        {
+            /*< join "\n", map { qq[case "${_}"_fnv: key = GL_TEXTURE_${_}; break;] }
+                qw(MIN_FILTER MAG_FILTER WRAP_S WRAP_T); %*/case "MIN_FILTER"_fnv: key = GL_TEXTURE_MIN_FILTER; break;
+case "MAG_FILTER"_fnv: key = GL_TEXTURE_MAG_FILTER; break;
+case "WRAP_S"_fnv: key = GL_TEXTURE_WRAP_S; break;
+case "WRAP_T"_fnv: key = GL_TEXTURE_WRAP_T; break;/*>*/
+        }
+        if(!key)
+            throw std::runtime_error{"texture: unknown param " + std::string{kv[0]}};
+        switch(fnv1a::hash(kv[1]))
+        {
+            /*< join "\n", map { qq[case "${_}"_fnv: value = GL_${_}; break;] }
+                qw(NEAREST LINEAR NEAREST_MIPMAP_NEAREST LINEAR_MIPMAP_NEAREST NEAREST_MIPMAP_LINEAR LINEAR_MIPMAP_LINEAR
+                CLAMP_TO_EDGE MIRRORED_REPEAT REPEAT); %*/case "NEAREST"_fnv: value = GL_NEAREST; break;
+case "LINEAR"_fnv: value = GL_LINEAR; break;
+case "NEAREST_MIPMAP_NEAREST"_fnv: value = GL_NEAREST_MIPMAP_NEAREST; break;
+case "LINEAR_MIPMAP_NEAREST"_fnv: value = GL_LINEAR_MIPMAP_NEAREST; break;
+case "NEAREST_MIPMAP_LINEAR"_fnv: value = GL_NEAREST_MIPMAP_LINEAR; break;
+case "LINEAR_MIPMAP_LINEAR"_fnv: value = GL_LINEAR_MIPMAP_LINEAR; break;
+case "CLAMP_TO_EDGE"_fnv: value = GL_CLAMP_TO_EDGE; break;
+case "MIRRORED_REPEAT"_fnv: value = GL_MIRRORED_REPEAT; break;
+case "REPEAT"_fnv: value = GL_REPEAT; break;/*>*/
+        }
+        if(!value)
+            throw std::runtime_error{"texture: unknown param value " + std::string{kv[1]}};
+        gl::TexParameteri(GL_TEXTURE_2D, key, value);
+        GL_CHECK_ERROR();
+    }
+
+    return tex;
+}
