@@ -6,7 +6,19 @@
 #include "texture.hpp"
 
 #include "opengl.hpp"
-//#include "shader.hpp"
+
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_STATIC
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
+#endif
+#include "stb/stb_image.h"
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+
+#include <boost/scope_exit.hpp>
 
 
 
@@ -124,10 +136,6 @@ texture::texture(unsigned width, unsigned height, int format) : width(width), he
     //GL_CHECK_ERROR();
 
 }
-
-#include "stb/stb_image.h"
-
-#include <boost/scope_exit.hpp>
 
 texture texture::from_file(const char * filename)
 {

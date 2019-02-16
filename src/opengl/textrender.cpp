@@ -1,6 +1,8 @@
 //
 // Created by fotyev on 2018-07-16.
 //
+
+#define STB_TRUETYPE_IMPLEMENTATION
 #include "textrender.hpp"
 #include <fstream>
 
@@ -149,6 +151,8 @@ qvm::vec2 font::get_string_size(std::string_view string, float pixelh) const
         Y(size) = std::max(Y(size), Y(pos));
     });
     Y(size) -= descent * scale;
+    X(size) = ceil(X(size));
+    Y(size) = ceil(Y(size));
     return size;
 }
 
@@ -194,7 +198,7 @@ texture make_text_box(const font& font, std::string_view string, qvm::vec2 size,
             float substr_len = X(font.get_string_size(substr, pixelh));
             if(!substr.empty())
                 X(curpos) += substr_len;
-            if(X(curpos) > X(size) || newline)
+            if((X(curpos) > X(size) || newline) && --max_lines)
             {
                 // wrap
                 newstring += '\n';
