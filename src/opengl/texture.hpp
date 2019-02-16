@@ -52,6 +52,27 @@ public:
     qvm::ivec2 get_size() const { return {(int)width, (int)height}; }
 };
 
+class cubemap_texture
+{
+    unsigned idx = 0;
+    unsigned width, height;
+
+NONCOPYABLE_BUT_SWAPPABLE(cubemap_texture, (idx) (width) (height))
+
+
+    cubemap_texture();
+public:
+    static cubemap_texture from_files(const std::vector<std::string>& filenames);
+
+    void bind(unsigned tex_unit = 0) const;
+
+    qvm::ivec2 get_size() const { return {(int)width, (int)height}; }
+
+    ~cubemap_texture();
+};
+
+
+
 class framebuf
 { // todo: test
     GLuint fbo = 0;
@@ -95,6 +116,19 @@ struct resource_traits<texture>
      * @param id texture with optional texture params: "test.png#MAG_FILTER=NEAREST#MIN_FILTER=LINEAR"
      */
     static texture from_id(string_view id);
+};
+
+template <>
+struct resource_traits<cubemap_texture>
+{
+    static unsigned int get_size(const cubemap_texture& rsc)
+    {
+        return static_cast<unsigned>(qvm::X(rsc.get_size()) * qvm::Y(rsc.get_size()) * 3 * 6);
+    }
+    /**
+     * @param id filename cubemap pattern: "example_%%.png" where "%%" is replaced by "rt", "lf", "up", "dn", "bk", "ft"
+     */
+    static cubemap_texture from_id(string_view id);
 };
 
 

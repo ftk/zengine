@@ -69,6 +69,7 @@ texture::texture(const uint8_t * surface, unsigned surface_len, unsigned width, 
        || (format == GL_LUMINANCE_ALPHA && (width * 2) % 4 != 0)
     )
     {
+        LOGGER(debug, "setting gl unpack aligment 1 due to texture of format", format, "width", width);
         gl::PixelStorei(GL_UNPACK_ALIGNMENT, 1);
     }
 
@@ -141,6 +142,83 @@ texture texture::from_file(const char * filename)
 
 texture::texture(string_view filename) : texture(from_file(std::string(filename).c_str()))
 {
+}
+
+cubemap_texture::cubemap_texture()
+{
+    gl::GenTextures(1, &idx);
+    GL_CHECK_ERROR();
+    gl::BindTexture(GL_TEXTURE_CUBE_MAP, idx);
+
+    // GL_NEAREST GL_LINEAR
+    gl::TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    gl::TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    // GL_MIRRORED_REPEAT, GL_REPEAT GL_CLAMP_TO_EDGE
+    gl::TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    gl::TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+#if GLES_VERSION >= 3
+    gl::TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+#endif
+    GL_CHECK_ERROR();
+}
+
+cubemap_texture cubemap_texture::from_files(const std::vector<std::string>& filenames)
+{
+    cubemap_texture tex;
+    gl::BindTexture(GL_TEXTURE_CUBE_MAP, tex.idx);
+
+    unsigned i = 0;
+    for(const auto& filename : filenames)
+    {
+        int width, height, comp;
+        auto img = stbi_load(filename.c_str(), &width, &height, &comp, 3);
+        LOGGER(debug, "loading",filename, ':', width, height, comp);
+        if(!img)
+            throw std::runtime_error{"cant load " + std::string{filename}};
+
+        assume(width > 0);
+        BOOST_SCOPE_EXIT_ALL(img) { stbi_image_free(img); };
+
+        //if(comp != 3)
+            //throw std::runtime_error{"bad image format (not RGB888) " + std::string{filename}};
+
+        if((width * 3) % 4 != 0)
+        {
+            gl::PixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        }
+
+        gl::TexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, img);
+        GL_CHECK_ERROR();
+
+        tex.width = width;
+        tex.height = height;
+
+        i++;
+    }
+    if(i != 6)
+        LOGGER(warn, "cubemap_texture: incomplete initialization");
+
+    gl::BindTexture(GL_TEXTURE_CUBE_MAP, 0);
+
+    return tex;
+}
+
+cubemap_texture::~cubemap_texture()
+{
+    if(gl::initialized && idx)
+    {
+        gl::DeleteTextures(1, &idx);
+        GL_CHECK_ERROR();
+        LOGGER(debug, "unloaded texture", idx);
+    }
+}
+
+void cubemap_texture::bind(unsigned int tex_unit) const
+{
+    assume(idx);
+    gl::ActiveTexture(GL_TEXTURE0 + tex_unit);
+    gl::BindTexture(GL_TEXTURE_CUBE_MAP, idx);
+    GL_CHECK_ERROR();
 }
 
 framebuf::framebuf(unsigned width, unsigned height, bool depth) : tex(width, height, GL_RGBA)
@@ -292,3 +370,32 @@ case "REPEAT"_fnv: value = GL_REPEAT; break;/*>*/
 
     return tex;
 }
+
+cubemap_texture resource_traits<cubemap_texture>::from_id(string_view id)
+{
+    /*
+        GL_TEXTURE_CUBE_MAP_POSITIVE_X
+        GL_TEXTURE_CUBE_MAP_NEGATIVE_X
+        GL_TEXTURE_CUBE_MAP_POSITIVE_Y
+        GL_TEXTURE_CUBE_MAP_NEGATIVE_Y
+        GL_TEXTURE_CUBE_MAP_POSITIVE_Z
+        GL_TEXTURE_CUBE_MAP_NEGATIVE_Z
+     */
+    const char * load_order[6] = {  "ft", "bk", "up", "dn", "rt", "lf"};
+    std::string file_tmp {id};
+    auto idx = file_tmp.find_first_of('%');
+
+    std::vector<std::string> filenames;
+    filenames.reserve(6);
+    for(int i = 0; i < 6; i++)
+    {
+        if(idx != std::string::npos)
+        {
+            file_tmp[idx] = load_order[i][0];
+            file_tmp[idx + 1] = load_order[i][1];
+        }
+        filenames.push_back(file_tmp);
+    }
+    return cubemap_texture::from_files(filenames);
+}
+
