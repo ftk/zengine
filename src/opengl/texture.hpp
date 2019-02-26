@@ -36,7 +36,7 @@ public:
     explicit texture(unsigned gl_idx, unsigned width, unsigned height) : idx(gl_idx), width(width), height(height) {}
 
 
-    void bind(unsigned tex_unit = 0) const;
+    qvm::ivec1 bind(unsigned tex_unit = 0) const;
 
     ~texture();
 
@@ -64,7 +64,7 @@ NONCOPYABLE_BUT_SWAPPABLE(cubemap_texture, (idx) (width) (height))
 public:
     static cubemap_texture from_files(const std::vector<std::string>& filenames);
 
-    void bind(unsigned tex_unit = 0) const;
+    qvm::ivec1 bind(unsigned tex_unit = 0) const;
 
     qvm::ivec2 get_size() const { return {(int)width, (int)height}; }
 

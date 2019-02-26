@@ -92,12 +92,13 @@ texture::texture(const uint8_t * surface, unsigned surface_len, unsigned width, 
 
 }
 
-void texture::bind(unsigned tex_unit) const
+qvm::ivec1 texture::bind(unsigned tex_unit) const
 {
     assume(idx);
     gl::ActiveTexture(GL_TEXTURE0 + tex_unit);
     gl::BindTexture(GL_TEXTURE_2D, idx);
     GL_CHECK_ERROR();
+    return {(int)tex_unit};
 }
 
 texture::~texture()
@@ -221,12 +222,13 @@ cubemap_texture::~cubemap_texture()
     }
 }
 
-void cubemap_texture::bind(unsigned int tex_unit) const
+qvm::ivec1 cubemap_texture::bind(unsigned int tex_unit) const
 {
     assume(idx);
     gl::ActiveTexture(GL_TEXTURE0 + tex_unit);
     gl::BindTexture(GL_TEXTURE_CUBE_MAP, idx);
     GL_CHECK_ERROR();
+    return {(int)tex_unit};
 }
 
 framebuf::framebuf(unsigned width, unsigned height, bool depth) : tex(width, height, GL_RGBA)
