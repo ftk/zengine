@@ -5,6 +5,9 @@
 #ifndef ZENGINE_MATH_HPP
 #define ZENGINE_MATH_HPP
 
+#define _USE_MATH_DEFINES
+#include <cmath>
+
 #include <boost/qvm/all.hpp>
 #include <type_traits>
 
@@ -47,7 +50,12 @@ constexpr auto identity_mat4 = identity_mat<float, 4>;
 /*>*/
 using quat = quat<float>;
 
-
+inline mat4 mat3tomat4(const mat3 m)
+{
+    mat4 r = identity_mat4();
+    for(int i = 0; i < 3; i++) for(int j = 0; j < 3; j++) r.a[i][j] = m.a[i][j];
+    return r;
+}
 
 inline mat4 scale_mat4(float scale)
 {
@@ -137,9 +145,14 @@ namespace cereal {
 template <class Archive, class T, int D>
 void serialize(Archive& ar, boost::qvm::vec<T, D>& vec)
 {
-    ar & vec.a;
+    ar(vec.a);
 };
 
+template <class Archive, class T>
+void serialize(Archive& ar, boost::qvm::quat<T>& q)
+{
+    ar(q.a);
+};
 } // namespace cereal
 
 #endif //ZENGINE_MATH_HPP
