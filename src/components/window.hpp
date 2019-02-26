@@ -42,6 +42,9 @@ public:
     sig::signal<void (qvm::vec2)> mouse_move; //
     sig::signal<void (qvm::vec2)> mouse_move_delta; //
     qvm::vec2 cursor_pos;
+private:
+    qvm::vec2 old_cursor_pos;
+public:
 
     sig::signal<void (double x, double y)> mouse_scroll; // in glfw coordinates
 

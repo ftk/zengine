@@ -90,8 +90,8 @@ window_c::window_c() : window(
     glfwSetCursorPosCallback(window.h, [](GLFWwindow * w, double x, double y) {
         auto& wnd = *GET_WINDOW(w);
         qvm::vec2 newpos = wnd.convert_from_pixel_coords(x,y);
-        wnd.mouse_move(newpos);
-        wnd.mouse_move_delta(newpos - wnd.cursor_pos);
+        //wnd.mouse_move(newpos);
+        //wnd.mouse_move_delta(newpos - wnd.cursor_pos);
         wnd.cursor_pos = newpos;
     });
 
@@ -107,6 +107,15 @@ window_c::window_c() : window(
 
     auto size = get_size();
     resize(qvm::X(size), qvm::Y(size));
+
+    draw.connect([this]() {
+        if(old_cursor_pos != cursor_pos)
+        {
+            mouse_move(cursor_pos);
+            mouse_move_delta(cursor_pos - old_cursor_pos);
+            old_cursor_pos = cursor_pos;
+        }
+    });
 
 }
 
