@@ -6,7 +6,7 @@ endif ()
 
 #if (CMAKE_COMPILER_IS_GNUCXX)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++1z")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O1")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
 #endif ()
 
 project(zengine)
@@ -112,12 +112,12 @@ function(ppp_generator target)
     endif()
 endfunction()
 
-#add_executable(nettest  network_test.cpp src/components/network.cpp external/boost.cpp)
+add_executable(nettest  network_test.cpp src/components/network.cpp external/boost.cpp)
 
 #target_compile_definitions(nettest PUBLIC -DBOOST_ASIO_ENABLE_HANDLER_TRACKING)
-#target_compile_definitions(nettest PUBLIC -DLOG_HEADER_ONLY)
+target_compile_definitions(nettest PUBLIC -DLOG_HEADER_ONLY)
 #target_link_libraries(nettest ${Boost_LIBRARIES})
 
 
-#add_subdirectory(examples/voxel)
+add_subdirectory(examples/airfoss)
 add_subdirectory(examples/snake)

@@ -48,8 +48,7 @@ public:
 	app_component<class input_map_c> input;
 	app_component<class resources_c> resources;
 	app_component<class network_c> network;
-	app_component<class netgame_i> netgame;
-	app_component<class script_c> script;/*>*/
+	app_component<class netgame_i> netgame;/*>*/
 
 //private:
     application() noexcept;

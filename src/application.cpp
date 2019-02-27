@@ -16,7 +16,6 @@
 #include "src/components/resources.hpp"
 #include "src/components/network.hpp"
 #include "src/components/netgame_impl.hpp"
-#include "src/components/script.hpp"
 #endif
 
 #include "opengl/opengl.hpp"
@@ -72,8 +71,7 @@ void application::init_components()
 		LOAD_COMPONENT(input, input_map_c)
 		LOAD_COMPONENT(resources, resources_c)
 		LOAD_COMPONENT(network, network_c)
-		LOAD_COMPONENT(netgame, netgame_c)
-		LOAD_COMPONENT(script, script_c)/*>*/
+		LOAD_COMPONENT(netgame, netgame_c)/*>*/
 #undef LOAD_COMPONENT
     }
     catch(std::exception& e)
