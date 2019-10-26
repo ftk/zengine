@@ -13,6 +13,11 @@
 #include <vector>
 #include <fstream>
 
+#include <thread>
+
+#include <sys/types.h>
+#include <sys/stat.h>
+
 //=- register_component(class=>'config_c', name=>'config', priority=>0, scriptexport=>[qw(get set)]);
 class config_c
 {
@@ -77,6 +82,28 @@ public:
             load_from_file(*file);
         else
             file = default_file;
+
+        // 4. set file watcher
+        if(SCFG(config.watch, 0u))
+        {
+            std::thread t([this, &file]() {
+                struct stat s;
+                stat(file->c_str(), &s);
+                auto mod = s.st_mtime;
+                while(true)
+                {
+                    std::this_thread::sleep_for(std::chrono::seconds{SCFG(config.watch, 0u)});
+                    stat(file->c_str(), &s);
+                    if(mod != s.st_mtime)
+                    {
+                        LOGGER(info, "reloading", *file);
+                        load_from_file(*file);
+                        mod = s.st_mtime;
+                    }
+                }
+            });
+            t.detach();
+        }
     }
 
     ~config_c()
