@@ -3,13 +3,10 @@
 
 
 #include <memory>
+#include "fwd.hpp"
 
 
 namespace entt {
-
-
-template<typename Resource>
-class resource_cache;
 
 
 /**
@@ -47,7 +44,7 @@ class resource_cache;
 template<typename Loader, typename Resource>
 class resource_loader {
     /*! @brief Resource loaders are friends of their caches. */
-    friend class resource_cache<Resource>;
+    friend struct resource_cache<Resource>;
 
     /**
      * @brief Loads the resource and returns it.
@@ -56,7 +53,7 @@ class resource_loader {
      * @return The resource just loaded or an empty pointer in case of errors.
      */
     template<typename... Args>
-    std::shared_ptr<Resource> get(Args &&... args) const {
+    [[nodiscard]] std::shared_ptr<Resource> get(Args &&... args) const {
         return static_cast<const Loader *>(this)->load(std::forward<Args>(args)...);
     }
 };
@@ -65,4 +62,4 @@ class resource_loader {
 }
 
 
-#endif // ENTT_RESOURCE_LOADER_HPP
+#endif

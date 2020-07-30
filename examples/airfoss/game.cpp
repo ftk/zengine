@@ -28,9 +28,9 @@ void gamestate::on_input(tick_input_t input)
             return;
         plane& p = ecs.get<plane>(players[input.player]);
         auto bent = ecs.create();
-        ecs.assign<expirable>(bent, SCFG(game.bullet.ttl, 60*3u) + input.tick);
+        ecs.emplace<expirable>(bent, SCFG(game.bullet.ttl, 60*3u) + input.tick);
         qvm::vec3 vel = p.rotd * qvm::_001() * SCFG(game.bullet.speed, 1.f);
-        ecs.assign<bullet>(bent, p.position + vel, vel, input.player);
+        ecs.emplace<bullet>(bent, p.position + vel, vel, input.player);
     }
     else IF_EVENT(input.event, engine, e)
     {
@@ -183,7 +183,7 @@ void gamestate::respawn(net_node_id player)
     auto pent = ecs.create();
     players[player] = pent;
 
-    ecs.assign<plane>(pent);
+    ecs.emplace<plane>(pent);
     plane& p = ecs.get<plane>(pent);
 
     p.position = qvm::vec3{std::uniform_real_distribution<float>{-400.f, 400.f}(rng),

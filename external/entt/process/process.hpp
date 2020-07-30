@@ -5,6 +5,7 @@
 #include <utility>
 #include <type_traits>
 #include "../config/config.h"
+#include "../core/type_traits.hpp"
 
 
 namespace entt {
@@ -30,12 +31,13 @@ namespace entt {
  *   update.
  *
  * * @code{.cpp}
- *   void init(void *);
+ *   void init();
  *   @endcode
  *
- *   It's invoked at the first tick, immediately before an update. The `void *`
- *   parameter is an opaque pointer to user data (if any) forwarded directly to
- *   the process during an update.
+ *   It's invoked when the process joins the running queue of a scheduler. This
+ *   happens as soon as it's attached to the scheduler if the process is a top
+ *   level one, otherwise when it replaces its parent if the process is a
+ *   continuation.
  *
  * * @code{.cpp}
  *   void succeeded();
@@ -80,44 +82,37 @@ class process {
         FINISHED
     };
 
-    template<state value>
-    using state_value_t = std::integral_constant<state, value>;
-
-    template<state value>
-    inline static state_value_t<value> state_value{};
-
     template<typename Target = Derived>
-    auto tick(int, state_value_t<state::UNINITIALIZED>, void *data)
-    -> decltype(std::declval<Target>().init(data)) {
-        static_cast<Target *>(this)->init(data);
+    auto next(integral_constant<state::UNINITIALIZED>)
+    -> decltype(std::declval<Target>().init(), void()) {
+        static_cast<Target *>(this)->init();
     }
 
     template<typename Target = Derived>
-    auto tick(int, state_value_t<state::RUNNING>, Delta delta, void *data)
-    -> decltype(std::declval<Target>().update(delta, data)) {
+    auto next(integral_constant<state::RUNNING>, Delta delta, void *data)
+    -> decltype(std::declval<Target>().update(delta, data), void()) {
         static_cast<Target *>(this)->update(delta, data);
     }
 
     template<typename Target = Derived>
-    auto tick(int, state_value_t<state::SUCCEEDED>)
-    -> decltype(std::declval<Target>().succeeded()) {
+    auto next(integral_constant<state::SUCCEEDED>)
+    -> decltype(std::declval<Target>().succeeded(), void()) {
         static_cast<Target *>(this)->succeeded();
     }
 
     template<typename Target = Derived>
-    auto tick(int, state_value_t<state::FAILED>)
-    -> decltype(std::declval<Target>().failed()) {
+    auto next(integral_constant<state::FAILED>)
+    -> decltype(std::declval<Target>().failed(), void()) {
         static_cast<Target *>(this)->failed();
     }
 
     template<typename Target = Derived>
-    auto tick(int, state_value_t<state::ABORTED>)
-    -> decltype(std::declval<Target>().aborted()) {
+    auto next(integral_constant<state::ABORTED>)
+    -> decltype(std::declval<Target>().aborted(), void()) {
         static_cast<Target *>(this)->aborted();
     }
 
-    template<state value, typename... Args>
-    void tick(char, state_value_t<value>, Args &&...) const ENTT_NOEXCEPT {}
+    void next(...) const ENTT_NOEXCEPT {}
 
 protected:
     /**
@@ -173,8 +168,8 @@ public:
     using delta_type = Delta;
 
     /*! @brief Default destructor. */
-    virtual ~process() ENTT_NOEXCEPT {
-        static_assert(std::is_base_of_v<process, Derived>);
+    virtual ~process() {
+        static_assert(std::is_base_of_v<process, Derived>, "Incorrect use of the class template");
     }
 
     /**
@@ -185,12 +180,12 @@ public:
      *
      * @param immediately Requests an immediate operation.
      */
-    void abort(const bool immediately = false) ENTT_NOEXCEPT {
+    void abort(const bool immediately = false) {
         if(alive()) {
             current = state::ABORTED;
 
             if(immediately) {
-                tick(0);
+                tick({});
             }
         }
     }
@@ -199,7 +194,7 @@ public:
      * @brief Returns true if a process is either running or paused.
      * @return True if the process is still alive, false otherwise.
      */
-    bool alive() const ENTT_NOEXCEPT {
+    [[nodiscard]] bool alive() const ENTT_NOEXCEPT {
         return current == state::RUNNING || current == state::PAUSED;
     }
 
@@ -207,7 +202,7 @@ public:
      * @brief Returns true if a process is already terminated.
      * @return True if the process is terminated, false otherwise.
      */
-    bool dead() const ENTT_NOEXCEPT {
+    [[nodiscard]] bool dead() const ENTT_NOEXCEPT {
         return current == state::FINISHED;
     }
 
@@ -215,7 +210,7 @@ public:
      * @brief Returns true if a process is currently paused.
      * @return True if the process is paused, false otherwise.
      */
-    bool paused() const ENTT_NOEXCEPT {
+    [[nodiscard]] bool paused() const ENTT_NOEXCEPT {
         return current == state::PAUSED;
     }
 
@@ -223,7 +218,7 @@ public:
      * @brief Returns true if a process terminated with errors.
      * @return True if the process terminated with errors, false otherwise.
      */
-    bool rejected() const ENTT_NOEXCEPT {
+    [[nodiscard]] bool rejected() const ENTT_NOEXCEPT {
         return stopped;
     }
 
@@ -235,11 +230,12 @@ public:
     void tick(const Delta delta, void *data = nullptr) {
         switch (current) {
         case state::UNINITIALIZED:
-            tick(0, state_value_t<state::UNINITIALIZED>{}, data);
+            next(integral_constant<state::UNINITIALIZED>{});
             current = state::RUNNING;
-            [[fallthrough]];
+            break;
         case state::RUNNING:
-            tick(0, state_value_t<state::RUNNING>{}, delta, data);
+            next(integral_constant<state::RUNNING>{}, delta, data);
+            break;
         default:
             // suppress warnings
             break;
@@ -248,16 +244,16 @@ public:
         // if it's dead, it must be notified and removed immediately
         switch(current) {
         case state::SUCCEEDED:
-            tick(0, state_value_t<state::SUCCEEDED>{});
+            next(integral_constant<state::SUCCEEDED>{});
             current = state::FINISHED;
             break;
         case state::FAILED:
-            tick(0, state_value_t<state::FAILED>{});
+            next(integral_constant<state::FAILED>{});
             current = state::FINISHED;
             stopped = true;
             break;
         case state::ABORTED:
-            tick(0, state_value_t<state::ABORTED>{});
+            next(integral_constant<state::ABORTED>{});
             current = state::FINISHED;
             stopped = true;
             break;
@@ -338,4 +334,4 @@ struct process_adaptor: process<process_adaptor<Func, Delta>, Delta>, private Fu
 }
 
 
-#endif // ENTT_PROCESS_PROCESS_HPP
+#endif

@@ -86,11 +86,12 @@ public:
 };
 
 #include "entt/entity/registry.hpp"
+#include "entt/entity/snapshot.hpp"
 #include "util/movable.hpp"
 #include "playerinputs.hpp"
 
 
-using reg_t = entt::registry<>;
+using reg_t = entt::registry;
 using entity_t = reg_t::entity_type;
 
 struct expirable

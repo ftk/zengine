@@ -229,7 +229,7 @@ void controller::draw(net_node_id player)
     env.shader.bind();
     GET_UNIFORM(env.shader, u_sky) = static_resource<cubemap_texture>::get(ID("resources/sky/miramar_%%.png")).bind();
 
-    const plane& p = ecs.get<const plane>(gamestate.players[player]);
+    const plane& p = ecs.get<plane>(gamestate.players[player]);
 
     GET_UNIFORM(env.shader, u_pos) = p.position;
     GET_UNIFORM(env.shader, u_inverse_view) = (p.get_rot());
@@ -239,12 +239,12 @@ void controller::draw(net_node_id player)
 
     mat4 viewp = cam.proj * transposed(p.get_rot4()) * translation_mat(-p.position);
 
-    ecs.view<const plane>().each([&viewp, &p, this](const plane& p2){
+    ecs.view<plane>().each([&viewp, &p, this](const plane& p2){
         if(p2.position == p.position) return;
         GET_UNIFORM(plane_rnd.shader, u_mvp) = viewp * translation_mat(p2.position) * p2.get_rot4();
         plane_rnd.draw();
     });
-    ecs.view<const bullet>().each([&viewp, this](const bullet& b){
+    ecs.view<bullet>().each([&viewp, this](const bullet& b){
         GET_UNIFORM(plane_rnd.shader, u_mvp) = viewp * translation_mat(b.pos);
         plane_rnd.draw(1);
     });

@@ -45,8 +45,32 @@ private: friend void swap(classname& lhs, classname& rhs) noexcept { lhs.swap(rh
 
 #define ENTT_COPYABLE(classname,registry,copy_components,fields) \
 classname(const classname& other) noexcept { \
-this-> registry = other. registry .clone<BOOST_PP_REM copy_components>(); \
+this-> registry .clear<BOOST_PP_REM copy_components>(); \
+entt::clone<BOOST_PP_REM copy_components>(other.registry, this->registry); \
 BOOST_PP_SEQ_FOR_EACH(COPY_ASSIGN_HELPER, other, BOOST_PP_TUPLE_TO_SEQ(fields)) \
 }
+
+#include "entt/entity/registry.hpp"
+namespace entt {
+  template <typename... Type>
+  void clone(const entt::registry& from, entt::registry& to)
+  {
+    ([&]() {
+      const auto *data = from.data<Type>();
+      const auto size = from.size<Type>();
+
+      if constexpr(ENTT_IS_EMPTY(Type))
+      {
+        to.insert<Type>(data, data + size);
+      } else
+      {
+        const auto *raw = from.raw<Type>();
+        to.insert<Type>(data, data + size, raw, raw + size);
+      }
+    }(), ...);
+
+  }
+}
+
 
 #endif //ZENGINE_MOVABLE_HPP
