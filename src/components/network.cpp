@@ -7,7 +7,7 @@
 
 #include "network.hpp"
 
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <chrono>
 
 void network_c::on_timer()
